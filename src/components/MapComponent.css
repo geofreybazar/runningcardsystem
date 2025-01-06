@@ -1,0 +1,4 @@
+.pac-container {
+    z-index: 2000 !important; /* Ensure it appears above other elements */
+    position: absolute !important; /* Ensure it stays positioned correctly */
+  }
