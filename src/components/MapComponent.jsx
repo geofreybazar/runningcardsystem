@@ -68,10 +68,11 @@ function MapComponent({setLatitude, setLongtitude, handleGenerateRunningCardFrom
     handleGenerateRunningCardFromMap()
   }, [markerPosition])
   
+  const googleApiKey = import.meta.env.VITE_GOOGLE_API
 
   return (
     <APIProvider
-      apiKey="AIzaSyDIbIfN3WO7e1CRFtsUTRlFiHqX2o6d2iY"
+      apiKey={googleApiKey}
       libraries={['places']}
     >
       {/* Input box */}
