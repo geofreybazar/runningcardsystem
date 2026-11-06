@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createApp, signIn } from './helpers.js';
+import { createApp, makeUser, superAdminAuth } from './helpers.js';
 
 describe('stations and trucks', () => {
   let app: INestApplication;
@@ -12,14 +12,9 @@ describe('stations and trucks', () => {
   beforeAll(async () => {
     app = await createApp();
     http = request(app.getHttpServer());
-    // Runs after auth.e2e-spec changed the seeded password; accept either.
-    superAdmin = await signIn(app, 'superadmin', 'Super-pass-1').catch(() => signIn(app, 'superadmin', 'Initial-pass-1', 'Super-pass-1'));
-    const mk = async (username: string, role: string, districtId?: number) => {
-      const res = await http.post('/api/users').set(superAdmin).send({ username, fullName: username, role, districtId }).expect(201);
-      return signIn(app, username, res.body.temporaryPassword);
-    };
-    ops2 = await mk('st-ops2', 'OPERATIONS', 2);
-    radio = await mk('st-radio', 'RADIO_OPERATOR');
+    superAdmin = await superAdminAuth(app);
+    ops2 = await makeUser(app, superAdmin, 'st-ops2', 'OPERATIONS', 2);
+    radio = await makeUser(app, superAdmin, 'st-radio', 'RADIO_OPERATOR');
   });
   afterAll(() => app.close());
 

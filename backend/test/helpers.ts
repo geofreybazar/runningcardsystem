@@ -31,3 +31,12 @@ export async function signIn(app: INestApplication, username: string, password: 
   }
   return { Authorization: `Bearer ${token}` };
 }
+
+/** The seeded super admin; whichever spec runs first changes its temporary password. */
+export const superAdminAuth = (app: INestApplication) =>
+  signIn(app, 'superadmin', 'Super-pass-1').catch(() => signIn(app, 'superadmin', 'Initial-pass-1', 'Super-pass-1'));
+
+export async function makeUser(app: INestApplication, admin: Record<string, string>, username: string, role: string, districtId?: number) {
+  const res = await request(app.getHttpServer()).post('/api/users').set(admin).send({ username, fullName: username, role, districtId }).expect(201);
+  return signIn(app, username, res.body.temporaryPassword);
+}

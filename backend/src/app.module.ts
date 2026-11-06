@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { DistrictsModule } from './districts/districts.module.js';
 import { StationsModule } from './stations/stations.module.js';
+import { RunningCardModule } from './running-card/running-card.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StationsModule } from './stations/stations.module.js';
     UsersModule,
     DistrictsModule,
     StationsModule,
+    RunningCardModule,
   ],
 })
 export class AppModule {}

@@ -1,25 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
-import { TextField, Autocomplete, InputAdornment } from "@mui/material";
+import { TextField, Autocomplete, InputAdornment, MenuItem } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import variables from "../variables/variables.js";
+import { api } from "../api/client.js";
 
 const { parseCoordinates, NCR_BOUNDS } = variables;
-
-// The barangay package bundles the whole country (~600 KB), so load it only when needed.
-const loadBarangays = async () => {
-  const { default: barangay } = await import("barangay");
-  const cities = barangay.dump["NATIONAL CAPITAL REGION"]["METRO MANILA"];
-  return Object.entries(cities).flatMap(([city, brgys]) =>
-    brgys.map((name) => ({ name, city }))
-  );
-};
 
 function LocationSearch({ onSelect }) {
   const places = useMapsLibrary("places");
   const geocoding = useMapsLibrary("geocoding");
   const [error, setError] = useState("");
-  const [barangays, setBarangays] = useState(null);
+  const [districts, setDistricts] = useState([]);
+  const [districtId, setDistrictId] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [barangays, setBarangays] = useState([]);
+  const [barangay, setBarangay] = useState(null);
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const tokenRef = useRef(null);
@@ -77,17 +73,48 @@ function LocationSearch({ onSelect }) {
     }
   };
 
+  // BFP structure: District → City → Barangay. FD1 (Manila) and FD5 (Quezon City) have one city, so it is picked for you.
+  useEffect(() => {
+    api("/districts").then(setDistricts).catch(() => {});
+  }, []);
+  const district = districts.find((d) => d.id === districtId);
+  const city = district?.cities.find((c) => c.id === cityId);
+
+  const pickDistrict = (id) => {
+    const d = districts.find((x) => x.id === id);
+    setDistrictId(id);
+    setCityId(d?.cities.length === 1 ? d.cities[0].id : "");
+  };
+
+  useEffect(() => {
+    setBarangay(null);
+    setBarangays([]);
+    if (cityId) api(`/cities/${cityId}/barangays`).then(setBarangays).catch(() => {});
+  }, [cityId]);
+
   const handleBarangay = async (_, option) => {
-    if (!option || !geocoding) return;
-    const label = `${option.name}, ${option.city}`;
+    setBarangay(option);
+    if (!option) return;
+    const label = `${option.name}, ${city.name}`;
+    if (option.lat != null) {
+      setError("");
+      onSelect({ lat: option.lat, lng: option.lng }, label);
+      return;
+    }
+    if (!geocoding) return;
     try {
+      // First time this barangay is used: geocode it and save the pin so the next lookup is instant.
       const { results } = await new geocoding.Geocoder().geocode({
-        address: `${label}, Metro Manila, Philippines`,
+        address: `${option.name}, ${city.name}, Metro Manila, Philippines`,
         bounds: NCR_BOUNDS,
         region: "ph",
       });
+      const point = results[0].geometry.location.toJSON();
       setError("");
-      onSelect(results[0].geometry.location.toJSON(), label);
+      onSelect(point, label);
+      api(`/barangays/${option.id}/location`, { method: "PUT", body: point })
+        .then((saved) => setBarangays((list) => list.map((b) => (b.id === saved.id ? saved : b))))
+        .catch(() => {});
     } catch {
       setError(`Could not find ${label} on the map. Try the search box or drop the pin.`);
     }
@@ -125,20 +152,36 @@ function LocationSearch({ onSelect }) {
           />
         )}
       />
-      <Autocomplete
-        options={barangays || []}
-        loading={!barangays}
-        onOpen={() => !barangays && loadBarangays().then(setBarangays)}
-        groupBy={(o) => o.city}
-        getOptionLabel={(o) => `${o.name}, ${o.city}`}
-        renderOption={(props, o) => (
-          <li {...props} key={`${o.city}-${o.name}`}>
-            {o.name}
-          </li>
+      <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
+        <TextField select label='Fire district' value={districtId} onChange={(e) => pickDistrict(e.target.value)}>
+          {districts.map((d) => (
+            <MenuItem key={d.id} value={d.id}>
+              {d.name}
+              {d.alias ? ` · ${d.alias}` : ""}
+            </MenuItem>
+          ))}
+        </TextField>
+        {district?.cities.length > 1 ? (
+          <TextField select label='City' value={cityId} onChange={(e) => setCityId(e.target.value)}>
+            {district.cities.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        ) : (
+          <TextField label='City' value={city?.name ?? ""} disabled />
         )}
-        onChange={handleBarangay}
-        renderInput={(params) => <TextField {...params} label='Or pick a barangay' />}
-      />
+        <Autocomplete
+          options={barangays}
+          value={barangay}
+          disabled={!cityId}
+          getOptionLabel={(o) => o.name}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
+          onChange={handleBarangay}
+          renderInput={(params) => <TextField {...params} label='Barangay' />}
+        />
+      </div>
     </div>
   );
 }
