@@ -70,7 +70,8 @@ export class AuthController {
     res.cookie(COOKIE, refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      // Secure cookies need HTTPS (or localhost). COOKIE_SECURE=false only for a trusted LAN without HTTPS.
+      secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
       path: COOKIE_PATH,
       maxAge: REFRESH_TTL_MS,
     });

@@ -10,8 +10,17 @@ import UsersPage from "./pages/UsersPage.jsx";
 import StationsPage from "./pages/StationsPage.jsx";
 import IncidentsPage from "./pages/IncidentsPage.jsx";
 import IncidentDetailPage from "./pages/IncidentDetailPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
+import AuditLogPage from "./pages/AuditLogPage.jsx";
 
-const PAGES = { "/": <Home />, "/incidents": <IncidentsPage />, "/stations": <StationsPage />, "/users": <UsersPage /> };
+const PAGES = {
+  "/": <Home />,
+  "/incidents": <IncidentsPage />,
+  "/stations": <StationsPage />,
+  "/users": <UsersPage />,
+  "/audit-log": <AuditLogPage />,
+  "/settings": <SettingsPage />,
+};
 
 function ChangePasswordRoute() {
   const navigate = useNavigate();

@@ -11,6 +11,7 @@ import { DistrictsModule } from './districts/districts.module.js';
 import { StationsModule } from './stations/stations.module.js';
 import { RunningCardModule } from './running-card/running-card.module.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { IncidentsModule } from './incidents/incidents.module.js';
     StationsModule,
     RunningCardModule,
     IncidentsModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

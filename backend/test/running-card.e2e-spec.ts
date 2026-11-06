@@ -62,3 +62,32 @@ describe('running card and barangay pins', () => {
     await http.put(`/api/barangays/${bManila.id}/location`).set(ops2).send({ lat: 14.61, lng: 120.98 }).expect(403);
   });
 });
+
+describe('settings', () => {
+  let app: INestApplication;
+  let http: ReturnType<typeof request>;
+  let superAdmin: Record<string, string>;
+
+  beforeAll(async () => {
+    app = await createApp();
+    http = request(app.getHttpServer());
+    superAdmin = await superAdminAuth(app);
+  });
+  afterAll(() => app.close());
+
+  it('only super admin changes the running card rules, and the card follows them', async () => {
+    const admin = await makeUser(app, superAdmin, 'set-admin', 'ADMIN');
+    const original = (await http.get('/api/settings').set(admin).expect(200)).body;
+    await http.put('/api/settings').set(admin).send({ ...original, id: undefined }).expect(403);
+
+    const rules = { stationsPerAlarm: 3, maxDistanceKm: 100, alarmLevels: ['First', 'Second'] };
+    await http.put('/api/settings').set(superAdmin).send({ ...rules, alarmLevels: ['A', 'A'] }).expect(400);
+    await http.put('/api/settings').set(superAdmin).send(rules).expect(200);
+    const card = (await http.get('/api/running-card').query(QUIAPO).set(admin)).body;
+    expect(card.map((a: { alarmLevel: string }) => a.alarmLevel)).toEqual(['First', 'Second']);
+    expect(card[0].stations).toHaveLength(3);
+
+    const { stationsPerAlarm, maxDistanceKm, alarmLevels } = original;
+    await http.put('/api/settings').set(superAdmin).send({ stationsPerAlarm, maxDistanceKm, alarmLevels }).expect(200);
+  });
+});

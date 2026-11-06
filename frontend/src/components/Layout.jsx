@@ -10,6 +10,8 @@ export const NAV = [
   { to: "/incidents", label: "Incidents", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
   { to: "/stations", label: "Stations & Trucks", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
   { to: "/users", label: "Users", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/audit-log", label: "Audit log", roles: ["SUPER_ADMIN", "ADMIN"] },
+  { to: "/settings", label: "Settings", roles: ["SUPER_ADMIN"] },
 ];
 
 function Layout() {
