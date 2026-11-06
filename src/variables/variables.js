@@ -978,15 +978,30 @@ const categorizeAlarm = (stations) => {
   return stationPerAlarm;
 };
 
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: "50%",
-  height: "50%",
-  bgcolor: "background.paper",
-  p: 0,
+// Rough Metro Manila box, used to bias search and reject typos in typed coordinates.
+const NCR_BOUNDS = { south: 14.35, west: 120.9, north: 14.8, east: 121.15 };
+
+// Accepts "14.59, 121.00", "14.59,121.00" or "14.59 121.00". Returns null for anything else or outside NCR.
+const parseCoordinates = (text) => {
+  const m = String(text).trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  const { south, west, north, east } = NCR_BOUNDS;
+  if (lat < south || lat > north || lng < west || lng > east) return null;
+  return { lat, lng };
+};
+
+const buildRunningCard = (location) => {
+  if (!location) return null;
+  const stations = fireStations
+    .map((station) => ({
+      ...station,
+      distance: haversine(location.lat, location.lng, station.lat, station.long),
+    }))
+    .filter((station) => station.distance <= 100)
+    .sort((a, b) => a.distance - b.distance);
+  return categorizeAlarm(stations).slice(0, 10);
 };
 
 export default {
@@ -994,5 +1009,7 @@ export default {
   alarms,
   haversine,
   categorizeAlarm,
-  modalStyle,
+  NCR_BOUNDS,
+  parseCoordinates,
+  buildRunningCard,
 };

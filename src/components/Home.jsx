@@ -1,122 +1,52 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import variables from "../variables/variables.js";
 import Card from "./Card.jsx";
-import { Button, TextField, IconButton } from "@mui/material/";
-import EditLocationIcon from "@mui/icons-material/EditLocation";
-import ModalComponent from "../reusablecomponent/ModalComponent.jsx";
+import LocationSearch from "./LocationSearch.jsx";
 import MapComponent from "./MapComponent.jsx";
 
-const fireStations = variables.fireStations;
-const haversine = variables.haversine;
-const categorizeAlarm = variables.categorizeAlarm;
-const style = variables.modalStyle;
+const { buildRunningCard } = variables;
 
 function Home() {
-  const [latitude, setLatitude] = useState("");
-  const [longtitude, setLongtitude] = useState("");
-  const [runningCard, setRunningCard] = useState(null);
-  const [openMap, setOpenMap] = useState(false);
-  const handleCloseMap = () => setOpenMap(false);
+  const [location, setLocation] = useState(null);
+  const [label, setLabel] = useState("");
+  const runningCard = useMemo(() => buildRunningCard(location), [location]);
 
-  //14.591623362180677
-  //121.00309176478918
-
-  const handleGenerateRunningCard = (e) => {
-    e.preventDefault();
-    const filtered = fireStations
-      .filter((station) => {
-        const distance = haversine(
-          latitude,
-          longtitude,
-          station.lat,
-          station.long
-        );
-        return distance <= 100;
-      })
-      .map((station) => ({
-        name: station.name,
-        long: station.long,
-        lat: station.lat,
-        district: station.district,
-        distance: haversine(latitude, longtitude, station.lat, station.long),
-      }));
-    const sortedStations = filtered.sort((a, b) => a.distance - b.distance);
-    const categorizedAlarms = categorizeAlarm(sortedStations);
-    const firsst40Stations = categorizedAlarms.slice(0, 10);
-    setRunningCard(firsst40Stations);
+  const handleSelect = (point, text) => {
+    setLocation(point);
+    setLabel(text);
   };
 
-  const handleGenerateRunningCardFromMap = () => {
-    console.log(latitude);
-    const filtered = fireStations
-      .filter((station) => {
-        const distance = haversine(
-          latitude,
-          longtitude,
-          station.lat,
-          station.long
-        );
-        return distance <= 100;
-      })
-      .map((station) => ({
-        name: station.name,
-        long: station.long,
-        lat: station.lat,
-        district: station.district,
-        distance: haversine(latitude, longtitude, station.lat, station.long),
-      }));
-    const sortedStations = filtered.sort((a, b) => a.distance - b.distance);
-    const categorizedAlarms = categorizeAlarm(sortedStations);
-    const firsst40Stations = categorizedAlarms.slice(0, 10);
-    setRunningCard(firsst40Stations);
-  };
-
-  // console.log(runningCard)
-  // console.log(`${latitude}, ${longtitude}`)
   return (
-    <div className='w-full flex flex-col items-center p-10 gap-5'>
-      <div style={{ fontSize: "30px" }}>BFP-NCR Running Card System</div>
-      <div className='w-1/3 '>
-        <form
-          className='flex justify-center items-center gap-2'
-          onSubmit={handleGenerateRunningCard}
-        >
-          <TextField
-            fullWidth
-            label='Latitude'
-            variant='outlined'
-            size='small'
-            type='string'
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            label='Longtiture'
-            variant='outlined'
-            size='small'
-            type='string'
-            value={longtitude}
-            onChange={(e) => setLongtitude(e.target.value)}
-          />
-          <IconButton onClick={() => setOpenMap(true)}>
-            <EditLocationIcon />
-          </IconButton>
-          <Button variant='contained' type='submit'>
-            Submit
-          </Button>
-        </form>
-      </div>
+    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_API}>
+      <div className='min-h-screen bg-gray-50'>
+        <header className='bg-red-700 px-6 py-4 text-2xl font-semibold text-white'>
+          BFP-NCR Running Card System
+        </header>
 
-      <Card runningCard={runningCard} />
-      <ModalComponent open={openMap} handleClose={handleCloseMap} style={style}>
-        <MapComponent
-          setLatitude={setLatitude}
-          setLongtitude={setLongtitude}
-          handleGenerateRunningCardFromMap={handleGenerateRunningCardFromMap}
-        />
-      </ModalComponent>
-    </div>
+        <main className='grid grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(360px,2fr)_3fr] lg:p-6'>
+          <section className='flex flex-col gap-3'>
+            <LocationSearch onSelect={handleSelect} />
+            <div className='h-[420px] overflow-hidden rounded border lg:h-[560px]'>
+              <MapComponent position={location} onChange={(p) => handleSelect(p, "Pinned on map")} />
+            </div>
+            {location && (
+              <div className='text-sm text-gray-700'>
+                <div className='font-medium'>{label}</div>
+                <div className='font-mono'>
+                  {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                </div>
+              </div>
+            )}
+            <p className='text-xs text-gray-500'>Click the map or drag the pin to adjust the location.</p>
+          </section>
+
+          <section>
+            <Card runningCard={runningCard} />
+          </section>
+        </main>
+      </div>
+    </APIProvider>
   );
 }
 
