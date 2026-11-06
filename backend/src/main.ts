@@ -1,3 +1,4 @@
+import 'dotenv/config'; // before any module reads process.env at import time (e.g. the login rate limit)
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';

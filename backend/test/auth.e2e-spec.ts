@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createApp, refreshCookie, signIn } from './helpers.js';
+import { createApp, refreshCookie, signIn, superAdminAuth } from './helpers.js';
 
 describe('auth and user management', () => {
   let app: INestApplication;
@@ -10,6 +10,7 @@ describe('auth and user management', () => {
   beforeAll(async () => {
     app = await createApp();
     http = request(app.getHttpServer());
+    superAdmin = await superAdminAuth(app); // spec files share one database and may run in any order
   });
   afterAll(() => app.close());
 
@@ -20,7 +21,8 @@ describe('auth and user management', () => {
   });
 
   it('blocks everything but me/change-password until the temporary password is changed', async () => {
-    const login = await http.post('/api/auth/login').send({ username: 'superadmin', password: 'Initial-pass-1' }).expect(200);
+    const created = await http.post('/api/users').set(superAdmin).send({ username: 'fresh-admin', fullName: 'Fresh', role: 'ADMIN' }).expect(201);
+    const login = await http.post('/api/auth/login').send({ username: 'fresh-admin', password: created.body.temporaryPassword }).expect(200);
     expect(login.body.user.mustChangePassword).toBe(true);
     expect(login.body).not.toHaveProperty('refreshToken');
     expect(refreshCookie(login)).toBeDefined();
@@ -28,8 +30,8 @@ describe('auth and user management', () => {
     await http.get('/api/users').set(auth).expect(403);
     await http.get('/api/auth/me').set(auth).expect(200);
 
-    superAdmin = await signIn(app, 'superadmin', 'Initial-pass-1', 'Super-pass-1');
-    await http.get('/api/users').set(superAdmin).expect(200);
+    const changed = await signIn(app, 'fresh-admin', created.body.temporaryPassword);
+    await http.get('/api/users').set(changed).expect(200);
   });
 
   it('rotates refresh tokens and revokes the family when an old one is reused', async () => {

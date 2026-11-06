@@ -8,8 +8,10 @@ import LoginPage from "./pages/LoginPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import StationsPage from "./pages/StationsPage.jsx";
+import IncidentsPage from "./pages/IncidentsPage.jsx";
+import IncidentDetailPage from "./pages/IncidentDetailPage.jsx";
 
-const PAGES = { "/": <Home />, "/stations": <StationsPage />, "/users": <UsersPage /> };
+const PAGES = { "/": <Home />, "/incidents": <IncidentsPage />, "/stations": <StationsPage />, "/users": <UsersPage /> };
 
 function ChangePasswordRoute() {
   const navigate = useNavigate();
@@ -34,6 +36,7 @@ function AppRoutes() {
         {NAV.filter((n) => n.roles.includes(user.role)).map((n) => (
           <Route key={n.to} path={n.to} element={PAGES[n.to]} />
         ))}
+        <Route path='/incidents/:id' element={<IncidentDetailPage />} />
       </Route>
       <Route path='/change-password' element={<ChangePasswordRoute />} />
       <Route path='*' element={<Navigate to='/' replace />} />

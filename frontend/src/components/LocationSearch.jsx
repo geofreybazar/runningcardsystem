@@ -98,7 +98,7 @@ function LocationSearch({ onSelect }) {
     const label = `${option.name}, ${city.name}`;
     if (option.lat != null) {
       setError("");
-      onSelect({ lat: option.lat, lng: option.lng }, label);
+      onSelect({ lat: option.lat, lng: option.lng }, label, option.id);
       return;
     }
     if (!geocoding) return;
@@ -111,7 +111,7 @@ function LocationSearch({ onSelect }) {
       });
       const point = results[0].geometry.location.toJSON();
       setError("");
-      onSelect(point, label);
+      onSelect(point, label, option.id);
       api(`/barangays/${option.id}/location`, { method: "PUT", body: point })
         .then((saved) => setBarangays((list) => list.map((b) => (b.id === saved.id ? saved : b))))
         .catch(() => {});

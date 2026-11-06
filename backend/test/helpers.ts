@@ -4,6 +4,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+process.env.LOGIN_RATE_LIMIT = '1000'; // the suite signs in far more than a person would
 
 export async function createApp(): Promise<INestApplication> {
   // Imported after DATABASE_URL is switched to the test database.

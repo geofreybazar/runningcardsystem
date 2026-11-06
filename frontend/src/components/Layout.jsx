@@ -7,6 +7,7 @@ import { ROLE_LABELS, useAuth } from "../auth/AuthContext.jsx";
 /** Pages and the roles that see them in the menu. The backend enforces the same rules. */
 export const NAV = [
   { to: "/", label: "Running Card", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
+  { to: "/incidents", label: "Incidents", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
   { to: "/stations", label: "Stations & Trucks", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
   { to: "/users", label: "Users", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
@@ -24,7 +25,7 @@ function Layout() {
             <NavLink
               key={n.to}
               to={n.to}
-              end
+              end={n.to === "/"}
               className={({ isActive }) => `rounded px-3 py-1 text-sm ${isActive ? "bg-white/20 font-semibold" : "hover:bg-white/10"}`}
             >
               {n.label}

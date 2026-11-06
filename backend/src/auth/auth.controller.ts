@@ -21,7 +21,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 10), ttl: 60_000 } }) // per IP
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
     return this.respond(res, await this.auth.login(body.username, body.password));
   }

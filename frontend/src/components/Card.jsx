@@ -4,7 +4,7 @@ import { TRUCK_TYPES } from "../labels.js";
 
 const truckLabel = (t) => `${t.callSign} · ${TRUCK_TYPES[t.type]}`;
 
-function Card({ runningCard, truckPicks = {}, onPickTruck, alarmIndex = -1 }) {
+function Card({ runningCard, truckPicks = {}, onPickTruck }) {
   if (!runningCard) {
     return (
       <Paper variant='outlined' className='p-10 text-center text-gray-500'>
@@ -37,14 +37,9 @@ function Card({ runningCard, truckPicks = {}, onPickTruck, alarmIndex = -1 }) {
 
       <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
         {runningCard.map((alarm, i) => (
-          <Paper
-            key={alarm.alarmLevel}
-            variant='outlined'
-            className={`overflow-hidden ${i <= alarmIndex ? "ring-2 ring-red-600" : ""}`}
-          >
-            <div className={`flex justify-between px-4 py-2 font-semibold text-white ${i < 5 ? "bg-red-700" : i < 9 ? "bg-gray-800" : "bg-black"}`}>
-              <span>{alarm.alarmLevel}</span>
-              {i <= alarmIndex && <span className='text-xs font-normal uppercase'>Dispatched</span>}
+          <Paper key={alarm.alarmLevel} variant='outlined' className='overflow-hidden'>
+            <div className={`px-4 py-2 font-semibold text-white ${i < 5 ? "bg-red-700" : i < 9 ? "bg-gray-800" : "bg-black"}`}>
+              {alarm.alarmLevel}
             </div>
             <ul className='divide-y'>
               {alarm.stations.map((station) => {
@@ -60,7 +55,7 @@ function Card({ runningCard, truckPicks = {}, onPickTruck, alarmIndex = -1 }) {
                     </span>
                     <div className='min-w-0 flex-1'>
                       <div className='text-sm font-medium uppercase'>{station.name}</div>
-                      {onPickTruck && station.trucks.length > 1 && i > alarmIndex ? (
+                      {onPickTruck && station.trucks.length > 1 ? (
                         <Select
                           variant='standard'
                           value={truckId}
