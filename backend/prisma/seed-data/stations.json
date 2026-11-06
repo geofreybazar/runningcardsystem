@@ -1,0 +1,938 @@
+[
+ {
+  "name": "San Nicolas Fire Sub-Station",
+  "lat": 14.59726023,
+  "lng": 120.9704885,
+  "districtCode": 1
+ },
+ {
+  "name": "Tanduay Fire Sub Station",
+  "lat": 14.5982888,
+  "lng": 120.9896486,
+  "districtCode": 1
+ },
+ {
+  "name": "Paco Fire Sub-Station",
+  "lat": 14.5807174,
+  "lng": 120.988127,
+  "districtCode": 1
+ },
+ {
+  "name": "Intramuros Fire Sub-Station",
+  "lat": 14.59221415,
+  "lng": 120.97226,
+  "districtCode": 1
+ },
+ {
+  "name": "Tondo Fire Sub-Station",
+  "lat": 14.607579,
+  "lng": 120.966613,
+  "districtCode": 1
+ },
+ {
+  "name": "Sta Mesa Fire Sub-Station",
+  "lat": 14.601803,
+  "lng": 121.008152,
+  "districtCode": 1
+ },
+ {
+  "name": "Gagalangin Fire Sub-station",
+  "lat": 14.6248,
+  "lng": 120.97303,
+  "districtCode": 1
+ },
+ {
+  "name": "Sta. Ana Fire Sub-Station",
+  "lat": 14.5802295,
+  "lng": 121.0081588,
+  "districtCode": 1
+ },
+ {
+  "name": "Arroceros Fire Sub-Station",
+  "lat": 14.59321163,
+  "lng": 120.9818336,
+  "districtCode": 1
+ },
+ {
+  "name": "Sampaloc Fire Sub-Station",
+  "lat": 14.60785049,
+  "lng": 120.9949955,
+  "districtCode": 1
+ },
+ {
+  "name": "Malacañang Fire Sub-station",
+  "lat": 14.59303333,
+  "lng": 120.9926611,
+  "districtCode": 1
+ },
+ {
+  "name": "Bacood Fire Sub-Station",
+  "lat": 14.5925976,
+  "lng": 121.0201339,
+  "districtCode": 1
+ },
+ {
+  "name": "Pandacan Fire Station",
+  "lat": 14.5920162,
+  "lng": 121.0119364,
+  "districtCode": 1
+ },
+ {
+  "name": "San Lazaro Fire Station",
+  "lat": 14.6129367,
+  "lng": 120.9823968,
+  "districtCode": 1
+ },
+ {
+  "name": "CALOOCAN CENTRAL FIRE STATION",
+  "lat": 14.6577816,
+  "lng": 120.9743163,
+  "districtCode": 2
+ },
+ {
+  "name": "Maypajo Fire Sub-Station",
+  "lat": 14.6379998,
+  "lng": 120.9736746,
+  "districtCode": 2
+ },
+ {
+  "name": "Talipapa Fire Sub station",
+  "lat": 14.6900432,
+  "lng": 121.0172964,
+  "districtCode": 2
+ },
+ {
+  "name": "Barrio San Jose Fire Sub-Station",
+  "lat": 14.6399895,
+  "lng": 120.989145,
+  "districtCode": 2
+ },
+ {
+  "name": "BF HOMES FIRE SUBSTATION",
+  "lat": 14.7321625,
+  "lng": 121.0197344,
+  "districtCode": 2
+ },
+ {
+  "name": "Caloocan City North Fire Sub. Station",
+  "lat": 14.7497722,
+  "lng": 121.0330668,
+  "districtCode": 2
+ },
+ {
+  "name": "CIC Kaybiga Fire Station",
+  "lat": 14.7236458,
+  "lng": 121.0164925,
+  "districtCode": 2
+ },
+ {
+  "name": "Malaria Fire Sub-Station",
+  "lat": 14.7695139,
+  "lng": 121.0796712,
+  "districtCode": 2
+ },
+ {
+  "name": "Amparo Fire Sub Station Caloocan",
+  "lat": 14.7512875,
+  "lng": 121.0685469,
+  "districtCode": 2
+ },
+ {
+  "name": "Bagong Silang Fire Sub Station",
+  "lat": 14.7812628,
+  "lng": 121.0371573,
+  "districtCode": 2
+ },
+ {
+  "name": "Caloocan North City Hall Fire Sub-Station",
+  "lat": 14.7508282,
+  "lng": 121.0538992,
+  "districtCode": 2
+ },
+ {
+  "name": "Kaybiga Fire Sub-Station",
+  "lat": 14.7190711,
+  "lng": 121.0071654,
+  "districtCode": 2
+ },
+ {
+  "name": "Bagong Barrio Fire Station",
+  "lat": 14.66528,
+  "lng": 120.997324,
+  "districtCode": 2
+ },
+ {
+  "name": "Malabon Central Fire Station",
+  "lat": 14.6690827,
+  "lng": 120.9760183,
+  "districtCode": 2
+ },
+ {
+  "name": "Panghulo Fire Sub-Station",
+  "lat": 14.6868622,
+  "lng": 120.9540284,
+  "districtCode": 2
+ },
+ {
+  "name": "Bayan Fire Sub-Station",
+  "lat": 14.658047,
+  "lng": 120.951079,
+  "districtCode": 2
+ },
+ {
+  "name": "Navotas Fire Station",
+  "lat": 14.6568702,
+  "lng": 120.9480052,
+  "districtCode": 2
+ },
+ {
+  "name": "Tangos Fire Sub Station",
+  "lat": 14.67524772,
+  "lng": 120.9324715,
+  "districtCode": 2
+ },
+ {
+  "name": "Dagat-Dagatan Fire Sub Station",
+  "lat": 14.64476265,
+  "lng": 120.9619282,
+  "districtCode": 2
+ },
+ {
+  "name": "Tanza Fire Sub Station",
+  "lat": 14.6749853,
+  "lng": 120.9397316,
+  "districtCode": 2
+ },
+ {
+  "name": "VALENZUELA CITY CENTRAL FIRE STATION",
+  "lat": 14.69315043,
+  "lng": 120.9688537,
+  "districtCode": 2
+ },
+ {
+  "name": "Karuhatan Fire Station",
+  "lat": 14.689649,
+  "lng": 120.9781937,
+  "districtCode": 2
+ },
+ {
+  "name": "MARULAS FIRE SUB-STATION",
+  "lat": 14.67372313,
+  "lng": 120.9828305,
+  "districtCode": 2
+ },
+ {
+  "name": "POLO FIRE SUB-STATION",
+  "lat": 14.70811914,
+  "lng": 120.9463363,
+  "districtCode": 2
+ },
+ {
+  "name": "Wawang Pulo Fire Sub Station",
+  "lat": 14.7337078,
+  "lng": 120.9277959,
+  "districtCode": 2
+ },
+ {
+  "name": "Paso De Blas Fire Sub Station",
+  "lat": 14.7077694,
+  "lng": 120.9925994,
+  "districtCode": 2
+ },
+ {
+  "name": "DALANDANAN FIRE SUB-STATION",
+  "lat": 14.70441349,
+  "lng": 120.9612571,
+  "districtCode": 2
+ },
+ {
+  "name": "CANUMAY FIRE SUB-STATION",
+  "lat": 14.70559586,
+  "lng": 120.9834141,
+  "districtCode": 2
+ },
+ {
+  "name": "Mapulang Lupa Fire Sub Station",
+  "lat": 14.7025971,
+  "lng": 121.0009289,
+  "districtCode": 2
+ },
+ {
+  "name": "Bagbaguin Fire Sub Station",
+  "lat": 14.7139121,
+  "lng": 121.0008684,
+  "districtCode": 2
+ },
+ {
+  "name": "Ugong Fire Station",
+  "lat": 14.6940854,
+  "lng": 121.0090087,
+  "districtCode": 2
+ },
+ {
+  "name": "Gen. T. De Leon Fire Station",
+  "lat": 14.6854875,
+  "lng": 120.9909988,
+  "districtCode": 2
+ },
+ {
+  "name": "Punturin Fire Station",
+  "lat": 14.7410278,
+  "lng": 120.9903109,
+  "districtCode": 2
+ },
+ {
+  "name": "Bignay Fire Sub Station",
+  "lat": 14.7479033,
+  "lng": 120.9968496,
+  "districtCode": 2
+ },
+ {
+  "name": "Lawang Bato Fire Sub Station",
+  "lat": 14.7303781,
+  "lng": 120.9939605,
+  "districtCode": 2
+ },
+ {
+  "name": "Malinta Fire Sub-Station",
+  "lat": 14.6863348,
+  "lng": 120.9658555,
+  "districtCode": 2
+ },
+ {
+  "name": "BANGKAL FIRE STATION",
+  "lat": 14.54145805,
+  "lng": 121.011986,
+  "districtCode": 3
+ },
+ {
+  "name": "Pio Del Pilar Fire Sub Station",
+  "lat": 14.5505498,
+  "lng": 121.0072598,
+  "districtCode": 3
+ },
+ {
+  "name": "PALANAN FIRE SUBSTATION",
+  "lat": 14.560408,
+  "lng": 121.005845,
+  "districtCode": 3
+ },
+ {
+  "name": "LA PAZ FIRE SUBSTATION",
+  "lat": 14.56852114,
+  "lng": 121.0073846,
+  "districtCode": 3
+ },
+ {
+  "name": "TEJEROS FIRE SUBSTATION",
+  "lat": 14.57448,
+  "lng": 121.01433,
+  "districtCode": 3
+ },
+ {
+  "name": "VALENZUELA FIRE SUBSTATION",
+  "lat": 14.5719,
+  "lng": 121.0245,
+  "districtCode": 3
+ },
+ {
+  "name": "POBLACION FIRE SUBSTATION",
+  "lat": 14.56739838,
+  "lng": 121.0329623,
+  "districtCode": 3
+ },
+ {
+  "name": "GUADALUPE FIRE SUBSTATION",
+  "lat": 14.56064583,
+  "lng": 121.0448334,
+  "districtCode": 3
+ },
+ {
+  "name": "Ayala Satellite Fire Station",
+  "lat": 14.5506354,
+  "lng": 121.0267756,
+  "districtCode": 3
+ },
+ {
+  "name": "Makati Central Fire Station",
+  "lat": 14.5624549,
+  "lng": 121.0151878,
+  "districtCode": 3
+ },
+ {
+  "name": "MUNTINLUPA CENTRAL FIRE STATION",
+  "lat": 14.41884,
+  "lng": 121.04343,
+  "districtCode": 3
+ },
+ {
+  "name": "TUNASA FIRE SUBSTATION",
+  "lat": 14.38349,
+  "lng": 121.04201,
+  "districtCode": 3
+ },
+ {
+  "name": "AYALA ALABANG FIRE STATION",
+  "lat": 14.4082578,
+  "lng": 121.0309143,
+  "districtCode": 3
+ },
+ {
+  "name": "SUCAT FIRE SUBSTATION",
+  "lat": 14.4513,
+  "lng": 121.05154,
+  "districtCode": 3
+ },
+ {
+  "name": "BILIBID FIRE SUBSTATION",
+  "lat": 14.3781568,
+  "lng": 121.0230973,
+  "districtCode": 3
+ },
+ {
+  "name": "PASAY CENTRAL FIRE STATION",
+  "lat": 14.54934,
+  "lng": 121.00419,
+  "districtCode": 3
+ },
+ {
+  "name": "MALIBAY FIRE SUBSTATION",
+  "lat": 14.533889,
+  "lng": 121.009444,
+  "districtCode": 3
+ },
+ {
+  "name": "VILLAMOR FIRE SUBSTATION",
+  "lat": 14.52,
+  "lng": 121.0179,
+  "districtCode": 3
+ },
+ {
+  "name": "SENATE FIRE SUBSTATION",
+  "lat": 14.54553492,
+  "lng": 120.982655,
+  "districtCode": 3
+ },
+ {
+  "name": "KALAYAAN FIRE SUBSTATION",
+  "lat": 14.50771,
+  "lng": 121.029062,
+  "districtCode": 3
+ },
+ {
+  "name": "PARAÑAQUE CENTRAL FIRE STATION",
+  "lat": 14.48659722,
+  "lng": 120.991675,
+  "districtCode": 3
+ },
+ {
+  "name": "BF Homes Fire Sub-Station",
+  "lat": 14.4455556,
+  "lng": 121.0272222,
+  "districtCode": 3
+ },
+ {
+  "name": "Merville Fire Sub-Station",
+  "lat": 14.50472222,
+  "lng": 120.9969444,
+  "districtCode": 3
+ },
+ {
+  "name": "Don Bosco Fire Station",
+  "lat": 14.4818249,
+  "lng": 121.0381882,
+  "districtCode": 3
+ },
+ {
+  "name": "BAMBOO FIRE SUBSTATION",
+  "lat": 14.48094532,
+  "lng": 120.9816218,
+  "districtCode": 3
+ },
+ {
+  "name": "C5 VILLAR SIPAG FIRE SUB-STATION",
+  "lat": 14.476858,
+  "lng": 120.983056,
+  "districtCode": 3
+ },
+ {
+  "name": "Gatchalian Fire Sub-Station",
+  "lat": 14.4707348,
+  "lng": 120.9918917,
+  "districtCode": 3
+ },
+ {
+  "name": "CAA Fire Substation",
+  "lat": 14.4614806,
+  "lng": 120.9974001,
+  "districtCode": 3
+ },
+ {
+  "name": "BFRV Fire Station",
+  "lat": 14.4339744,
+  "lng": 120.9839307,
+  "districtCode": 3
+ },
+ {
+  "name": "Manuela Fire Substation",
+  "lat": 14.454633,
+  "lng": 120.975039,
+  "districtCode": 3
+ },
+ {
+  "name": "Hansuyin Fire Substation",
+  "lat": 14.43277293,
+  "lng": 121.000984,
+  "districtCode": 3
+ },
+ {
+  "name": "Pilar Fire Station",
+  "lat": 14.4166162,
+  "lng": 121.0083291,
+  "districtCode": 3
+ },
+ {
+  "name": "CRM Fire Substation",
+  "lat": 14.4180667,
+  "lng": 121.0133073,
+  "districtCode": 3
+ },
+ {
+  "name": "TS Cruz Fire Substation",
+  "lat": 14.41594,
+  "lng": 121.01796,
+  "districtCode": 4
+ },
+ {
+  "name": "IVC Fire Substation",
+  "lat": 14.627106,
+  "lng": 121.0797707,
+  "districtCode": 4
+ },
+ {
+  "name": "Pugad Lawin Fire Station",
+  "lat": 14.6584345,
+  "lng": 121.1307955,
+  "districtCode": 4
+ },
+ {
+  "name": "Parang Fire Substation",
+  "lat": 14.6575103,
+  "lng": 121.1081547,
+  "districtCode": 4
+ },
+ {
+  "name": "Marikina Central Fire Station",
+  "lat": 14.632936,
+  "lng": 121.0975105,
+  "districtCode": 4
+ },
+ {
+  "name": "Concepcion Fire Station (BFP)",
+  "lat": 14.6480091,
+  "lng": 121.1091109,
+  "districtCode": 4
+ },
+ {
+  "name": "Nangka Fire Substation",
+  "lat": 14.66638889,
+  "lng": 121.1066667,
+  "districtCode": 4
+ },
+ {
+  "name": "Maybunga Fire Substation",
+  "lat": 14.580488,
+  "lng": 121.095722,
+  "districtCode": 4
+ },
+ {
+  "name": "Kapitolyo Fire Substation",
+  "lat": 14.5716756,
+  "lng": 121.0596142,
+  "districtCode": 4
+ },
+ {
+  "name": "Pinagbuhatan Fire Substation",
+  "lat": 14.548833,
+  "lng": 121.1037306,
+  "districtCode": 4
+ },
+ {
+  "name": "Meralco Rescue Fire Substation",
+  "lat": 14.590167,
+  "lng": 121.066884,
+  "districtCode": 4
+ },
+ {
+  "name": "Manggahan Fire Substation",
+  "lat": 14.6030352,
+  "lng": 121.1024912,
+  "districtCode": 4
+ },
+ {
+  "name": "Sta Lucia Fire Substation",
+  "lat": 14.5886118,
+  "lng": 121.1038052,
+  "districtCode": 4
+ },
+ {
+  "name": "Pasig City Central Fire Station",
+  "lat": 14.5620972,
+  "lng": 121.081884,
+  "districtCode": 4
+ },
+ {
+  "name": "Bagong Ilog Fire Substation",
+  "lat": 14.5676039,
+  "lng": 121.069355,
+  "districtCode": 4
+ },
+ {
+  "name": "Meralco Fire Substation",
+  "lat": 14.579157,
+  "lng": 121.063529,
+  "districtCode": 4
+ },
+ {
+  "name": "Pateros Central Fire Station",
+  "lat": 14.55163457,
+  "lng": 121.0734278,
+  "districtCode": 4
+ },
+ {
+  "name": "Sta Ana Fire Substation - Pateros",
+  "lat": 14.544016,
+  "lng": 121.070189,
+  "districtCode": 4
+ },
+ {
+  "name": "Taguig Central Fire Station",
+  "lat": 14.5027825,
+  "lng": 121.043008,
+  "districtCode": 4
+ },
+ {
+  "name": "Central Signal Fire Substation",
+  "lat": 14.5109644,
+  "lng": 121.0571817,
+  "districtCode": 4
+ },
+ {
+  "name": "BFP Tipas Fire Sub-Station",
+  "lat": 14.5406866,
+  "lng": 121.0883286,
+  "districtCode": 4
+ },
+ {
+  "name": "Bagumbayan Fire Sub Station",
+  "lat": 14.4738314,
+  "lng": 121.0591192,
+  "districtCode": 4
+ },
+ {
+  "name": "North Signal Fire Station",
+  "lat": 14.5138765,
+  "lng": 121.0589118,
+  "districtCode": 4
+ },
+ {
+  "name": "BFP Taguig City Cuasay Fire Station 8",
+  "lat": 14.518856,
+  "lng": 121.0513916,
+  "districtCode": 4
+ },
+ {
+  "name": "Wawa Fire Station",
+  "lat": 14.52067,
+  "lng": 121.08078,
+  "districtCode": 4
+ },
+ {
+  "name": "Palingon Fire Substation",
+  "lat": 14.53823713,
+  "lng": 121.080213,
+  "districtCode": 4
+ },
+ {
+  "name": "West Rembo Fire Station",
+  "lat": 14.5627689,
+  "lng": 121.0603611,
+  "districtCode": 4
+ },
+ {
+  "name": "Comembo Fire Station",
+  "lat": 14.5490427,
+  "lng": 121.0652659,
+  "districtCode": 4
+ },
+ {
+  "name": "Mandaluyong Central Fire Station",
+  "lat": 14.5771935,
+  "lng": 121.0333742,
+  "districtCode": 4
+ },
+ {
+  "name": "Mauway Fire Substation",
+  "lat": 14.5803048,
+  "lng": 121.0441925,
+  "districtCode": 4
+ },
+ {
+  "name": "Greenfield District Fire Sub-Station",
+  "lat": 14.5777418,
+  "lng": 121.053504,
+  "districtCode": 4
+ },
+ {
+  "name": "Hulo Fire Sub Station",
+  "lat": 14.570132,
+  "lng": 121.0317822,
+  "districtCode": 4
+ },
+ {
+  "name": "Kalentong Fire Substation",
+  "lat": 14.59131551,
+  "lng": 121.0253071,
+  "districtCode": 4
+ },
+ {
+  "name": "P1 Fire Station",
+  "lat": 14.60839,
+  "lng": 121.040074,
+  "districtCode": 4
+ },
+ {
+  "name": "San Juan City Central Fire Station",
+  "lat": 14.6049558,
+  "lng": 121.0329397,
+  "districtCode": 4
+ },
+ {
+  "name": "Agora Fire Sub Station",
+  "lat": 14.6061314,
+  "lng": 121.0231674,
+  "districtCode": 4
+ },
+ {
+  "name": "Greenhills Fire Substation",
+  "lat": 14.6030979,
+  "lng": 121.0504187,
+  "districtCode": 4
+ },
+ {
+  "name": "Addition Hills Fire Substation",
+  "lat": 14.5919569,
+  "lng": 121.033531,
+  "districtCode": 4
+ },
+ {
+  "name": "La Loma Fire Station",
+  "lat": 14.63190561,
+  "lng": 120.9947656,
+  "districtCode": 5
+ },
+ {
+  "name": "San Antonio F/SSTN (Frisco)",
+  "lat": 14.6546921,
+  "lng": 121.0187448,
+  "districtCode": 5
+ },
+ {
+  "name": "Project 6 F/SSTN",
+  "lat": 14.662106,
+  "lng": 121.040788,
+  "districtCode": 5
+ },
+ {
+  "name": "Bahay Toro F/SSTN",
+  "lat": 14.66496,
+  "lng": 121.01966,
+  "districtCode": 5
+ },
+ {
+  "name": "Ramon Magsaysay F/SSTN",
+  "lat": 14.659508,
+  "lng": 121.021673,
+  "districtCode": 5
+ },
+ {
+  "name": "Masambong F/SSTN",
+  "lat": 14.64036028,
+  "lng": 121.0121447,
+  "districtCode": 5
+ },
+ {
+  "name": "Congress F/SSTN",
+  "lat": 14.6946212,
+  "lng": 121.0957726,
+  "districtCode": 5
+ },
+ {
+  "name": "Commonwealth F/SSTN",
+  "lat": 14.6968,
+  "lng": 121.07771,
+  "districtCode": 5
+ },
+ {
+  "name": "Holy Spirit F/SSTN",
+  "lat": 14.68435854,
+  "lng": 121.0763411,
+  "districtCode": 5
+ },
+ {
+  "name": "Rolling Hills F/SSTN",
+  "lat": 14.7270284,
+  "lng": 121.1152839,
+  "districtCode": 5
+ },
+ {
+  "name": "Batasan FSS",
+  "lat": 14.6887,
+  "lng": 121.098555,
+  "districtCode": 5
+ },
+ {
+  "name": "Bagong Silangan F/SSTN",
+  "lat": 14.697208,
+  "lng": 121.11048,
+  "districtCode": 5
+ },
+ {
+  "name": "Marilag F/SSTN",
+  "lat": 14.62289266,
+  "lng": 121.0679406,
+  "districtCode": 5
+ },
+ {
+  "name": "Eastwood F/SSTN",
+  "lat": 14.61003052,
+  "lng": 121.0766626,
+  "districtCode": 5
+ },
+ {
+  "name": "Quirino 2A F/SSTN",
+  "lat": 14.6314021,
+  "lng": 121.0564718,
+  "districtCode": 5
+ },
+ {
+  "name": "PINAGKAISAHAN FSS",
+  "lat": 14.627912,
+  "lng": 121.046285,
+  "districtCode": 5
+ },
+ {
+  "name": "Galas F/SSTN",
+  "lat": 14.61194567,
+  "lng": 121.0090167,
+  "districtCode": 5
+ },
+ {
+  "name": "Paligsahan F/SSTN",
+  "lat": 14.6294061,
+  "lng": 121.0225786,
+  "districtCode": 5
+ },
+ {
+  "name": "Central F/SSTN",
+  "lat": 14.64702,
+  "lng": 121.05187,
+  "districtCode": 5
+ },
+ {
+  "name": "Krus na Ligas F/SSTN",
+  "lat": 14.6472596,
+  "lng": 121.0622653,
+  "districtCode": 5
+ },
+ {
+  "name": "Laging Handa FSS",
+  "lat": 14.63225,
+  "lng": 121.03266,
+  "districtCode": 5
+ },
+ {
+  "name": "Novaliches F/SSTN",
+  "lat": 14.72127794,
+  "lng": 121.0354246,
+  "districtCode": 5
+ },
+ {
+  "name": "San Bartolome F/SSTN",
+  "lat": 14.71089209,
+  "lng": 121.0281342,
+  "districtCode": 5
+ },
+ {
+  "name": "Lagro F/SSTN",
+  "lat": 14.7224805,
+  "lng": 121.0681894,
+  "districtCode": 5
+ },
+ {
+  "name": "Sta. Lucia F/SSTN",
+  "lat": 14.70781355,
+  "lng": 121.0537196,
+  "districtCode": 5
+ },
+ {
+  "name": "Fairview F/SSTN",
+  "lat": 14.70741657,
+  "lng": 121.0730149,
+  "districtCode": 5
+ },
+ {
+  "name": "Pasong Putik F/SSTN",
+  "lat": 14.72875,
+  "lng": 121.05567,
+  "districtCode": 5
+ },
+ {
+  "name": "Kingspoint F/SSTN",
+  "lat": 14.70056341,
+  "lng": 121.0246046,
+  "districtCode": 5
+ },
+ {
+  "name": "BAESA FSS",
+  "lat": 14.673543,
+  "lng": 121.0135009,
+  "districtCode": 5
+ },
+ {
+  "name": "Talipapa F/SSTN",
+  "lat": 14.68794,
+  "lng": 121.02549,
+  "districtCode": 5
+ },
+ {
+  "name": "New Era F/SSTN",
+  "lat": 14.66707753,
+  "lng": 121.0600877,
+  "districtCode": 5
+ },
+ {
+  "name": "Pasong Tamo F/SSTN",
+  "lat": 14.68639302,
+  "lng": 121.0471213,
+  "districtCode": 5
+ },
+ {
+  "name": "Agham Fire Station",
+  "lat": 14.6518808,
+  "lng": 121.0383664,
+  "districtCode": 5
+ },
+ {
+  "name": "Loyola Heights Fire Sub Station",
+  "lat": 14.6415892,
+  "lng": 121.0744281,
+  "districtCode": 5
+ },
+ {
+  "name": "Tandang Sora Fire Sub Station QCFD",
+  "lat": 14.686462,
+  "lng": 121.0387274,
+  "districtCode": 5
+ }
+]

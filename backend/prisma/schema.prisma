@@ -1,0 +1,210 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  OPERATIONS
+  RADIO_OPERATOR
+}
+
+enum TruckType {
+  ENGINE
+  TANKER
+  AERIAL_LADDER
+  RESCUE
+  AMBULANCE
+  OTHER
+}
+
+enum TruckOwnership {
+  BFP
+  LGU
+  VOLUNTEER
+}
+
+enum TruckStatus {
+  AVAILABLE
+  RESPONDING
+  OUT_OF_SERVICE
+}
+
+enum IncidentStatus {
+  OPEN
+  CLOSED
+}
+
+model FireDistrict {
+  id       Int       @id @default(autoincrement())
+  code     Int       @unique // 1-5
+  name     String // "Fire District 2"
+  alias    String? // "CAMANAVA"
+  color    String // hex, used for station badges
+  cities   City[]
+  stations Station[]
+  users    User[]
+}
+
+/// FD1 (Manila) and FD5 (Quezon City) each have exactly one city; the UI skips the city step for them.
+model City {
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  districtId Int
+  district   FireDistrict @relation(fields: [districtId], references: [id])
+  barangays  Barangay[]
+  stations   Station[]
+}
+
+model Barangay {
+  id        Int        @id @default(autoincrement())
+  name      String
+  cityId    Int
+  city      City       @relation(fields: [cityId], references: [id])
+  lat       Float? // filled on first geocode, correctable by Operations
+  lng       Float?
+  incidents Incident[]
+
+  @@unique([cityId, name])
+}
+
+model Station {
+  id            Int            @id @default(autoincrement())
+  name          String
+  lat           Float
+  lng           Float
+  districtId    Int
+  district      FireDistrict   @relation(fields: [districtId], references: [id])
+  cityId        Int?
+  city          City?          @relation(fields: [cityId], references: [id])
+  address       String?
+  contactNumber String?
+  isActive      Boolean        @default(true)
+  trucks        Truck[]
+  incidentUnits IncidentUnit[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([districtId])
+}
+
+model Truck {
+  id                  Int            @id @default(autoincrement())
+  stationId           Int
+  station             Station        @relation(fields: [stationId], references: [id])
+  callSign            String
+  plateNumber         String?
+  type                TruckType      @default(ENGINE)
+  waterCapacityLiters Int?
+  ownership           TruckOwnership @default(BFP)
+  status              TruckStatus    @default(AVAILABLE)
+  isActive            Boolean        @default(true)
+  incidentUnits       IncidentUnit[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([stationId])
+}
+
+model User {
+  id                 String        @id @default(uuid())
+  username           String        @unique
+  fullName           String
+  passwordHash       String
+  role               Role
+  districtId         Int? // required for OPERATIONS
+  district           FireDistrict? @relation(fields: [districtId], references: [id])
+  isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(true)
+  deletedAt          DateTime? // soft delete keeps names on incident history
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  incidentsCreated   Incident[]    @relation("IncidentCreatedBy")
+  incidentsClosed    Incident[]    @relation("IncidentClosedBy")
+  auditLogs          AuditLog[]
+}
+
+/// Store for @nestjs/authentication refresh-token rotation (RefreshTokenStore contract).
+model RefreshToken {
+  id              String    @id
+  familyId        String
+  userId          String
+  createdAt       DateTime
+  expiresAt       DateTime
+  familyExpiresAt DateTime
+  usedAt          DateTime?
+  claims          Json?
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model RevokedRefreshFamily {
+  familyId        String   @id
+  familyExpiresAt DateTime
+}
+
+/// Single row (id = 1).
+model Settings {
+  id               Int      @id @default(1)
+  stationsPerAlarm Int      @default(4)
+  maxDistanceKm    Float    @default(100)
+  alarmLevels      String[]
+}
+
+model Incident {
+  id            String         @id @default(uuid())
+  lat           Float
+  lng           Float
+  locationLabel String
+  barangayId    Int?
+  barangay      Barangay?      @relation(fields: [barangayId], references: [id])
+  status        IncidentStatus @default(OPEN)
+  alarmIndex    Int            @default(0) // highest alarm level dispatched
+  runningCard   Json // snapshot at dispatch
+  notes         String?
+  createdById   String
+  createdBy     User           @relation("IncidentCreatedBy", fields: [createdById], references: [id])
+  closedById    String?
+  closedBy      User?          @relation("IncidentClosedBy", fields: [closedById], references: [id])
+  createdAt     DateTime       @default(now())
+  closedAt      DateTime?
+  units         IncidentUnit[]
+
+  @@index([status, createdAt])
+}
+
+model IncidentUnit {
+  id           Int       @id @default(autoincrement())
+  incidentId   String
+  incident     Incident  @relation(fields: [incidentId], references: [id])
+  stationId    Int
+  station      Station   @relation(fields: [stationId], references: [id])
+  truckId      Int
+  truck        Truck     @relation(fields: [truckId], references: [id])
+  alarmLevel   String
+  dispatchedAt DateTime  @default(now())
+  releasedAt   DateTime?
+
+  @@index([incidentId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String // CREATE | UPDATE | DELETE | DISABLE | ...
+  entity    String // User | Station | Truck | Settings | Barangay
+  entityId  String
+  changes   Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
