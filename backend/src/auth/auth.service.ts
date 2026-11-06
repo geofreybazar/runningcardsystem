@@ -1,0 +1,62 @@
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { PasswordHasher, TokenService } from '@nestjs/authentication';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AUTH_USER_SELECT, type AuthUser } from './auth-user.js';
+
+const subOf = (accessToken: string): string =>
+  JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString()).sub;
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hasher: PasswordHasher,
+    private readonly tokens: TokenService,
+  ) {}
+
+  async login(username: string, password: string) {
+    const found = await this.prisma.user.findFirst({ where: { username, deletedAt: null } });
+    // verify() checks a dummy hash when there is no account, so timing doesn't reveal usernames.
+    const valid = await this.hasher.verify(password, found?.passwordHash);
+    if (!found || !valid || !found.isActive) throw new UnauthorizedException('Invalid username or password');
+    if (this.hasher.needsRehash(found.passwordHash)) {
+      await this.prisma.user.update({ where: { id: found.id }, data: { passwordHash: await this.hasher.hash(password) } });
+    }
+    const pair = await this.tokens.issue(found.id, { method: 'pwd' });
+    return { ...pair, user: await this.loadUser(found.id) };
+  }
+
+  async refresh(refreshToken: string) {
+    const pair = await this.tokens.refresh(refreshToken); // throws RefreshTokenError (401) on invalid/expired/reused
+    const user = await this.loadUser(subOf(pair.accessToken));
+    if (!user) {
+      await this.tokens.revoke(pair.refreshToken);
+      throw new UnauthorizedException('Account is disabled');
+    }
+    return { ...pair, user };
+  }
+
+  logout(refreshToken: string | undefined) {
+    return refreshToken ? this.tokens.revoke(refreshToken).catch(() => false) : false;
+  }
+
+  async changePassword(user: AuthUser, currentPassword: string, newPassword: string) {
+    const { passwordHash } = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    if (!(await this.hasher.verify(currentPassword, passwordHash))) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+    if (currentPassword === newPassword) throw new BadRequestException('New password must be different');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await this.hasher.hash(newPassword), mustChangePassword: false },
+    });
+    // Sign out every other device, then hand this one a fresh pair.
+    await this.tokens.revokeAll(user.id);
+    const pair = await this.tokens.issue(user.id, { method: 'pwd' });
+    return { ...pair, user: await this.loadUser(user.id) };
+  }
+
+  loadUser(id: string): Promise<AuthUser | null> {
+    return this.prisma.user.findFirst({ where: { id, isActive: true, deletedAt: null }, select: AUTH_USER_SELECT });
+  }
+}

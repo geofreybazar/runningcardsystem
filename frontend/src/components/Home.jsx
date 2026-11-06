@@ -19,11 +19,7 @@ function Home() {
 
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_API}>
-      <div className='min-h-screen bg-gray-50'>
-        <header className='bg-red-700 px-6 py-4 text-2xl font-semibold text-white'>
-          BFP-NCR Running Card System
-        </header>
-
+      <div>
         <main className='grid grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(360px,2fr)_3fr] lg:p-6'>
           <section className='flex flex-col gap-3'>
             <LocationSearch onSelect={handleSelect} />

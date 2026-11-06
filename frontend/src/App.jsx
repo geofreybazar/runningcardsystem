@@ -1,12 +1,52 @@
-import Home from "./components/Home"
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { CircularProgress } from "@mui/material";
+import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
+import Layout, { NAV } from "./components/Layout.jsx";
+import Home from "./components/Home.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
+import UsersPage from "./pages/UsersPage.jsx";
 
-function App() {
+const PAGES = { "/": <Home />, "/users": <UsersPage /> };
 
-  return (
-    <>
-     <Home/>
-    </>
-  )
+function ChangePasswordRoute() {
+  const navigate = useNavigate();
+  return <ChangePasswordPage onDone={() => navigate("/")} />;
 }
 
-export default App
+function AppRoutes() {
+  const { user, ready } = useAuth();
+  if (!ready) {
+    return (
+      <div className='flex min-h-screen items-center justify-center'>
+        <CircularProgress />
+      </div>
+    );
+  }
+  if (!user) return <LoginPage />;
+  if (user.mustChangePassword) return <ChangePasswordPage />;
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        {NAV.filter((n) => n.roles.includes(user.role)).map((n) => (
+          <Route key={n.to} path={n.to} element={PAGES[n.to]} />
+        ))}
+      </Route>
+      <Route path='/change-password' element={<ChangePasswordRoute />} />
+      <Route path='*' element={<Navigate to='/' replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
+
+export default App;
