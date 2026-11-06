@@ -2,7 +2,7 @@
 
 Finds which fire stations respond to a fire anywhere in Metro Manila, nearest first, grouped into alarm levels (1st–5th Alarm, Task Forces, General Alarm). Radio operators dispatch from it, and it tracks which trucks are out on which incident.
 
-- **frontend/**: React + Vite + MUI + Tailwind, Google Maps
+- **frontend/**: React 19 + Vite + Tailwind v4 + shadcn/ui, Google Maps
 - **backend/**: NestJS 12 + Prisma 7 + PostgreSQL, JWT access/refresh tokens
 
 ## Roles

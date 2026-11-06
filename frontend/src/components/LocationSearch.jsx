@@ -1,28 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
-import { TextField, Autocomplete, InputAdornment, MenuItem } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import variables from "../variables/variables.js";
-import { api } from "../api/client.js";
+import { Check, ChevronsUpDown, MapPin, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import SimpleSelect from "@/components/SimpleSelect.jsx";
+import Field from "@/components/Field.jsx";
+import { cn } from "@/lib/utils";
+import variables from "@/variables/variables.js";
+import { api } from "@/api/client.js";
 
 const { parseCoordinates, NCR_BOUNDS } = variables;
 
-function LocationSearch({ onSelect }) {
+/** Address / landmark search (Places API New) that also accepts typed coordinates on Enter. */
+function PlaceSearch({ onSelect, onError }) {
   const places = useMapsLibrary("places");
-  const geocoding = useMapsLibrary("geocoding");
-  const [error, setError] = useState("");
-  const [districts, setDistricts] = useState([]);
-  const [districtId, setDistrictId] = useState("");
-  const [cityId, setCityId] = useState("");
-  const [barangays, setBarangays] = useState([]);
-  const [barangay, setBarangay] = useState(null);
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [active, setActive] = useState(0);
+  const [open, setOpen] = useState(false);
   const tokenRef = useRef(null);
+  const skipNextFetch = useRef(false);
 
-  // Addresses and landmarks: Places API (New) suggestions, debounced while typing.
   useEffect(() => {
-    if (!places || !input.trim() || /^[\s\d.,-]+$/.test(input)) {
+    if (skipNextFetch.current || !places || !input.trim() || /^[\s\d.,-]+$/.test(input)) {
+      skipNextFetch.current = false;
       setSuggestions([]);
       return;
     }
@@ -36,42 +39,151 @@ function LocationSearch({ onSelect }) {
           locationRestriction: NCR_BOUNDS,
           includedRegionCodes: ["ph"],
         });
-        if (!cancelled) setSuggestions(suggestions.map((s) => s.placePrediction).filter(Boolean));
+        if (cancelled) return;
+        setSuggestions(suggestions.map((s) => s.placePrediction).filter(Boolean));
+        setActive(0);
+        setOpen(true);
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError("Address search failed. Check that Places API (New) is enabled for the key.");
+        if (!cancelled) onError("Address search failed. Check that Places API (New) is enabled for the key.");
       }
     }, 250);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [places, input]);
+  }, [places, input, onError]);
 
-  const handleSearch = async (_, value) => {
-    if (!value) return;
-    // Enter on free text: only coordinates are accepted that way.
-    if (typeof value === "string") {
-      const coords = parseCoordinates(value);
-      if (!coords) {
-        setError("Pick a suggestion, or type 'latitude, longitude' inside Metro Manila, e.g. 14.5916, 121.0031");
-        return;
-      }
-      setError("");
-      onSelect(coords, value.trim());
-      return;
-    }
+  const choose = async (prediction) => {
+    setOpen(false);
+    skipNextFetch.current = true; // don't search again for the label we just filled in
+    setInput(prediction.text.toString());
     try {
-      const place = value.toPlace();
+      const place = prediction.toPlace();
       await place.fetchFields({ fields: ["location", "displayName", "formattedAddress"] });
       tokenRef.current = null; // fetchFields ends the billing session
-      setError("");
+      onError("");
       onSelect(place.location.toJSON(), place.displayName || place.formattedAddress);
     } catch (err) {
       console.error(err);
-      setError("Could not get that place's location. Try another suggestion.");
+      onError("Could not get that place's location. Try another suggestion.");
     }
   };
+
+  const onKeyDown = (e) => {
+    if (open && suggestions.length && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      setActive((i) => (i + (e.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && suggestions[active]) return choose(suggestions[active]);
+      const coords = parseCoordinates(input);
+      if (!coords) return onError("Pick a suggestion, or type 'latitude, longitude' inside Metro Manila, e.g. 14.5916, 121.0031");
+      onError("");
+      onSelect(coords, input.trim());
+    }
+  };
+
+  return (
+    <div className='relative'>
+      <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
+      <Input
+        className='h-11 bg-card pl-9 text-base md:text-sm'
+        placeholder='Address, landmark, or 14.5916, 121.0031'
+        value={input}
+        onChange={(e) => {
+          setInput(e.target.value);
+          onError("");
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => suggestions.length && setOpen(true)}
+        onBlur={() => setOpen(false)}
+        role='combobox'
+        aria-expanded={open}
+        aria-label='Search for an address, landmark, or coordinates'
+      />
+      {open && suggestions.length > 0 && (
+        <ul className='absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md' role='listbox'>
+          {suggestions.map((s, i) => (
+            <li
+              key={s.placeId}
+              role='option'
+              aria-selected={i === active}
+              onMouseDown={(e) => {
+                e.preventDefault(); // keep focus so blur doesn't close the list before the click lands
+                choose(s);
+              }}
+              onMouseEnter={() => setActive(i)}
+              className={cn(
+                "flex cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-sm",
+                i === active && "bg-accent text-accent-foreground"
+              )}
+            >
+              <MapPin className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+              <span>
+                <span className='font-medium'>{s.mainText?.toString() ?? s.text.toString()}</span>
+                {s.secondaryText && <span className='block text-xs text-muted-foreground'>{s.secondaryText.toString()}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function BarangayCombobox({ id, barangays, value, onChange, disabled }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          variant='outline'
+          role='combobox'
+          aria-expanded={open}
+          disabled={disabled}
+          className='w-full justify-between bg-card font-normal'
+        >
+          <span className={cn("truncate", !value && "text-muted-foreground")}>{value?.name ?? "Barangay"}</span>
+          <ChevronsUpDown className='opacity-50' />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className='w-(--radix-popover-trigger-width) min-w-56 p-0' align='start'>
+        <Command>
+          <CommandInput placeholder='Search barangay…' />
+          <CommandList>
+            <CommandEmpty>No barangay found.</CommandEmpty>
+            {barangays.map((b) => (
+              <CommandItem
+                key={b.id}
+                value={b.name}
+                onSelect={() => {
+                  setOpen(false);
+                  onChange(b);
+                }}
+              >
+                {b.name}
+                <Check className={cn("ml-auto", value?.id === b.id ? "opacity-100" : "opacity-0")} />
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function LocationSearch({ onSelect }) {
+  const geocoding = useMapsLibrary("geocoding");
+  const [error, setError] = useState("");
+  const [districts, setDistricts] = useState([]);
+  const [districtId, setDistrictId] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [barangays, setBarangays] = useState([]);
+  const [barangay, setBarangay] = useState(null);
 
   // BFP structure: District → City → Barangay. FD1 (Manila) and FD5 (Quezon City) have one city, so it is picked for you.
   useEffect(() => {
@@ -92,9 +204,8 @@ function LocationSearch({ onSelect }) {
     if (cityId) api(`/cities/${cityId}/barangays`).then(setBarangays).catch(() => {});
   }, [cityId]);
 
-  const handleBarangay = async (_, option) => {
+  const pickBarangay = async (option) => {
     setBarangay(option);
-    if (!option) return;
     const label = `${option.name}, ${city.name}`;
     if (option.lat != null) {
       setError("");
@@ -121,66 +232,37 @@ function LocationSearch({ onSelect }) {
   };
 
   return (
-    <div className='flex flex-col gap-3'>
-      <Autocomplete
-        freeSolo
-        options={suggestions}
-        filterOptions={(x) => x}
-        getOptionLabel={(o) => (typeof o === "string" ? o : o.text.toString())}
-        inputValue={input}
-        onInputChange={(_, v, reason) => {
-          setInput(v);
-          if (reason === "reset") setSuggestions([]); // picked an option; don't search its label again
-          setError("");
-        }}
-        onChange={handleSearch}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label='Address, landmark, or coordinates'
-            placeholder='e.g. SM North EDSA  or  14.5916, 121.0031'
-            error={!!error}
-            helperText={error || " "}
-            InputProps={{
-              ...params.InputProps,
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        )}
-      />
+    <div className='grid gap-3'>
+      <PlaceSearch onSelect={onSelect} onError={setError} />
+      {error && <p className='-mt-1 text-sm text-destructive'>{error}</p>}
+      <div className='flex items-center gap-3 text-xs text-muted-foreground'>
+        <div className='h-px flex-1 bg-border' />
+        or pick by BFP district
+        <div className='h-px flex-1 bg-border' />
+      </div>
       <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
-        <TextField select label='Fire district' value={districtId} onChange={(e) => pickDistrict(e.target.value)}>
-          {districts.map((d) => (
-            <MenuItem key={d.id} value={d.id}>
-              {d.name}
-              {d.alias ? ` · ${d.alias}` : ""}
-            </MenuItem>
-          ))}
-        </TextField>
-        {district?.cities.length > 1 ? (
-          <TextField select label='City' value={cityId} onChange={(e) => setCityId(e.target.value)}>
-            {district.cities.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        ) : (
-          <TextField label='City' value={city?.name ?? ""} disabled />
-        )}
-        <Autocomplete
-          options={barangays}
-          value={barangay}
-          disabled={!cityId}
-          getOptionLabel={(o) => o.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          onChange={handleBarangay}
-          renderInput={(params) => <TextField {...params} label='Barangay' />}
-        />
+        <Field label='Fire district'>
+          <SimpleSelect
+            value={districtId}
+            onChange={pickDistrict}
+            placeholder='District'
+            className='w-full bg-card'
+            options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+          />
+        </Field>
+        <Field label='City'>
+          <SimpleSelect
+            value={cityId}
+            onChange={setCityId}
+            placeholder='City'
+            className='w-full bg-card'
+            disabled={!district || district.cities.length === 1}
+            options={(district?.cities ?? []).map((c) => ({ value: c.id, label: c.name }))}
+          />
+        </Field>
+        <Field label='Barangay'>
+          <BarangayCombobox barangays={barangays} value={barangay} onChange={pickBarangay} disabled={!cityId} />
+        </Field>
       </div>
     </div>
   );

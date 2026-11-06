@@ -1,6 +1,12 @@
 import { useState } from "react";
-import { Alert, Button, Paper, TextField } from "@mui/material";
-import { useAuth } from "../auth/AuthContext.jsx";
+import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Field from "@/components/Field.jsx";
+import AuthShell from "@/components/AuthShell.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
 
 function ChangePasswordPage({ onDone }) {
   const { user, changePassword, logout } = useAuth();
@@ -18,6 +24,7 @@ function ChangePasswordPage({ onDone }) {
     setError("");
     try {
       await changePassword(current, next);
+      toast.success("Password changed");
       onDone?.();
     } catch (err) {
       setError(err.message);
@@ -27,24 +34,34 @@ function ChangePasswordPage({ onDone }) {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100 p-4'>
-      <Paper className='w-full max-w-sm p-8' elevation={3}>
-        <div className='mb-2 text-xl font-semibold'>Change your password</div>
-        {user?.mustChangePassword && (
-          <p className='mb-4 text-sm text-gray-600'>You signed in with a temporary password. Choose your own to continue.</p>
+    <AuthShell
+      title='Change your password'
+      description={user?.mustChangePassword ? "You signed in with a temporary password. Choose your own to continue." : undefined}
+    >
+      <form onSubmit={submit} className='grid gap-4'>
+        {error && (
+          <Alert variant='destructive'>
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
-        <form onSubmit={submit} className='flex flex-col gap-4'>
-          {error && <Alert severity='error'>{error}</Alert>}
-          <TextField label='Current password' type='password' value={current} onChange={(e) => setCurrent(e.target.value)} required />
-          <TextField label='New password' type='password' value={next} onChange={(e) => setNext(e.target.value)} required helperText='At least 8 characters' />
-          <TextField label='Confirm new password' type='password' value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-          <Button type='submit' variant='contained' disabled={busy}>
-            Save password
-          </Button>
-          <Button onClick={onDone ?? logout}>{onDone ? "Cancel" : "Sign out"}</Button>
-        </form>
-      </Paper>
-    </div>
+        <Field label='Current password'>
+          <Input type='password' value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete='current-password' required />
+        </Field>
+        <Field label='New password' hint='At least 8 characters'>
+          <Input type='password' value={next} onChange={(e) => setNext(e.target.value)} autoComplete='new-password' required />
+        </Field>
+        <Field label='Confirm new password'>
+          <Input type='password' value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete='new-password' required />
+        </Field>
+        <Button type='submit' size='lg' disabled={busy}>
+          {busy && <LoaderCircle className='animate-spin' />} Save password
+        </Button>
+        <Button type='button' variant='ghost' onClick={onDone ?? logout}>
+          {onDone ? "Cancel" : "Sign out"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 

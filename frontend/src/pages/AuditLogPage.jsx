@@ -1,73 +1,86 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { api } from "../api/client.js";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Page from "@/components/Page.jsx";
+import SimpleSelect from "@/components/SimpleSelect.jsx";
+import { api } from "@/api/client.js";
 
 const PAGE = 100;
 const ENTITIES = ["User", "Station", "Truck", "Barangay", "Settings"];
+const when = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 function AuditLogPage() {
-  const [entity, setEntity] = useState("");
+  const [entity, setEntity] = useState("ALL");
   const [rows, setRows] = useState([]);
   const [more, setMore] = useState(false);
-  const [error, setError] = useState("");
 
   const fetchPage = (skip) =>
-    api(`/audit-logs?take=${PAGE}&skip=${skip}${entity ? `&entity=${entity}` : ""}`).then((page) => {
-      setRows((r) => (skip ? [...r, ...page] : page));
-      setMore(page.length === PAGE);
-    });
+    api(`/audit-logs?take=${PAGE}&skip=${skip}${entity !== "ALL" ? `&entity=${entity}` : ""}`)
+      .then((page) => {
+        setRows((r) => (skip ? [...r, ...page] : page));
+        setMore(page.length === PAGE);
+      })
+      .catch((e) => toast.error(e.message));
 
   useEffect(() => {
-    fetchPage(0).catch((e) => setError(e.message));
+    fetchPage(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the filter changes
   }, [entity]);
 
   return (
-    <div className='flex flex-col gap-4 p-4 lg:p-6'>
-      <div className='flex items-center gap-3'>
-        <h1 className='text-xl font-semibold'>Audit log</h1>
-        <Select size='small' displayEmpty value={entity} onChange={(e) => setEntity(e.target.value)}>
-          <MenuItem value=''>Everything</MenuItem>
-          {ENTITIES.map((e) => (
-            <MenuItem key={e} value={e}>
-              {e}
-            </MenuItem>
-          ))}
-        </Select>
-      </div>
-      {error && <Alert severity='error'>{error}</Alert>}
-      <TableContainer component={Paper} variant='outlined'>
-        <Table size='small'>
-          <TableHead>
-            <TableRow>
-              <TableCell>When</TableCell>
-              <TableCell>Who</TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>What</TableCell>
-              <TableCell>Details</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className='whitespace-nowrap'>{new Date(r.createdAt).toLocaleString()}</TableCell>
-                <TableCell>{r.user.fullName}</TableCell>
-                <TableCell>{r.action}</TableCell>
-                <TableCell>
-                  {r.entity} #{r.entityId.slice(0, 8)}
-                </TableCell>
-                <TableCell className='max-w-md break-all font-mono text-xs'>{r.changes ? JSON.stringify(r.changes) : ""}</TableCell>
+    <Page
+      title='Audit log'
+      description='Who changed accounts, stations, trucks, barangay pins and settings.'
+      actions={
+        <SimpleSelect
+          value={entity}
+          onChange={setEntity}
+          className='w-44 bg-card'
+          options={[{ value: "ALL", label: "Everything" }, ...ENTITIES.map((e) => ({ value: e, label: e }))]}
+        />
+      }
+    >
+      <Card className='py-0'>
+        <div className='overflow-x-auto'>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Who</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>What</TableHead>
+                <TableHead>Details</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id} className='align-top'>
+                  <TableCell className='whitespace-nowrap text-muted-foreground'>{when(r.createdAt)}</TableCell>
+                  <TableCell className='whitespace-nowrap'>{r.user.fullName}</TableCell>
+                  <TableCell>
+                    <Badge variant='outline'>{r.action}</Badge>
+                  </TableCell>
+                  <TableCell className='whitespace-nowrap'>
+                    {r.entity} <span className='text-muted-foreground'>#{r.entityId.slice(0, 8)}</span>
+                  </TableCell>
+                  <TableCell className='max-w-md font-mono text-xs break-all whitespace-normal text-muted-foreground'>
+                    {r.changes ? JSON.stringify(r.changes) : ""}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
       {more && (
-        <Button onClick={() => fetchPage(rows.length).catch((e) => setError(e.message))} className='self-center'>
+        <Button variant='outline' className='self-center' onClick={() => fetchPage(rows.length)}>
           Load more
         </Button>
       )}
-    </div>
+    </Page>
   );
 }
 

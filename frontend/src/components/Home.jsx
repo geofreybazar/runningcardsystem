@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/client.js";
+import { LoaderCircle, MapPin, Siren } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Field from "@/components/Field.jsx";
+import { api } from "@/api/client.js";
 import Card from "./Card.jsx";
 import LocationSearch from "./LocationSearch.jsx";
 import MapComponent from "./MapComponent.jsx";
@@ -9,10 +15,10 @@ import MapComponent from "./MapComponent.jsx";
 function Home() {
   const [location, setLocation] = useState(null);
   const [label, setLabel] = useState("");
-  const [runningCard, setRunningCard] = useState(null);
-  const [truckPicks, setTruckPicks] = useState({}); // stationId -> truckId; default is the station's first available truck
-  const [error, setError] = useState("");
   const [barangayId, setBarangayId] = useState(null);
+  const [runningCard, setRunningCard] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [truckPicks, setTruckPicks] = useState({}); // stationId -> truckId; default is the station's first available truck
   const [dispatchForm, setDispatchForm] = useState(null); // { locationLabel, notes }
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -21,14 +27,15 @@ function Home() {
   useEffect(() => {
     if (!location) return;
     let stale = false;
-    setError("");
+    setLoading(true);
     api(`/running-card?lat=${location.lat}&lng=${location.lng}`)
       .then((card) => {
         if (stale) return;
         setRunningCard(card);
         setTruckPicks({});
       })
-      .catch((e) => !stale && setError(e.message));
+      .catch((e) => !stale && toast.error(e.message))
+      .finally(() => !stale && setLoading(false));
     return () => {
       stale = true;
     };
@@ -53,9 +60,10 @@ function Home() {
           truckPicks,
         },
       });
+      toast.success(`${incident.alarmLevel} dispatched`);
       navigate(`/incidents/${incident.id}`);
     } catch (e) {
-      setError(e.message);
+      toast.error(e.message);
       setDispatchForm(null);
     } finally {
       setBusy(false);
@@ -63,71 +71,75 @@ function Home() {
   };
 
   return (
-    <main className='grid grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(360px,2fr)_3fr] lg:p-6'>
+    <div className='grid grid-cols-1 gap-4 p-4 md:p-6 xl:grid-cols-[minmax(380px,5fr)_7fr]'>
       <section className='flex flex-col gap-3'>
         <LocationSearch onSelect={handleSelect} />
-        <div className='h-[420px] overflow-hidden rounded border lg:h-[560px]'>
+        <div className='h-72 overflow-hidden rounded-xl border sm:h-96 xl:h-[520px]'>
           <MapComponent position={location} onChange={(p) => handleSelect(p, "Pinned on map")} />
         </div>
-        {location && (
-          <div className='text-sm text-gray-700'>
-            <div className='font-medium'>{label}</div>
-            <div className='font-mono'>
-              {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+        {location ? (
+          <div className='flex items-start gap-2 text-sm'>
+            <MapPin className='mt-0.5 size-4 shrink-0 text-primary' />
+            <div>
+              <div className='font-medium'>{label}</div>
+              <div className='font-mono text-xs text-muted-foreground'>
+                {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+              </div>
             </div>
           </div>
+        ) : (
+          <p className='text-xs text-muted-foreground'>Search above, or click the map to drop a pin. Drag the pin to adjust.</p>
         )}
-        <p className='text-xs text-gray-500'>Click the map or drag the pin to adjust the location.</p>
       </section>
 
       <section className='flex flex-col gap-3'>
-        {error && <Alert severity='error'>{error}</Alert>}
         {runningCard?.length > 0 && (
-          <div className='flex items-center justify-between gap-3 rounded border border-red-200 bg-red-50 p-3'>
-            <span className='text-sm'>
+          <div className='flex flex-col gap-3 rounded-xl border border-primary/20 bg-accent p-3 sm:flex-row sm:items-center'>
+            <Siren className='hidden size-5 shrink-0 text-primary sm:block' />
+            <p className='flex-1 text-sm'>
               Dispatch sends one truck from each <b>{runningCard[0].alarmLevel}</b> station and marks it Responding.
-            </span>
-            <Button variant='contained' color='error' onClick={() => setDispatchForm({ locationLabel: label, notes: "" })}>
-              Dispatch
+            </p>
+            <Button onClick={() => setDispatchForm({ locationLabel: label, notes: "" })} disabled={loading}>
+              Dispatch {runningCard[0].alarmLevel}
             </Button>
           </div>
         )}
-        <Card
-          runningCard={runningCard}
-          truckPicks={truckPicks}
-          onPickTruck={(stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId }))}
-        />
+        <div className={loading ? "pointer-events-none opacity-50 transition-opacity" : "transition-opacity"}>
+          <Card
+            runningCard={runningCard}
+            truckPicks={truckPicks}
+            onPickTruck={(stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId }))}
+          />
+        </div>
       </section>
 
-      <Dialog open={!!dispatchForm} onClose={() => !busy && setDispatchForm(null)} fullWidth maxWidth='sm'>
-        <DialogTitle>Dispatch {runningCard?.[0]?.alarmLevel}</DialogTitle>
-        {dispatchForm && (
-          <DialogContent className='flex flex-col gap-4' sx={{ pt: "8px !important" }}>
-            <TextField
-              label='Location'
-              value={dispatchForm.locationLabel}
-              onChange={(e) => setDispatchForm({ ...dispatchForm, locationLabel: e.target.value })}
-              helperText='Edit to add details, e.g. house number or building name'
-            />
-            <TextField
-              label='Notes (optional)'
-              multiline
-              minRows={2}
-              value={dispatchForm.notes}
-              onChange={(e) => setDispatchForm({ ...dispatchForm, notes: e.target.value })}
-            />
-          </DialogContent>
-        )}
-        <DialogActions>
-          <Button onClick={() => setDispatchForm(null)} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant='contained' color='error' onClick={dispatch} disabled={busy}>
-            Dispatch now
-          </Button>
-        </DialogActions>
+      <Dialog open={!!dispatchForm} onOpenChange={(o) => !o && !busy && setDispatchForm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dispatch {runningCard?.[0]?.alarmLevel}</DialogTitle>
+            <DialogDescription>Saves the incident and sends the trucks shown on the card.</DialogDescription>
+          </DialogHeader>
+          {dispatchForm && (
+            <div className='grid gap-4'>
+              <Field label='Location' hint='Add details like a house number or building name'>
+                <Input value={dispatchForm.locationLabel} onChange={(e) => setDispatchForm({ ...dispatchForm, locationLabel: e.target.value })} />
+              </Field>
+              <Field label='Notes (optional)'>
+                <Textarea rows={3} value={dispatchForm.notes} onChange={(e) => setDispatchForm({ ...dispatchForm, notes: e.target.value })} />
+              </Field>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDispatchForm(null)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={dispatch} disabled={busy}>
+              {busy && <LoaderCircle className='animate-spin' />} Dispatch now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }
 

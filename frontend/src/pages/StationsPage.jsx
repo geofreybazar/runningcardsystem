@@ -1,33 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemText,
-  MenuItem,
-  Paper,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { api } from "../api/client.js";
-import { useAuth } from "../auth/AuthContext.jsx";
-import MapComponent from "../components/MapComponent.jsx";
-import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES } from "../labels.js";
+import { ChevronLeft, MapPin, Pencil, Phone, Plus, Search, Trash2, Truck } from "lucide-react";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import Page from "@/components/Page.jsx";
+import Field from "@/components/Field.jsx";
+import SimpleSelect from "@/components/SimpleSelect.jsx";
+import ConfirmDialog from "@/components/ConfirmDialog.jsx";
+import { TruckStatusBadge } from "@/components/StatusBadge.jsx";
+import MapComponent from "@/components/MapComponent.jsx";
+import { cn } from "@/lib/utils";
+import { api } from "@/api/client.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
 
 const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
 
@@ -36,6 +26,19 @@ const canEditDistrict = (user, districtId) =>
 
 const nullIfBlank = (v) => (v === "" || v == null ? null : v);
 
+function IconAction({ label, onClick, children, destructive }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant='ghost' size='icon' className={cn("size-8", destructive && "text-destructive hover:text-destructive")} onClick={onClick} aria-label={label}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function StationsPage() {
   const { user } = useAuth();
   const [districts, setDistricts] = useState([]);
@@ -43,38 +46,35 @@ function StationsPage() {
   const [stations, setStations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState("");
   const [stationForm, setStationForm] = useState(null);
   const [truckForm, setTruckForm] = useState(null);
   const [formError, setFormError] = useState("");
+  const [confirm, setConfirm] = useState(null); // { title, description, onConfirm }
 
   const district = districts.find((d) => d.id === districtId);
   const editable = canEditDistrict(user, districtId);
   const selected = stations.find((s) => s.id === selectedId);
-  const visible = useMemo(
-    () => stations.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
-    [stations, search]
-  );
+  const visible = useMemo(() => stations.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())), [stations, search]);
 
   const load = useCallback(
-    () => api(`/stations?districtId=${districtId}`).then(setStations).catch((e) => setError(e.message)),
+    () => api(`/stations?districtId=${districtId}`).then(setStations).catch((e) => toast.error(e.message)),
     [districtId]
   );
   useEffect(() => {
-    api("/districts").then(setDistricts).catch((e) => setError(e.message));
+    api("/districts").then(setDistricts).catch((e) => toast.error(e.message));
   }, []);
   useEffect(() => {
     setSelectedId(null);
     load();
   }, [load]);
 
-  const run = async (fn) => {
-    setError("");
+  const run = async (fn, success) => {
     try {
       await fn();
+      if (success) toast.success(success);
       await load();
     } catch (e) {
-      setError(e.message);
+      toast.error(e.message);
     }
   };
 
@@ -95,6 +95,7 @@ function StationsPage() {
         ? await api(`/stations/${f.id}`, { method: "PATCH", body })
         : await api("/stations", { method: "POST", body: { ...body, districtId } });
       setStationForm(null);
+      toast.success(f.id ? "Station updated" : "Station added");
       await load();
       setSelectedId(saved.id);
     } catch (e) {
@@ -116,6 +117,7 @@ function StationsPage() {
       if (f.id) await api(`/trucks/${f.id}`, { method: "PATCH", body });
       else await api(`/stations/${selectedId}/trucks`, { method: "POST", body });
       setTruckForm(null);
+      toast.success(f.id ? "Truck updated" : "Truck added");
       await load();
     } catch (e) {
       setFormError(e.message);
@@ -131,221 +133,319 @@ function StationsPage() {
     );
   };
 
-  return (
-    <div className='flex flex-col gap-4 p-4 lg:p-6'>
-      <div className='flex flex-wrap items-center gap-3'>
-        <h1 className='text-xl font-semibold'>Stations & Trucks</h1>
-        <Select size='small' value={districtId} onChange={(e) => setDistrictId(e.target.value)}>
-          {districts.map((d) => (
-            <MenuItem key={d.id} value={d.id}>
-              {d.name}
-              {d.alias ? ` (${d.alias})` : ""}
-            </MenuItem>
-          ))}
-        </Select>
-        <div className='flex-1' />
-        {editable && (
-          <Button variant='contained' onClick={() => openStationForm(null)}>
-            Add station
-          </Button>
-        )}
-      </div>
-      {error && <Alert severity='error' onClose={() => setError("")}>{error}</Alert>}
+  const openTruckForm = (t) => {
+    setFormError("");
+    setTruckForm(t ? { ...EMPTY_TRUCK, ...t, plateNumber: t.plateNumber ?? "", waterCapacityLiters: t.waterCapacityLiters ?? "" } : EMPTY_TRUCK);
+  };
 
+  const setStatus = (t, status) => run(() => api(`/trucks/${t.id}`, { method: "PATCH", body: { status } }), `${t.callSign}: ${TRUCK_STATUS[status].label}`);
+
+  return (
+    <Page
+      title='Stations & Trucks'
+      description={editable ? undefined : "View only. Operations edit stations in their own district."}
+      actions={
+        <>
+          <SimpleSelect
+            value={districtId}
+            onChange={setDistrictId}
+            className='w-full bg-card sm:w-72'
+            options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+          />
+          {editable && (
+            <Button onClick={() => openStationForm(null)}>
+              <Plus /> Add station
+            </Button>
+          )}
+        </>
+      }
+    >
       <div className='grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,1fr)_2fr]'>
-        <Paper variant='outlined' className='flex max-h-[70vh] flex-col'>
-          <div className='p-2'>
-            <TextField size='small' fullWidth placeholder={`Search ${stations.length} stations`} value={search} onChange={(e) => setSearch(e.target.value)} />
+        {/* On small screens the list and the detail take turns. */}
+        <Card className={cn("gap-0 py-0 lg:flex", selected && "hidden")}>
+          <div className='border-b p-3'>
+            <div className='relative'>
+              <Search className='pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground' />
+              <Input className='pl-8' placeholder={`Search ${stations.length} stations`} value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
           </div>
-          <List dense className='overflow-auto'>
+          <ul className='max-h-[65vh] divide-y overflow-auto'>
             {visible.map((s) => {
               const available = s.trucks.filter((t) => t.status === "AVAILABLE").length;
               return (
-                <ListItemButton key={s.id} selected={s.id === selectedId} onClick={() => setSelectedId(s.id)}>
-                  <ListItemText
-                    primary={s.name}
-                    secondary={`${s.city?.name ?? "No city set"} · ${available}/${s.trucks.length} trucks available`}
-                  />
-                </ListItemButton>
+                <li key={s.id}>
+                  <button
+                    onClick={() => setSelectedId(s.id)}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left transition-colors hover:bg-muted/60",
+                      s.id === selectedId && "bg-accent shadow-[inset_3px_0_0_var(--primary)]"
+                    )}
+                  >
+                    <div className='truncate text-sm font-medium'>{s.name}</div>
+                    <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                      {s.city?.name ?? "No city set"}
+                      <span className={cn("ml-auto tabular-nums", s.trucks.length && !available && "text-destructive")}>
+                        {available}/{s.trucks.length} available
+                      </span>
+                    </div>
+                  </button>
+                </li>
               );
             })}
-          </List>
-        </Paper>
+          </ul>
+        </Card>
 
         {selected ? (
-          <Paper variant='outlined' className='flex flex-col gap-4 p-4'>
-            <div className='flex items-start gap-2'>
-              <div className='flex-1'>
-                <div className='text-lg font-semibold'>{selected.name}</div>
-                <div className='text-sm text-gray-600'>
-                  {[selected.city?.name, selected.address, selected.contactNumber].filter(Boolean).join(" · ") || "No details yet"}
-                </div>
-                <div className='font-mono text-xs text-gray-500'>
-                  {selected.lat.toFixed(6)}, {selected.lng.toFixed(6)}
+          <Card className='gap-4 px-4 py-4 md:px-6'>
+            <button onClick={() => setSelectedId(null)} className='flex w-fit items-center gap-1 text-sm text-muted-foreground lg:hidden'>
+              <ChevronLeft className='size-4' /> Stations
+            </button>
+            <div className='flex flex-wrap items-start gap-3'>
+              <div className='min-w-0 flex-1'>
+                <h2 className='text-lg font-semibold'>{selected.name}</h2>
+                <div className='mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground'>
+                  <span className='flex items-center gap-1'>
+                    <MapPin className='size-3.5' />
+                    {[selected.city?.name, selected.address].filter(Boolean).join(", ") || "No address"}
+                  </span>
+                  {selected.contactNumber && (
+                    <span className='flex items-center gap-1'>
+                      <Phone className='size-3.5' />
+                      {selected.contactNumber}
+                    </span>
+                  )}
                 </div>
               </div>
               {editable && (
-                <>
-                  <Button startIcon={<EditIcon />} onClick={() => openStationForm(selected)}>
-                    Edit
+                <div className='flex gap-2'>
+                  <Button variant='outline' size='sm' onClick={() => openStationForm(selected)}>
+                    <Pencil /> Edit
                   </Button>
-                  <Button color='error' onClick={() => run(() => api(`/stations/${selected.id}`, { method: "PATCH", body: { isActive: false } }))}>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='text-destructive'
+                    onClick={() =>
+                      setConfirm({
+                        title: `Deactivate ${selected.name}?`,
+                        description: "It disappears from lists and running cards. Past incidents keep it.",
+                        onConfirm: () => run(() => api(`/stations/${selected.id}`, { method: "PATCH", body: { isActive: false } }), "Station deactivated"),
+                      })
+                    }
+                  >
                     Deactivate
                   </Button>
-                </>
+                </div>
               )}
             </div>
 
             <div className='flex items-center justify-between'>
-              <div className='font-semibold'>Trucks</div>
+              <h3 className='flex items-center gap-2 font-medium'>
+                <Truck className='size-4' /> Trucks
+              </h3>
               {editable && (
-                <Button size='small' variant='outlined' onClick={() => { setFormError(""); setTruckForm(EMPTY_TRUCK); }}>
-                  Add truck
+                <Button size='sm' variant='outline' onClick={() => openTruckForm(null)}>
+                  <Plus /> Add truck
                 </Button>
               )}
             </div>
+
             {selected.trucks.length === 0 ? (
-              <Alert severity='warning'>No trucks. This station is skipped on running cards until a truck is added.</Alert>
+              <Alert>
+                <AlertDescription>No trucks. This station is skipped on running cards until a truck is added.</AlertDescription>
+              </Alert>
             ) : (
-              <div className='overflow-x-auto'>
-                <Table size='small'>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Call sign</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Plate</TableCell>
-                      <TableCell>Water (L)</TableCell>
-                      <TableCell>Owner</TableCell>
-                      <TableCell>Status</TableCell>
-                      {editable && <TableCell />}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {selected.trucks.map((t) => (
-                      <TableRow key={t.id}>
-                        <TableCell>{t.callSign}</TableCell>
-                        <TableCell>{TRUCK_TYPES[t.type]}</TableCell>
-                        <TableCell>{t.plateNumber ?? "—"}</TableCell>
-                        <TableCell>{t.waterCapacityLiters ?? "—"}</TableCell>
-                        <TableCell>{OWNERSHIP[t.ownership]}</TableCell>
-                        <TableCell>
-                          {editable ? (
-                            <Select
-                              size='small'
-                              value={t.status}
-                              onChange={(e) => run(() => api(`/trucks/${t.id}`, { method: "PATCH", body: { status: e.target.value } }))}
-                            >
-                              {Object.entries(TRUCK_STATUS).map(([k, v]) => (
-                                <MenuItem key={k} value={k}>
-                                  {v.label}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          ) : (
-                            <Chip size='small' color={TRUCK_STATUS[t.status].color} label={TRUCK_STATUS[t.status].label} />
-                          )}
-                        </TableCell>
+              <>
+                <div className='grid gap-2 md:hidden'>
+                  {selected.trucks.map((t) => (
+                    <div key={t.id} className='rounded-lg border p-3'>
+                      <div className='flex items-start justify-between gap-2'>
+                        <div>
+                          <div className='font-medium'>{t.callSign}</div>
+                          <div className='text-xs text-muted-foreground'>
+                            {TRUCK_TYPES[t.type]} · {OWNERSHIP[t.ownership]}
+                            {t.plateNumber && ` · ${t.plateNumber}`}
+                            {t.waterCapacityLiters != null && ` · ${t.waterCapacityLiters} L`}
+                          </div>
+                        </div>
                         {editable && (
-                          <TableCell align='right' className='whitespace-nowrap'>
-                            <Tooltip title='Edit'>
-                              <IconButton size='small' onClick={() => { setFormError(""); setTruckForm({ ...EMPTY_TRUCK, ...t, plateNumber: t.plateNumber ?? "", waterCapacityLiters: t.waterCapacityLiters ?? "" }); }}>
-                                <EditIcon fontSize='small' />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title='Remove'>
-                              <IconButton size='small' color='error' onClick={() => run(() => api(`/trucks/${t.id}`, { method: "DELETE" }))}>
-                                <DeleteIcon fontSize='small' />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
+                          <div className='flex'>
+                            <IconAction label='Edit' onClick={() => openTruckForm(t)}>
+                              <Pencil />
+                            </IconAction>
+                            <IconAction label='Remove' destructive onClick={() => run(() => api(`/trucks/${t.id}`, { method: "DELETE" }), "Truck removed")}>
+                              <Trash2 />
+                            </IconAction>
+                          </div>
                         )}
+                      </div>
+                      <div className='mt-2'>
+                        {editable ? (
+                          <SimpleSelect value={t.status} onChange={(s) => setStatus(t, s)} className='h-8 w-full' options={toOptions(TRUCK_STATUS)} />
+                        ) : (
+                          <TruckStatusBadge status={t.status} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className='hidden overflow-x-auto md:block'>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Call sign</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Plate</TableHead>
+                        <TableHead className='text-right'>Water (L)</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Status</TableHead>
+                        {editable && <TableHead />}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {selected.trucks.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className='font-medium'>{t.callSign}</TableCell>
+                          <TableCell>{TRUCK_TYPES[t.type]}</TableCell>
+                          <TableCell>{t.plateNumber ?? "—"}</TableCell>
+                          <TableCell className='text-right tabular-nums'>{t.waterCapacityLiters ?? "—"}</TableCell>
+                          <TableCell>{OWNERSHIP[t.ownership]}</TableCell>
+                          <TableCell>
+                            {editable ? (
+                              <SimpleSelect value={t.status} onChange={(s) => setStatus(t, s)} className='h-8 w-40' options={toOptions(TRUCK_STATUS)} />
+                            ) : (
+                              <TruckStatusBadge status={t.status} />
+                            )}
+                          </TableCell>
+                          {editable && (
+                            <TableCell className='text-right whitespace-nowrap'>
+                              <IconAction label='Edit' onClick={() => openTruckForm(t)}>
+                                <Pencil />
+                              </IconAction>
+                              <IconAction label='Remove' destructive onClick={() => run(() => api(`/trucks/${t.id}`, { method: "DELETE" }), "Truck removed")}>
+                                <Trash2 />
+                              </IconAction>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
-          </Paper>
+          </Card>
         ) : (
-          <Paper variant='outlined' className='p-10 text-center text-gray-500'>
-            Select a station to see its trucks.
-          </Paper>
+          <Card className='hidden min-h-64 items-center justify-center text-sm text-muted-foreground lg:flex'>Select a station to see its trucks.</Card>
         )}
       </div>
 
-      <Dialog open={!!stationForm} onClose={() => setStationForm(null)} fullWidth maxWidth='md'>
-        <DialogTitle>{stationForm?.id ? "Edit station" : `Add station to ${district?.name}`}</DialogTitle>
-        {stationForm && (
-          <DialogContent className='grid grid-cols-1 gap-4 md:grid-cols-2' sx={{ pt: "8px !important" }}>
-            <div className='flex flex-col gap-4'>
-              {formError && <Alert severity='error'>{formError}</Alert>}
-              <TextField label='Station name' value={stationForm.name} onChange={(e) => setStationForm({ ...stationForm, name: e.target.value })} />
-              <TextField select label='City' value={stationForm.cityId} onChange={(e) => setStationForm({ ...stationForm, cityId: e.target.value })}>
-                {district?.cities.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField label='Address' value={stationForm.address} onChange={(e) => setStationForm({ ...stationForm, address: e.target.value })} />
-              <TextField label='Contact number' value={stationForm.contactNumber} onChange={(e) => setStationForm({ ...stationForm, contactNumber: e.target.value })} />
-              <div className='font-mono text-sm text-gray-600'>
-                {stationForm.lat ? `${stationForm.lat.toFixed(6)}, ${stationForm.lng.toFixed(6)}` : "Click the map to place the station"}
+      <Dialog open={!!stationForm} onOpenChange={(o) => !o && setStationForm(null)}>
+        <DialogContent className='max-h-[95svh] overflow-y-auto sm:max-w-3xl'>
+          <DialogHeader>
+            <DialogTitle>{stationForm?.id ? "Edit station" : `Add station to ${district?.name}`}</DialogTitle>
+          </DialogHeader>
+          {stationForm && (
+            <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+              <div className='grid content-start gap-4'>
+                {formError && (
+                  <Alert variant='destructive'>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
+                )}
+                <Field label='Station name'>
+                  <Input value={stationForm.name} onChange={(e) => setStationForm({ ...stationForm, name: e.target.value })} />
+                </Field>
+                <Field label='City'>
+                  <SimpleSelect
+                    value={stationForm.cityId}
+                    onChange={(cityId) => setStationForm({ ...stationForm, cityId })}
+                    options={(district?.cities ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                  />
+                </Field>
+                <Field label='Address'>
+                  <Input value={stationForm.address} onChange={(e) => setStationForm({ ...stationForm, address: e.target.value })} />
+                </Field>
+                <Field label='Contact number'>
+                  <Input value={stationForm.contactNumber} onChange={(e) => setStationForm({ ...stationForm, contactNumber: e.target.value })} />
+                </Field>
+                <p className='font-mono text-xs text-muted-foreground'>
+                  {stationForm.lat ? `${stationForm.lat.toFixed(6)}, ${stationForm.lng.toFixed(6)}` : "Click the map to place the station"}
+                </p>
+              </div>
+              <div className='h-72 overflow-hidden rounded-lg border md:h-full md:min-h-80'>
+                <MapComponent
+                  position={stationForm.lat ? { lat: stationForm.lat, lng: stationForm.lng } : null}
+                  onChange={(p) => setStationForm((f) => ({ ...f, lat: p.lat, lng: p.lng }))}
+                />
               </div>
             </div>
-            <div className='h-80 overflow-hidden rounded border md:h-full md:min-h-80'>
-              <MapComponent
-                position={stationForm.lat ? { lat: stationForm.lat, lng: stationForm.lng } : null}
-                onChange={(p) => setStationForm((f) => ({ ...f, lat: p.lat, lng: p.lng }))}
-              />
-            </div>
-          </DialogContent>
-        )}
-        <DialogActions>
-          <Button onClick={() => setStationForm(null)}>Cancel</Button>
-          <Button variant='contained' onClick={saveStation}>
-            Save
-          </Button>
-        </DialogActions>
+          )}
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setStationForm(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveStation}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Dialog open={!!truckForm} onClose={() => setTruckForm(null)} fullWidth maxWidth='xs'>
-        <DialogTitle>{truckForm?.id ? "Edit truck" : "Add truck"}</DialogTitle>
-        {truckForm && (
-          <DialogContent className='flex flex-col gap-4' sx={{ pt: "8px !important" }}>
-            {formError && <Alert severity='error'>{formError}</Alert>}
-            <TextField label='Call sign' value={truckForm.callSign} onChange={(e) => setTruckForm({ ...truckForm, callSign: e.target.value })} />
-            <TextField select label='Type' value={truckForm.type} onChange={(e) => setTruckForm({ ...truckForm, type: e.target.value })}>
-              {Object.entries(TRUCK_TYPES).map(([k, v]) => (
-                <MenuItem key={k} value={k}>
-                  {v}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField label='Plate number' value={truckForm.plateNumber} onChange={(e) => setTruckForm({ ...truckForm, plateNumber: e.target.value })} />
-            <TextField
-              label='Water capacity (liters)'
-              type='number'
-              value={truckForm.waterCapacityLiters}
-              onChange={(e) => setTruckForm({ ...truckForm, waterCapacityLiters: e.target.value })}
-            />
-            <TextField select label='Owner' value={truckForm.ownership} onChange={(e) => setTruckForm({ ...truckForm, ownership: e.target.value })}>
-              {Object.entries(OWNERSHIP).map(([k, v]) => (
-                <MenuItem key={k} value={k}>
-                  {v}
-                </MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-        )}
-        <DialogActions>
-          <Button onClick={() => setTruckForm(null)}>Cancel</Button>
-          <Button variant='contained' onClick={saveTruck}>
-            Save
-          </Button>
-        </DialogActions>
+      <Dialog open={!!truckForm} onOpenChange={(o) => !o && setTruckForm(null)}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>{truckForm?.id ? "Edit truck" : "Add truck"}</DialogTitle>
+          </DialogHeader>
+          {truckForm && (
+            <div className='grid gap-4'>
+              {formError && (
+                <Alert variant='destructive'>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+              <Field label='Call sign'>
+                <Input value={truckForm.callSign} onChange={(e) => setTruckForm({ ...truckForm, callSign: e.target.value })} />
+              </Field>
+              <div className='grid grid-cols-2 gap-4'>
+                <Field label='Type'>
+                  <SimpleSelect value={truckForm.type} onChange={(type) => setTruckForm({ ...truckForm, type })} options={toOptions(TRUCK_TYPES)} />
+                </Field>
+                <Field label='Owner'>
+                  <SimpleSelect value={truckForm.ownership} onChange={(ownership) => setTruckForm({ ...truckForm, ownership })} options={toOptions(OWNERSHIP)} />
+                </Field>
+                <Field label='Plate number'>
+                  <Input value={truckForm.plateNumber} onChange={(e) => setTruckForm({ ...truckForm, plateNumber: e.target.value })} />
+                </Field>
+                <Field label='Water (liters)'>
+                  <Input
+                    type='number'
+                    min={0}
+                    value={truckForm.waterCapacityLiters}
+                    onChange={(e) => setTruckForm({ ...truckForm, waterCapacityLiters: e.target.value })}
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setTruckForm(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveTruck}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </div>
+
+      <ConfirmDialog
+        open={!!confirm}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={confirm?.title}
+        description={confirm?.description}
+        confirmLabel='Deactivate'
+        destructive
+        onConfirm={() => confirm.onConfirm()}
+      />
+    </Page>
   );
 }
 

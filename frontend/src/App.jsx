@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { CircularProgress } from "@mui/material";
 import { APIProvider } from "@vis.gl/react-google-maps";
+import { LoaderCircle } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import Layout, { NAV } from "./components/Layout.jsx";
 import Home from "./components/Home.jsx";
@@ -31,8 +33,8 @@ function AppRoutes() {
   const { user, ready } = useAuth();
   if (!ready) {
     return (
-      <div className='flex min-h-screen items-center justify-center'>
-        <CircularProgress />
+      <div className='flex min-h-svh items-center justify-center'>
+        <LoaderCircle className='size-6 animate-spin text-primary' />
       </div>
     );
   }
@@ -58,7 +60,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_API}>
-          <AppRoutes />
+          <TooltipProvider>
+            <AppRoutes />
+            <Toaster richColors position='top-right' />
+          </TooltipProvider>
         </APIProvider>
       </AuthProvider>
     </BrowserRouter>

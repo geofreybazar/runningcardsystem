@@ -28,7 +28,7 @@ function MapComponent({ position, onChange }) {
           draggable
           onDragEnd={(e) => onChange(e.latLng.toJSON())}
         >
-          <Pin background='#dc2626' borderColor='#7f1d1d' glyphColor='#fff' />
+          <Pin background='#b91c1c' borderColor='#7f1d1d' glyphColor='#f2c94c' />
         </AdvancedMarker>
       )}
     </Map>
