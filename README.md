@@ -5,6 +5,8 @@ Finds which fire stations respond to a fire anywhere in Metro Manila, nearest fi
 - **frontend/**: React 19 + Vite + Tailwind v4 + shadcn/ui, Google Maps
 - **backend/**: NestJS 12 + Prisma 7 + PostgreSQL, JWT access/refresh tokens
 
+Full technical documentation (architecture, database, API, security, development): [docs/](docs/README.md).
+
 ## Offices and roles
 
 Every account belongs to an office: the **Regional** office, a **Fire District** office, or a **City** office.
@@ -78,6 +80,8 @@ npm test             # coordinate parsing
 ```
 
 ## Docker
+
+> Untested. The backend image is expected to fail at its seed step; see [docs/development/deployment.md](docs/development/deployment.md).
 
 ```bash
 export VITE_GOOGLE_API=your-key   # or put it in a .env next to docker-compose.yml
