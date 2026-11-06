@@ -20,6 +20,11 @@ export class AccessPolicy implements PolicyBefore<AuthUser> {
     return is(user, 'SUPER_ADMIN', 'OPERATIONS');
   }
 
+  /** Operations users edit only their own fire district. */
+  editDistrict(user: AuthUser | null, districtId: number) {
+    return is(user, 'SUPER_ADMIN') || (is(user, 'OPERATIONS') && user!.districtId === districtId);
+  }
+
   manageUsers(user: AuthUser | null) {
     return is(user, 'SUPER_ADMIN', 'ADMIN');
   }

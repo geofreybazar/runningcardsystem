@@ -8,6 +8,7 @@ import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { DistrictsModule } from './districts/districts.module.js';
+import { StationsModule } from './stations/stations.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DistrictsModule } from './districts/districts.module.js';
     AuthModule,
     UsersModule,
     DistrictsModule,
+    StationsModule,
   ],
 })
 export class AppModule {}

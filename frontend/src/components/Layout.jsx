@@ -7,6 +7,7 @@ import { ROLE_LABELS, useAuth } from "../auth/AuthContext.jsx";
 /** Pages and the roles that see them in the menu. The backend enforces the same rules. */
 export const NAV = [
   { to: "/", label: "Running Card", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
+  { to: "/stations", label: "Stations & Trucks", roles: ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"] },
   { to: "/users", label: "Users", roles: ["SUPER_ADMIN", "ADMIN"] },
 ];
 

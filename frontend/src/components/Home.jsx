@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { APIProvider } from "@vis.gl/react-google-maps";
 import variables from "../variables/variables.js";
 import Card from "./Card.jsx";
 import LocationSearch from "./LocationSearch.jsx";
@@ -18,7 +17,7 @@ function Home() {
   };
 
   return (
-    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_API}>
+    <>
       <div>
         <main className='grid grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(360px,2fr)_3fr] lg:p-6'>
           <section className='flex flex-col gap-3'>
@@ -42,7 +41,7 @@ function Home() {
           </section>
         </main>
       </div>
-    </APIProvider>
+    </>
   );
 }
 

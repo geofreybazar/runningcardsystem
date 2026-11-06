@@ -1,13 +1,15 @@
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import Layout, { NAV } from "./components/Layout.jsx";
 import Home from "./components/Home.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
+import StationsPage from "./pages/StationsPage.jsx";
 
-const PAGES = { "/": <Home />, "/users": <UsersPage /> };
+const PAGES = { "/": <Home />, "/stations": <StationsPage />, "/users": <UsersPage /> };
 
 function ChangePasswordRoute() {
   const navigate = useNavigate();
@@ -43,7 +45,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_API}>
+          <AppRoutes />
+        </APIProvider>
       </AuthProvider>
     </BrowserRouter>
   );
