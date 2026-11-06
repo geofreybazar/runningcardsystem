@@ -4,14 +4,15 @@ import { TruckOwnership, TruckStatus, TruckType } from '../generated/prisma/enum
 
 export class StationQuery {
   @IsOptional() @Type(() => Number) @IsInt() districtId?: number;
+  @IsOptional() @Type(() => Number) @IsInt() cityId?: number;
 }
 
 export class CreateStationDto {
   @IsString() @MinLength(1) @MaxLength(150) name: string;
   @IsLatitude() lat: number;
   @IsLongitude() lng: number;
-  @IsInt() districtId: number;
-  @IsOptional() @IsInt() cityId?: number | null;
+  /** The fire district follows from the city. */
+  @IsInt() cityId: number;
   @IsOptional() @IsString() @MaxLength(250) address?: string | null;
   @IsOptional() @IsString() @MaxLength(50) contactNumber?: string | null;
 }
@@ -20,8 +21,7 @@ export class UpdateStationDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(150) name?: string;
   @IsOptional() @IsLatitude() lat?: number;
   @IsOptional() @IsLongitude() lng?: number;
-  @IsOptional() @IsInt() districtId?: number;
-  @IsOptional() @IsInt() cityId?: number | null;
+  @IsOptional() @IsInt() cityId?: number;
   @IsOptional() @IsString() @MaxLength(250) address?: string | null;
   @IsOptional() @IsString() @MaxLength(50) contactNumber?: string | null;
   @IsOptional() @IsBoolean() isActive?: boolean;

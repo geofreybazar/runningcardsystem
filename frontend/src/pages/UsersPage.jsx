@@ -16,11 +16,30 @@ import SimpleSelect from "@/components/SimpleSelect.jsx";
 import ConfirmDialog from "@/components/ConfirmDialog.jsx";
 import { api } from "@/api/client.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
+import { OFFICE_LABELS, OFFICE_LEVELS, officeName } from "@/auth/permissions.js";
 
-// Mirrors the backend rule: admins manage field accounts only.
-const manageableRoles = (role) => (role === "SUPER_ADMIN" ? Object.keys(ROLE_LABELS) : ["OPERATIONS", "RADIO_OPERATOR"]);
+// Mirrors the backend rule: Admin (regional IT) manages every account except Super Admin.
+const manageableRoles = (role) => Object.keys(ROLE_LABELS).filter((r) => role === "SUPER_ADMIN" || r !== "SUPER_ADMIN");
 
-const EMPTY = { username: "", fullName: "", role: "RADIO_OPERATOR", districtId: "" };
+const EMPTY = { username: "", fullName: "", role: "RADIO_OPERATOR", officeLevel: "CITY", districtId: "", cityId: "" };
+
+/** Role → office level → district → city, keeping only combinations the role allows. */
+function normalizeOffice(form, districts) {
+  const levels = OFFICE_LEVELS[form.role];
+  const officeLevel = levels.includes(form.officeLevel) ? form.officeLevel : levels[0];
+  const district = districts.find((d) => d.id === form.districtId);
+  let cityId = officeLevel === "CITY" ? form.cityId : "";
+  if (officeLevel === "CITY" && district?.cities.length === 1) cityId = district.cities[0].id; // FD1 Manila, FD5 Quezon City
+  if (cityId && !district?.cities.some((c) => c.id === cityId)) cityId = "";
+  return { ...form, officeLevel, districtId: officeLevel === "REGIONAL" ? "" : form.districtId, cityId };
+}
+
+const dispatchNote = (form, districts) => {
+  if (form.role !== "RADIO_OPERATOR") return null;
+  const district = districts.find((d) => d.id === form.districtId);
+  if (form.officeLevel === "CITY" || (form.officeLevel === "DISTRICT" && district?.cities.length === 1)) return "Can dispatch for fires in this city.";
+  return "View only: sees incidents in this area but cannot dispatch.";
+};
 
 function Actions({ onEdit, onReset, onRemove }) {
   const item = (label, onClick, Icon, destructive) => (
@@ -73,7 +92,9 @@ function UsersPage() {
     const body = {
       fullName: form.fullName.trim(),
       role: form.role,
-      ...(form.role === "OPERATIONS" ? { districtId: Number(form.districtId) } : form.id ? { districtId: null } : {}),
+      officeLevel: form.officeLevel,
+      districtId: form.officeLevel === "DISTRICT" ? form.districtId || null : null,
+      cityId: form.officeLevel === "CITY" ? form.cityId || null : null,
     };
     try {
       if (form.id) {
@@ -99,7 +120,7 @@ function UsersPage() {
   const setActive = (u, isActive) => run(() => api(`/users/${u.id}`, { method: "PATCH", body: { isActive } }), `${u.username} ${isActive ? "enabled" : "disabled"}`);
   const edit = (u) => {
     setFormError("");
-    setForm({ ...u, districtId: u.districtId ?? "" });
+    setForm({ ...u, districtId: u.districtId ?? "", cityId: u.cityId ?? "" });
   };
   const editable = (u) => roles.includes(u.role) && u.id !== me.id;
 
@@ -126,7 +147,7 @@ function UsersPage() {
               <div className='min-w-0'>
                 <div className='truncate font-medium'>{u.fullName}</div>
                 <div className='text-xs text-muted-foreground'>
-                  @{u.username} · {ROLE_LABELS[u.role]} · {u.district?.name ?? "All NCR"}
+                  @{u.username} · {ROLE_LABELS[u.role]} · {officeName(u)}
                 </div>
               </div>
               <Switch checked={u.isActive} disabled={!editable(u)} onCheckedChange={(v) => setActive(u, v)} aria-label='Active' />
@@ -144,7 +165,7 @@ function UsersPage() {
               <TableHead>Name</TableHead>
               <TableHead>Username</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>District</TableHead>
+              <TableHead>Office</TableHead>
               <TableHead>Active</TableHead>
               <TableHead className='text-right'>Actions</TableHead>
             </TableRow>
@@ -162,7 +183,7 @@ function UsersPage() {
                   )}
                 </TableCell>
                 <TableCell>{ROLE_LABELS[u.role]}</TableCell>
-                <TableCell>{u.district?.name ?? <span className='text-muted-foreground'>All NCR</span>}</TableCell>
+                <TableCell>{officeName(u)}</TableCell>
                 <TableCell>
                   <Switch checked={u.isActive} disabled={!editable(u)} onCheckedChange={(v) => setActive(u, v)} aria-label='Active' />
                 </TableCell>
@@ -193,17 +214,42 @@ function UsersPage() {
                 <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
               </Field>
               <Field label='Role'>
-                <SimpleSelect value={form.role} onChange={(role) => setForm({ ...form, role })} options={roles.map((r) => ({ value: r, label: ROLE_LABELS[r] }))} />
+                <SimpleSelect
+                  value={form.role}
+                  onChange={(role) => setForm(normalizeOffice({ ...form, role }, districts))}
+                  options={roles.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+                />
               </Field>
-              {form.role === "OPERATIONS" && (
-                <Field label='Fire district' hint='Operations users can only edit stations in this district'>
-                  <SimpleSelect
-                    value={form.districtId}
-                    onChange={(districtId) => setForm({ ...form, districtId })}
-                    options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
-                  />
-                </Field>
+              <Field label='Office'>
+                <SimpleSelect
+                  value={form.officeLevel}
+                  disabled={OFFICE_LEVELS[form.role].length === 1}
+                  onChange={(officeLevel) => setForm(normalizeOffice({ ...form, officeLevel }, districts))}
+                  options={OFFICE_LEVELS[form.role].map((l) => ({ value: l, label: OFFICE_LABELS[l] }))}
+                />
+              </Field>
+              {form.officeLevel !== "REGIONAL" && (
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <Field label='Fire district'>
+                    <SimpleSelect
+                      value={form.districtId}
+                      onChange={(districtId) => setForm(normalizeOffice({ ...form, districtId }, districts))}
+                      options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+                    />
+                  </Field>
+                  {form.officeLevel === "CITY" && (
+                    <Field label='City'>
+                      <SimpleSelect
+                        value={form.cityId}
+                        disabled={!form.districtId}
+                        onChange={(cityId) => setForm({ ...form, cityId })}
+                        options={(districts.find((d) => d.id === form.districtId)?.cities ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                      />
+                    </Field>
+                  )}
+                </div>
               )}
+              {dispatchNote(form, districts) && <p className='text-xs text-muted-foreground'>{dispatchNote(form, districts)}</p>}
             </div>
           )}
           <DialogFooter>

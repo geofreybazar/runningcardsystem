@@ -36,6 +36,13 @@ enum TruckStatus {
   OUT_OF_SERVICE
 }
 
+/// Where an account sits in BFP NCR: the Regional office, a Fire District office, or a City office.
+enum OfficeLevel {
+  REGIONAL
+  DISTRICT
+  CITY
+}
+
 enum IncidentStatus {
   OPEN
   CLOSED
@@ -60,6 +67,10 @@ model City {
   district   FireDistrict @relation(fields: [districtId], references: [id])
   barangays  Barangay[]
   stations   Station[]
+  users      User[]
+  incidents  Incident[]
+  /// Barangay outlines of the city ({ bbox, rings }), used to tell which city a point is in.
+  boundary   Json?
 }
 
 model Barangay {
@@ -118,7 +129,10 @@ model User {
   fullName           String
   passwordHash       String
   role               Role
-  districtId         Int? // required for OPERATIONS
+  officeLevel        OfficeLevel   @default(REGIONAL)
+  districtId         Int? // DISTRICT offices, and CITY offices (derived from the city)
+  cityId             Int? // CITY offices
+  city               City?         @relation(fields: [cityId], references: [id])
   district           FireDistrict? @relation(fields: [districtId], references: [id])
   isActive           Boolean       @default(true)
   mustChangePassword Boolean       @default(true)
@@ -165,6 +179,9 @@ model Incident {
   locationLabel String
   barangayId    Int?
   barangay      Barangay?      @relation(fields: [barangayId], references: [id])
+  /// City the fire is in; its dispatchers own the incident. Null only on incidents created before offices existed.
+  cityId        Int?
+  city          City?          @relation(fields: [cityId], references: [id])
   status        IncidentStatus @default(OPEN)
   alarmIndex    Int            @default(0) // highest alarm level dispatched
   runningCard   Json // snapshot at dispatch
@@ -178,6 +195,7 @@ model Incident {
   units         IncidentUnit[]
 
   @@index([status, createdAt])
+  @@index([cityId])
 }
 
 model IncidentUnit {

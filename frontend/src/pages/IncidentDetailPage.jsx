@@ -12,6 +12,8 @@ import ConfirmDialog from "@/components/ConfirmDialog.jsx";
 import Card from "@/components/Card.jsx";
 import MapComponent from "@/components/MapComponent.jsx";
 import { api } from "@/api/client.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { canDispatchIn } from "@/auth/permissions.js";
 import { TRUCK_TYPES } from "@/labels.js";
 
 const time = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -19,6 +21,7 @@ const when = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeSt
 
 function IncidentDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [incident, setIncident] = useState(null);
   const [next, setNext] = useState(null);
   const [truckPicks, setTruckPicks] = useState({});
@@ -29,8 +32,8 @@ function IncidentDetailPage() {
     const data = await api(`/incidents/${id}`);
     setIncident(data);
     setTruckPicks({});
-    setNext(data.status === "OPEN" ? await api(`/incidents/${id}/next-alarm`) : null);
-  }, [id]);
+    setNext(data.status === "OPEN" && canDispatchIn(user, data.cityId) ? await api(`/incidents/${id}/next-alarm`) : null);
+  }, [id, user]);
 
   useEffect(() => {
     load().catch((e) => toast.error(e.message));
@@ -59,6 +62,7 @@ function IncidentDetailPage() {
   }
 
   const open = incident.status === "OPEN";
+  const mine = open && canDispatchIn(user, incident.cityId); // only this city's dispatchers act on it
   const levels = [...new Set(incident.units.map((u) => u.alarmLevel))];
 
   return (
@@ -74,13 +78,13 @@ function IncidentDetailPage() {
             {open ? <Badge>OPEN · {incident.alarmLevel}</Badge> : <Badge variant='secondary'>CLOSED</Badge>}
           </div>
           <p className='mt-1 text-sm text-muted-foreground'>
-            {incident.barangay && `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name} · `}
+            {incident.barangay ? `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name} · ` : incident.city && `${incident.city.name} · `}
             Dispatched {when(incident.createdAt)} by {incident.createdBy.fullName}
             {incident.closedAt && ` · Closed ${when(incident.closedAt)} by ${incident.closedBy?.fullName}`}
           </p>
           {incident.notes && <p className='mt-2 text-sm'>{incident.notes}</p>}
         </div>
-        {open && (
+        {mine && (
           <Button variant='outline' onClick={() => setConfirmClose(true)} disabled={busy}>
             Close incident
           </Button>
@@ -131,7 +135,10 @@ function IncidentDetailPage() {
         </Panel>
       </div>
 
-      {open && next && (
+      {open && !mine && (
+        <p className='text-sm text-muted-foreground'>View only: the {incident.city?.name ?? "city"} office raises the alarm and closes this incident.</p>
+      )}
+      {mine && next && (
         <section className='flex flex-col gap-3'>
           <div className='flex flex-col gap-3 rounded-xl border border-primary/20 bg-accent p-3 sm:flex-row sm:items-center'>
             <Siren className='hidden size-5 shrink-0 text-primary sm:block' />
@@ -149,7 +156,7 @@ function IncidentDetailPage() {
           />
         </section>
       )}
-      {open && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
+      {mine && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
 
       <ConfirmDialog
         open={confirmClose}

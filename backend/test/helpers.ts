@@ -37,7 +37,15 @@ export async function signIn(app: INestApplication, username: string, password: 
 export const superAdminAuth = (app: INestApplication) =>
   signIn(app, 'superadmin', 'Super-pass-1').catch(() => signIn(app, 'superadmin', 'Initial-pass-1', 'Super-pass-1'));
 
-export async function makeUser(app: INestApplication, admin: Record<string, string>, username: string, role: string, districtId?: number) {
-  const res = await request(app.getHttpServer()).post('/api/users').set(admin).send({ username, fullName: username, role, districtId }).expect(201);
+export type OfficeInput = { officeLevel?: 'REGIONAL' | 'DISTRICT' | 'CITY'; districtId?: number; cityId?: number };
+
+export async function makeUser(app: INestApplication, admin: Record<string, string>, username: string, role: string, office: OfficeInput = {}) {
+  const res = await request(app.getHttpServer()).post('/api/users').set(admin).send({ username, fullName: username, role, ...office }).expect(201);
   return signIn(app, username, res.body.temporaryPassword);
+}
+
+/** City id by name, e.g. cityId(app, auth, 'Caloocan'). */
+export async function cityId(app: INestApplication, auth: Record<string, string>, name: string): Promise<number> {
+  const districts = (await request(app.getHttpServer()).get('/api/districts').set(auth).expect(200)).body;
+  return districts.flatMap((d: { cities: { id: number; name: string }[] }) => d.cities).find((c: { name: string }) => c.name === name).id;
 }

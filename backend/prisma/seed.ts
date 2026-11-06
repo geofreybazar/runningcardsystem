@@ -5,6 +5,7 @@ import barangay from 'barangay';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PasswordHasher } from '@nestjs/authentication';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { locateCity, type CityShape } from '../src/geo/city-locator.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -47,12 +48,18 @@ const ALARM_LEVELS = [
 
 type SeedStation = { name: string; lat: number; lng: number; districtCode: number };
 
+const readJson = (file: string) => JSON.parse(readFileSync(new URL(`./seed-data/${file}`, import.meta.url), 'utf8'));
+const SHAPES: (CityShape & { psgc: number })[] = readJson('ncr-city-boundaries.json').cities;
+
 async function main() {
   for (const d of DISTRICTS) {
     const { cities, ...data } = d;
     const district = await prisma.fireDistrict.upsert({ where: { code: d.code }, update: {}, create: data });
     for (const name of cities) {
-      const city = await prisma.city.upsert({ where: { name }, update: {}, create: { name, districtId: district.id } });
+      const shape = SHAPES.find((c) => c.name === name)!;
+      const boundary = { bbox: shape.bbox, rings: shape.rings };
+      // Boundaries are reference data: refreshed on every seed.
+      const city = await prisma.city.upsert({ where: { name }, update: { boundary }, create: { name, districtId: district.id, boundary } });
       const names: string[] = barangay('NATIONAL CAPITAL REGION', 'METRO MANILA', PACKAGE_CITY[name]);
       await prisma.barangay.createMany({
         data: names.map((n) => ({ name: n, cityId: city.id })),
@@ -62,7 +69,7 @@ async function main() {
   }
 
   if ((await prisma.station.count()) === 0) {
-    const stations: SeedStation[] = JSON.parse(readFileSync(new URL('./seed-data/stations.json', import.meta.url), 'utf8'));
+    const stations: SeedStation[] = readJson('stations.json');
     const districts = await prisma.fireDistrict.findMany({ include: { cities: true } });
     const byCode = new Map(districts.map((d) => [d.code, d]));
     const placeholderTrucks = process.env.SEED_PLACEHOLDER_TRUCKS === 'true';
@@ -74,12 +81,32 @@ async function main() {
           lat: s.lat,
           lng: s.lng,
           districtId: district.id,
-          // FD1/FD5 are one city each; other stations get their city set by Operations.
-          cityId: district.cities.length === 1 ? district.cities[0].id : null,
+          cityId: null, // filled in below from the city boundaries
           trucks: placeholderTrucks ? { create: { callSign: `${s.name} Engine 1 (placeholder)` } } : undefined,
         },
       });
     }
+  }
+
+  // Every station and incident belongs to the city its pin is in. Only fills gaps; never overrides a city someone set.
+  const cities = await prisma.city.findMany();
+  const cityAt = (lat: number, lng: number) => {
+    const name = locateCity(SHAPES, lat, lng);
+    return cities.find((c) => c.name === name) ?? null;
+  };
+  const unresolved: string[] = [];
+  for (const s of await prisma.station.findMany({ where: { cityId: null } })) {
+    const city = cityAt(s.lat, s.lng);
+    if (!city) {
+      unresolved.push(s.name);
+      continue;
+    }
+    await prisma.station.update({ where: { id: s.id }, data: { cityId: city.id, districtId: city.districtId } });
+  }
+  if (unresolved.length) console.warn('Stations outside every city boundary; set their city by hand:', unresolved);
+  for (const i of await prisma.incident.findMany({ where: { cityId: null } })) {
+    const city = cityAt(i.lat, i.lng);
+    if (city) await prisma.incident.update({ where: { id: i.id }, data: { cityId: city.id } });
   }
 
   await prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1, alarmLevels: ALARM_LEVELS } });
@@ -103,6 +130,7 @@ async function main() {
     cities: await prisma.city.count(),
     barangays: await prisma.barangay.count(),
     stations: await prisma.station.count(),
+    stationsWithoutCity: await prisma.station.count({ where: { cityId: null } }),
     trucks: await prisma.truck.count(),
     users: await prisma.user.count(),
   });

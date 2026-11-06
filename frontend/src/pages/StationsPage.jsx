@@ -17,12 +17,10 @@ import MapComponent from "@/components/MapComponent.jsx";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
+import { canEditCity } from "@/auth/permissions.js";
 import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
 
 const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
-
-const canEditDistrict = (user, districtId) =>
-  user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && user.districtId === districtId);
 
 const nullIfBlank = (v) => (v === "" || v == null ? null : v);
 
@@ -42,7 +40,7 @@ function IconAction({ label, onClick, children, destructive }) {
 function StationsPage() {
   const { user } = useAuth();
   const [districts, setDistricts] = useState([]);
-  const [districtId, setDistrictId] = useState(user.role === "OPERATIONS" ? user.districtId : 1);
+  const [districtId, setDistrictId] = useState(user.districtId ?? 1);
   const [stations, setStations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
@@ -52,8 +50,10 @@ function StationsPage() {
   const [confirm, setConfirm] = useState(null); // { title, description, onConfirm }
 
   const district = districts.find((d) => d.id === districtId);
-  const editable = canEditDistrict(user, districtId);
   const selected = stations.find((s) => s.id === selectedId);
+  const editableCities = (district?.cities ?? []).filter((c) => canEditCity(user, c.id));
+  const canAddHere = editableCities.length > 0;
+  const editable = !!selected && canEditCity(user, selected.cityId); // the selected station
   const visible = useMemo(() => stations.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())), [stations, search]);
 
   const load = useCallback(
@@ -93,7 +93,7 @@ function StationsPage() {
     try {
       const saved = f.id
         ? await api(`/stations/${f.id}`, { method: "PATCH", body })
-        : await api("/stations", { method: "POST", body: { ...body, districtId } });
+        : await api("/stations", { method: "POST", body });
       setStationForm(null);
       toast.success(f.id ? "Station updated" : "Station added");
       await load();
@@ -129,7 +129,7 @@ function StationsPage() {
     setStationForm(
       s
         ? { ...s, cityId: s.cityId ?? "", address: s.address ?? "", contactNumber: s.contactNumber ?? "" }
-        : { name: "", cityId: district?.cities.length === 1 ? district.cities[0].id : "", address: "", contactNumber: "", lat: null, lng: null }
+        : { name: "", cityId: editableCities.length === 1 ? editableCities[0].id : "", address: "", contactNumber: "", lat: null, lng: null }
     );
   };
 
@@ -143,7 +143,7 @@ function StationsPage() {
   return (
     <Page
       title='Stations & Trucks'
-      description={editable ? undefined : "View only. Operations edit stations in their own district."}
+      description={canAddHere ? undefined : "View only. Operations offices edit stations in their own city or district."}
       actions={
         <>
           <SimpleSelect
@@ -152,7 +152,7 @@ function StationsPage() {
             className='w-full bg-card sm:w-72'
             options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
           />
-          {editable && (
+          {canAddHere && (
             <Button onClick={() => openStationForm(null)}>
               <Plus /> Add station
             </Button>
@@ -361,7 +361,9 @@ function StationsPage() {
                   <SimpleSelect
                     value={stationForm.cityId}
                     onChange={(cityId) => setStationForm({ ...stationForm, cityId })}
-                    options={(district?.cities ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                    options={(stationForm.id ? district?.cities ?? [] : editableCities)
+                      .filter((c) => canEditCity(user, c.id))
+                      .map((c) => ({ value: c.id, label: c.name }))}
                   />
                 </Field>
                 <Field label='Address'>

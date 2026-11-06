@@ -1,4 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { AuthorizationService } from '@nestjs/authorization';
+import { AccessPolicy } from '../auth/access.policy.js';
+import { CityDirectory } from '../geo/city-directory.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RunningCardService } from '../running-card/running-card.service.js';
 import type { AuthUser } from '../auth/auth-user.js';
@@ -8,6 +11,7 @@ type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['stations'][number];
 
 const DETAIL_INCLUDE = {
+  city: { select: { id: true, name: true } },
   barangay: { select: { name: true, city: { select: { name: true } } } },
   createdBy: { select: { fullName: true, username: true } },
   closedBy: { select: { fullName: true, username: true } },
@@ -25,20 +29,27 @@ export class IncidentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly runningCard: RunningCardService,
+    private readonly cities: CityDirectory,
+    private readonly authz: AuthorizationService,
   ) {}
+
+  /** Offices see incidents in their cities, plus ones their stations responded to. Regional accounts see all. */
+  private visibleTo(user: AuthUser) {
+    const area = user.areaCityIds;
+    if (area === null) return {};
+    return { OR: [{ cityId: { in: area } }, { units: { some: { station: { cityId: { in: area } } } } }] };
+  }
 
   /** Operations see incidents their district responded to; everyone else sees all. */
   async list(user: AuthUser, status?: 'OPEN' | 'CLOSED', take = 100) {
     const levels = await this.alarmLevels();
     const incidents = await this.prisma.incident.findMany({
-      where: {
-        status,
-        ...(user.role === 'OPERATIONS' && { units: { some: { station: { districtId: user.districtId! } } } }),
-      },
+      where: { status, ...this.visibleTo(user) },
       orderBy: { createdAt: 'desc' },
       take: Math.min(take, 500),
       include: {
         createdBy: { select: { fullName: true } },
+        city: { select: { name: true } },
         _count: { select: { units: true } },
       },
       omit: { runningCard: true },
@@ -47,10 +58,10 @@ export class IncidentsService {
   }
 
   async get(user: AuthUser, id: string) {
-    const incident = await this.prisma.incident.findUnique({ where: { id }, include: DETAIL_INCLUDE });
-    if (!incident) throw new NotFoundException('Incident not found');
-    if (user.role === 'OPERATIONS' && !incident.units.some((u) => u.station.districtId === user.districtId)) {
-      throw new ForbiddenException('This incident is outside your district');
+    const incident = await this.prisma.incident.findFirst({ where: { id, ...this.visibleTo(user) }, include: DETAIL_INCLUDE });
+    if (!incident) {
+      if (await this.prisma.incident.count({ where: { id } })) throw new ForbiddenException('This incident is outside your area');
+      throw new NotFoundException('Incident not found');
     }
     const levels = await this.alarmLevels();
     return { ...incident, alarmLevel: levels[incident.alarmIndex], nextAlarmLevel: levels[incident.alarmIndex + 1] ?? null };
@@ -58,6 +69,9 @@ export class IncidentsService {
 
   /** Saves the incident and dispatches the 1st Alarm in one transaction. */
   async create(user: AuthUser, dto: CreateIncidentDto) {
+    const city = await this.cities.cityAt(dto.lat, dto.lng);
+    if (!city) throw new BadRequestException('This location is outside Metro Manila');
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, city.id);
     const card = await this.runningCard.generate(dto);
     if (card.length === 0) throw new BadRequestException('No station with an available truck is within range');
     const id = await this.prisma.$transaction(async (tx) => {
@@ -67,6 +81,7 @@ export class IncidentsService {
           lng: dto.lng,
           locationLabel: dto.locationLabel,
           barangayId: dto.barangayId,
+          cityId: city.id,
           notes: dto.notes,
           runningCard: card as object,
           createdById: user.id,
@@ -90,6 +105,7 @@ export class IncidentsService {
   }
 
   async raise(user: AuthUser, id: string, truckPicks?: TruckPicks) {
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, (await this.openIncident(id)).cityId);
     const next = await this.nextAlarm(id);
     if (!next) throw new BadRequestException('This incident is already at the highest alarm level');
     if (next.stations.length === 0) throw new ConflictException('No more stations with an available truck are within range');
@@ -109,6 +125,7 @@ export class IncidentsService {
   /** Closes the incident and frees its trucks, unless Operations marked one out of service meanwhile. */
   async close(user: AuthUser, id: string) {
     const incident = await this.openIncident(id);
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, incident.cityId);
     const active = incident.units.filter((u) => !u.releasedAt);
     await this.prisma.$transaction([
       this.prisma.truck.updateMany({

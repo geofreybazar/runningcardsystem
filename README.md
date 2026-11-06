@@ -5,14 +5,20 @@ Finds which fire stations respond to a fire anywhere in Metro Manila, nearest fi
 - **frontend/**: React 19 + Vite + Tailwind v4 + shadcn/ui, Google Maps
 - **backend/**: NestJS 12 + Prisma 7 + PostgreSQL, JWT access/refresh tokens
 
-## Roles
+## Offices and roles
 
-| Role | Does |
-|---|---|
-| Radio Operator | Finds the location, generates the running card, dispatches, raises the alarm, closes incidents |
-| Operations | Same as Radio Operator, plus manages stations, trucks and truck status **in their own fire district** |
-| Admin | Creates, disables and removes Operations and Radio Operator accounts; reads the audit log |
-| Super Admin | Everything, including Admin accounts and the running card rules (developers) |
+Every account belongs to an office: the **Regional** office, a **Fire District** office, or a **City** office.
+
+| Role | Office | Does |
+|---|---|---|
+| Super Admin | Regional | Developers. Everything, including the running card rules |
+| Admin | Regional | Regional IT: creates, disables, removes and resets accounts (all but Super Admin); reads the audit log |
+| Operations | District or City | Adds and edits stations and fire trucks **in its city, or every city of its district** |
+| Radio Operator | Regional, District or City | City offices, and the FD1 (Manila) and FD5 (Quezon City) district offices, **dispatch, raise alarms and close incidents for fires in their own city**. FD2–FD4 district offices and the Regional office only view incidents |
+
+Offices see the incidents in their area: City → its city, District → its cities, Regional → all. An office also sees incidents its stations responded to. Anyone can preview a running card.
+
+The city of a location comes from the NCR city boundaries in `backend/prisma/seed-data/ncr-city-boundaries.json`, built from barangay outlines in [faeldon/philippines-json-maps](https://github.com/faeldon/philippines-json-maps) (MIT).
 
 New accounts get a temporary password and must change it on first sign-in.
 
@@ -32,7 +38,7 @@ FD1 and FD5 act as a city, so the city step is filled in for them. A barangay's 
 
 ## Running card rules
 
-Only active stations with at least one **Available** truck are listed, nearest first (straight-line distance), 4 per alarm level by default. Each station sends one truck: its first available, or the one the operator picks. Super Admin can change the number of stations per alarm, the max distance and the alarm level names under **Settings**.
+Only active stations with at least one **Available** truck are listed (a truck already on an incident is never sent again; the station sends another available truck, or the next nearest station takes its place), nearest first (straight-line distance), 4 per alarm level by default. Each station sends one truck: its first available, or the one the operator picks. Super Admin can change the number of stations per alarm, the max distance and the alarm level names under **Settings**.
 
 Dispatch marks the 1st Alarm trucks **Responding**. **Raise alarm** sends the next nearest stations not yet on the incident. **Close** sets the trucks back to **Available**, except any that Operations marked **Out of service** meanwhile.
 

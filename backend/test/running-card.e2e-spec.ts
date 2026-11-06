@@ -16,11 +16,11 @@ describe('running card and barangay pins', () => {
     http = request(app.getHttpServer());
     superAdmin = await superAdminAuth(app);
     radio = await makeUser(app, superAdmin, 'rc-radio', 'RADIO_OPERATOR');
-    ops2 = await makeUser(app, superAdmin, 'rc-ops2', 'OPERATIONS', 2);
+    ops2 = await makeUser(app, superAdmin, 'rc-ops2', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
   });
   afterAll(() => app.close());
 
-  const card = async () => (await http.get('/api/running-card').query(QUIAPO).set(radio).expect(200)).body;
+  const card = async () => (await http.get('/api/running-card').query(QUIAPO).set(radio).expect(200)).body.alarms;
 
   it('lists nearest stations with their available trucks, 4 per alarm', async () => {
     const alarms = await card();
@@ -41,6 +41,13 @@ describe('running card and barangay pins', () => {
     for (const t of nearest.trucks) {
       await http.patch(`/api/trucks/${t.id}`).set(superAdmin).send({ status: 'AVAILABLE' }).expect(200);
     }
+  });
+
+  it("says which city the location is in, or null outside NCR", async () => {
+    const quiapo = (await http.get('/api/running-card').query(QUIAPO).set(radio).expect(200)).body;
+    expect(quiapo.city.name).toBe('Manila');
+    const cavite = (await http.get('/api/running-card').query({ lat: 14.2956, lng: 120.9583 }).set(radio).expect(200)).body;
+    expect(cavite.city).toBeNull();
   });
 
   it('rejects bad coordinates', async () => {
@@ -83,7 +90,7 @@ describe('settings', () => {
     const rules = { stationsPerAlarm: 3, maxDistanceKm: 100, alarmLevels: ['First', 'Second'] };
     await http.put('/api/settings').set(superAdmin).send({ ...rules, alarmLevels: ['A', 'A'] }).expect(400);
     await http.put('/api/settings').set(superAdmin).send(rules).expect(200);
-    const card = (await http.get('/api/running-card').query(QUIAPO).set(admin)).body;
+    const card = (await http.get('/api/running-card').query(QUIAPO).set(admin)).body.alarms;
     expect(card.map((a: { alarmLevel: string }) => a.alarmLevel)).toEqual(['First', 'Second']);
     expect(card[0].stations).toHaveLength(3);
 

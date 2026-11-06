@@ -55,6 +55,7 @@ function IncidentsPage() {
             </div>
             <div className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
               <AlarmBadge incident={i} />
+              {i.city?.name && `${i.city.name} · `}
               {fmt(i.createdAt)} · {i._count.units} units · {i.createdBy.fullName}
             </div>
           </Card>
@@ -68,6 +69,7 @@ function IncidentsPage() {
               <TableRow>
                 <TableHead>Dispatched</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>City</TableHead>
                 <TableHead>Alarm</TableHead>
                 <TableHead className='text-right'>Units</TableHead>
                 <TableHead>By</TableHead>
@@ -79,6 +81,7 @@ function IncidentsPage() {
                 <TableRow key={i.id} className='cursor-pointer' onClick={() => open(i)}>
                   <TableCell className='whitespace-nowrap text-muted-foreground'>{fmt(i.createdAt)}</TableCell>
                   <TableCell className='max-w-80 truncate font-medium'>{i.locationLabel}</TableCell>
+                  <TableCell>{i.city?.name ?? "—"}</TableCell>
                   <TableCell>
                     <AlarmBadge incident={i} />
                   </TableCell>

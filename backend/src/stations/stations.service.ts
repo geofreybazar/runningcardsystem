@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CityDirectory } from '../geo/city-directory.service.js';
 import { AuthorizationService } from '@nestjs/authorization';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -18,26 +19,27 @@ export class StationsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly authz: AuthorizationService,
+    private readonly cities: CityDirectory,
   ) {}
 
-  list(districtId?: number) {
+  list(districtId?: number, cityId?: number) {
     return this.prisma.station.findMany({
-      where: { isActive: true, ...(districtId && { districtId }) },
+      where: { isActive: true, ...(districtId && { districtId }), ...(cityId && { cityId }) },
       include: STATION_INCLUDE,
       orderBy: [{ districtId: 'asc' }, { name: 'asc' }],
     });
   }
 
   async create(user: AuthUser, dto: CreateStationDto) {
-    await this.authz.authorize(AccessPolicy, 'editDistrict', user, dto.districtId);
-    await this.assertCityInDistrict(dto.cityId, dto.districtId);
+    const city = await this.city(dto.cityId);
+    await this.authz.authorize(AccessPolicy, 'editCity', user, city.id);
     const station = await this.prisma.station.create({
       data: {
         name: dto.name,
         lat: dto.lat,
         lng: dto.lng,
-        districtId: dto.districtId,
-        cityId: dto.cityId ?? null,
+        districtId: city.districtId,
+        cityId: city.id,
         address: dto.address,
         contactNumber: dto.contactNumber,
       },
@@ -49,20 +51,17 @@ export class StationsService {
 
   async update(user: AuthUser, id: number, dto: UpdateStationDto) {
     const station = await this.findStation(id);
-    await this.authz.authorize(AccessPolicy, 'editDistrict', user, station.districtId);
-    const districtId = dto.districtId ?? station.districtId;
-    // Moving a station to another district needs rights there too.
-    if (districtId !== station.districtId) await this.authz.authorize(AccessPolicy, 'editDistrict', user, districtId);
-    const cityId = dto.cityId === undefined ? (districtId === station.districtId ? station.cityId : null) : dto.cityId;
-    await this.assertCityInDistrict(cityId, districtId);
+    await this.authz.authorize(AccessPolicy, 'editCity', user, station.cityId);
+    // Moving a station to another city needs rights there too.
+    const city = dto.cityId === undefined || dto.cityId === station.cityId ? null : await this.city(dto.cityId);
+    if (city) await this.authz.authorize(AccessPolicy, 'editCity', user, city.id);
     const updated = await this.prisma.station.update({
       where: { id },
       data: {
         name: dto.name,
         lat: dto.lat,
         lng: dto.lng,
-        districtId,
-        cityId,
+        ...(city && { cityId: city.id, districtId: city.districtId }),
         address: dto.address,
         contactNumber: dto.contactNumber,
         isActive: dto.isActive,
@@ -75,7 +74,7 @@ export class StationsService {
 
   async addTruck(user: AuthUser, stationId: number, dto: CreateTruckDto) {
     const station = await this.findStation(stationId);
-    await this.authz.authorize(AccessPolicy, 'editDistrict', user, station.districtId);
+    await this.authz.authorize(AccessPolicy, 'editCity', user, station.cityId);
     const truck = await this.prisma.truck.create({
       data: {
         stationId,
@@ -92,7 +91,7 @@ export class StationsService {
 
   async updateTruck(user: AuthUser, id: number, dto: UpdateTruckDto) {
     const truck = await this.findTruck(id);
-    await this.authz.authorize(AccessPolicy, 'editDistrict', user, truck.station.districtId);
+    await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
     const updated = await this.prisma.truck.update({
       where: { id },
       data: {
@@ -111,7 +110,7 @@ export class StationsService {
   /** Retire a truck; it stays in incident history. */
   async removeTruck(user: AuthUser, id: number) {
     const truck = await this.findTruck(id);
-    await this.authz.authorize(AccessPolicy, 'editDistrict', user, truck.station.districtId);
+    await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
     await this.prisma.truck.update({ where: { id }, data: { isActive: false } });
     await this.audit.log(user.id, 'DELETE', 'Truck', id, { callSign: truck.callSign });
   }
@@ -128,9 +127,10 @@ export class StationsService {
     return truck;
   }
 
-  private async assertCityInDistrict(cityId: number | null | undefined, districtId: number) {
-    if (cityId == null) return;
-    const city = await this.prisma.city.findUnique({ where: { id: cityId } });
-    if (!city || city.districtId !== districtId) throw new BadRequestException('That city is not in this fire district');
+  private async city(id: number) {
+    const city = await this.cities.get(id);
+    if (!city) throw new BadRequestException('Unknown city');
+    return city;
   }
+
 }

@@ -46,10 +46,10 @@ export class DistrictsController {
    */
   @Put('barangays/:id/location')
   async setLocation(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body() { lat, lng }: LocationDto) {
-    const barangay = await this.prisma.barangay.findUnique({ where: { id }, include: { city: true } });
+    const barangay = await this.prisma.barangay.findUnique({ where: { id }, });
     if (!barangay) throw new NotFoundException('Barangay not found');
     if (barangay.lat !== null) {
-      await this.authz.authorize(AccessPolicy, 'editDistrict', user, barangay.city.districtId);
+      await this.authz.authorize(AccessPolicy, 'editCity', user, barangay.cityId);
       await this.audit.log(user.id, 'UPDATE', 'Barangay', id, { from: { lat: barangay.lat, lng: barangay.lng }, to: { lat, lng } });
     }
     return this.prisma.barangay.update({ where: { id }, data: { lat, lng }, select: { id: true, name: true, lat: true, lng: true } });

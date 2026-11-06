@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LoaderCircle, MapPin, Siren } from "lucide-react";
+import { Eye, LoaderCircle, MapPin, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Field from "@/components/Field.jsx";
 import { api } from "@/api/client.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { canDispatchIn } from "@/auth/permissions.js";
 import Card from "./Card.jsx";
 import LocationSearch from "./LocationSearch.jsx";
 import MapComponent from "./MapComponent.jsx";
@@ -16,7 +18,9 @@ function Home() {
   const [location, setLocation] = useState(null);
   const [label, setLabel] = useState("");
   const [barangayId, setBarangayId] = useState(null);
+  const { user } = useAuth();
   const [runningCard, setRunningCard] = useState(null);
+  const [city, setCity] = useState(null); // NCR city of the pin; its dispatchers own the incident
   const [loading, setLoading] = useState(false);
   const [truckPicks, setTruckPicks] = useState({}); // stationId -> truckId; default is the station's first available truck
   const [dispatchForm, setDispatchForm] = useState(null); // { locationLabel, notes }
@@ -29,9 +33,10 @@ function Home() {
     let stale = false;
     setLoading(true);
     api(`/running-card?lat=${location.lat}&lng=${location.lng}`)
-      .then((card) => {
+      .then(({ city, alarms }) => {
         if (stale) return;
-        setRunningCard(card);
+        setRunningCard(alarms);
+        setCity(city);
         setTruckPicks({});
       })
       .catch((e) => !stale && toast.error(e.message))
@@ -81,7 +86,10 @@ function Home() {
           <div className='flex items-start gap-2 text-sm'>
             <MapPin className='mt-0.5 size-4 shrink-0 text-primary' />
             <div>
-              <div className='font-medium'>{label}</div>
+              <div className='font-medium'>
+                {label}
+                {city && <span className='font-normal text-muted-foreground'> · {city.name}</span>}
+              </div>
               <div className='font-mono text-xs text-muted-foreground'>
                 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
               </div>
@@ -93,7 +101,17 @@ function Home() {
       </section>
 
       <section className='flex flex-col gap-3'>
-        {runningCard?.length > 0 && (
+        {location && !loading && !canDispatchIn(user, city?.id) && (
+          <div className='flex items-start gap-2 rounded-xl border bg-card p-3 text-sm text-muted-foreground'>
+            <Eye className='mt-0.5 size-4 shrink-0' />
+            {!city
+              ? "This location is outside Metro Manila."
+              : user.dispatchCityId
+                ? `View only: this location is in ${city.name}, outside your city. Dispatch is done by the ${city.name} office.`
+                : `View only: dispatch for ${city.name} is done by the ${city.name} office.`}
+          </div>
+        )}
+        {runningCard?.length > 0 && canDispatchIn(user, city?.id) && (
           <div className='flex flex-col gap-3 rounded-xl border border-primary/20 bg-accent p-3 sm:flex-row sm:items-center'>
             <Siren className='hidden size-5 shrink-0 text-primary sm:block' />
             <p className='flex-1 text-sm'>
@@ -108,7 +126,7 @@ function Home() {
           <Card
             runningCard={runningCard}
             truckPicks={truckPicks}
-            onPickTruck={(stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId }))}
+            onPickTruck={canDispatchIn(user, city?.id) ? (stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId })) : undefined}
           />
         </div>
       </section>

@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PasswordHasher, TokenService } from '@nestjs/authentication';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { AUTH_USER_SELECT, type AuthUser } from './auth-user.js';
+import type { AuthUser } from './auth-user.js';
+import { UserLoader } from './user-loader.service.js';
 
 const subOf = (accessToken: string): string =>
   JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString()).sub;
@@ -12,6 +13,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
+    private readonly users: UserLoader,
   ) {}
 
   async login(username: string, password: string) {
@@ -57,6 +59,6 @@ export class AuthService {
   }
 
   loadUser(id: string): Promise<AuthUser | null> {
-    return this.prisma.user.findFirst({ where: { id, isActive: true, deletedAt: null }, select: AUTH_USER_SELECT });
+    return this.users.load(id);
   }
 }

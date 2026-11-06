@@ -4,6 +4,7 @@ import { AuthenticationModule } from '@nestjs/authentication';
 import { AuthorizationModule } from '@nestjs/authorization';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { GeoModule } from './geo/geo.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -26,6 +27,7 @@ import { SettingsModule } from './settings/settings.module.js';
     AuthorizationModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
+    GeoModule,
     AuditModule,
     AuthModule,
     UsersModule,

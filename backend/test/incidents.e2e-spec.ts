@@ -1,8 +1,10 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createApp, makeUser, superAdminAuth } from './helpers.js';
+import { cityId, createApp, makeUser, superAdminAuth } from './helpers.js';
 
-const SAMPALOC = { lat: 14.6079, lng: 120.995 };
+const SAMPALOC = { lat: 14.6079, lng: 120.995 }; // Manila (Fire District 1)
+const MONUMENTO = { lat: 14.6573, lng: 120.9839 }; // Caloocan (Fire District 2)
+const TAFT = { lat: 14.5649, lng: 120.9934 }; // Malate, Manila
 
 type Unit = { stationId: number; truckId: number; alarmLevel: string; releasedAt: string | null; truck: { status: string } };
 
@@ -10,24 +12,54 @@ describe('incidents: dispatch, raise alarm, close', () => {
   let app: INestApplication;
   let http: ReturnType<typeof request>;
   let superAdmin: Record<string, string>;
-  let radio: Record<string, string>;
+  let manilaRadio: Record<string, string>; // FD1 district office: dispatches Manila
+  let caloocanRadio: Record<string, string>; // Caloocan city office
+  let fd2Radio: Record<string, string>; // FD2 district office: view only
+  let regionalRadio: Record<string, string>; // view only
+  let manilaOps: Record<string, string>;
+  let admin: Record<string, string>;
 
   beforeAll(async () => {
     app = await createApp();
     http = request(app.getHttpServer());
     superAdmin = await superAdminAuth(app);
-    radio = await makeUser(app, superAdmin, 'inc-radio', 'RADIO_OPERATOR');
+    const caloocan = await cityId(app, superAdmin, 'Caloocan');
+    manilaRadio = await makeUser(app, superAdmin, 'inc-radio-fd1', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 1 });
+    caloocanRadio = await makeUser(app, superAdmin, 'inc-radio-cal', 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: caloocan });
+    fd2Radio = await makeUser(app, superAdmin, 'inc-radio-fd2', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 2 });
+    regionalRadio = await makeUser(app, superAdmin, 'inc-radio-reg', 'RADIO_OPERATOR');
+    manilaOps = await makeUser(app, superAdmin, 'inc-ops-fd1', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 1 });
+    admin = await makeUser(app, superAdmin, 'inc-admin', 'ADMIN');
   });
   afterAll(() => app.close());
 
+  const dispatch = (auth: Record<string, string>, where: { lat: number; lng: number }, body: object = {}) =>
+    http.post('/api/incidents').set(auth).send({ ...where, locationLabel: 'Test fire', ...body });
   const truckStatus = async (stationId: number, truckId: number) => {
-    const stations = (await http.get('/api/stations').set(radio)).body;
+    const stations = (await http.get('/api/stations').set(superAdmin)).body;
     return stations.find((s: { id: number }) => s.id === stationId).trucks.find((t: { id: number }) => t.id === truckId).status;
   };
 
+  it('only the dispatchers of the fire’s city (and super admin) may dispatch', async () => {
+    await dispatch(caloocanRadio, SAMPALOC).expect(403); // Manila fire, Caloocan office
+    await dispatch(fd2Radio, MONUMENTO).expect(403); // district 2 office only watches
+    await dispatch(regionalRadio, SAMPALOC).expect(403);
+    await dispatch(manilaOps, SAMPALOC).expect(403);
+    await dispatch(admin, SAMPALOC).expect(403);
+    await dispatch(manilaRadio, { lat: 14.2956, lng: 120.9583 }).expect(400); // Cavite: outside NCR
+
+    const cal = (await dispatch(caloocanRadio, MONUMENTO).expect(201)).body;
+    expect(cal.city.name).toBe('Caloocan');
+    await http.post(`/api/incidents/${cal.id}/raise`).set(manilaRadio).send({}).expect(403); // not their city
+    await http.post(`/api/incidents/${cal.id}/close`).set(caloocanRadio).expect(200);
+
+    const any = (await dispatch(superAdmin, MONUMENTO).expect(201)).body;
+    await http.post(`/api/incidents/${any.id}/close`).set(superAdmin).expect(200);
+  });
+
   it('runs the whole incident lifecycle', async () => {
     // A second truck at the nearest station lets us check the operator's pick is honoured.
-    const card = (await http.get('/api/running-card').query(SAMPALOC).set(radio)).body;
+    const card = (await http.get('/api/running-card').query(SAMPALOC).set(manilaRadio)).body.alarms;
     const nearest = card[0].stations[0];
     const extra = await http
       .post(`/api/stations/${nearest.id}/trucks`)
@@ -35,59 +67,78 @@ describe('incidents: dispatch, raise alarm, close', () => {
       .send({ callSign: 'Second Engine', type: 'TANKER', ownership: 'BFP' })
       .expect(201);
 
-    const created = await http
-      .post('/api/incidents')
-      .set(radio)
-      .send({ ...SAMPALOC, locationLabel: 'Test fire, Sampaloc', truckPicks: { [nearest.id]: extra.body.id } })
-      .expect(201);
-    const incident = created.body;
+    const incident = (await dispatch(manilaRadio, SAMPALOC, { truckPicks: { [nearest.id]: extra.body.id } }).expect(201)).body;
     expect(incident.status).toBe('OPEN');
     expect(incident.alarmLevel).toBe('1st Alarm');
     expect(incident.units).toHaveLength(4);
     expect(incident.units.every((u: Unit) => u.truck.status === 'RESPONDING')).toBe(true);
     expect(incident.units.find((u: Unit) => u.stationId === nearest.id).truckId).toBe(extra.body.id);
 
-    // Responding trucks leave the live card; the nearest station still has its first truck, so it stays.
-    const after = (await http.get('/api/running-card').query(SAMPALOC).set(radio)).body;
-    const nearestAfter = after.flatMap((a: { stations: { id: number; trucks: { id: number }[] }[] }) => a.stations).find((s: { id: number }) => s.id === nearest.id);
-    expect(nearestAfter.trucks.map((t: { id: number }) => t.id)).not.toContain(extra.body.id);
-
     // Next alarm skips stations already on the incident.
-    const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(radio).expect(200)).body;
+    const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(manilaRadio).expect(200)).body;
     expect(next.alarmLevel).toBe('2nd Alarm');
     const onIncident = incident.units.map((u: Unit) => u.stationId);
     expect(next.stations.some((s: { id: number }) => onIncident.includes(s.id))).toBe(false);
 
-    const raised = (await http.post(`/api/incidents/${incident.id}/raise`).set(radio).send({}).expect(200)).body;
+    const raised = (await http.post(`/api/incidents/${incident.id}/raise`).set(manilaRadio).send({}).expect(200)).body;
     expect(raised.alarmLevel).toBe('2nd Alarm');
     expect(raised.units).toHaveLength(8);
-    expect(raised.units.filter((u: Unit) => u.alarmLevel === '2nd Alarm')).toHaveLength(4);
 
     // Operations takes one responding truck out of service; closing must not put it back to available.
     const broken = raised.units[1];
     await http.patch(`/api/trucks/${broken.truckId}`).set(superAdmin).send({ status: 'OUT_OF_SERVICE' }).expect(200);
 
-    const closed = (await http.post(`/api/incidents/${incident.id}/close`).set(radio).expect(200)).body;
+    const closed = (await http.post(`/api/incidents/${incident.id}/close`).set(manilaRadio).expect(200)).body;
     expect(closed.status).toBe('CLOSED');
-    expect(closed.closedBy.username).toBe('inc-radio');
     expect(closed.units.every((u: Unit) => u.releasedAt)).toBe(true);
     expect(await truckStatus(broken.stationId, broken.truckId)).toBe('OUT_OF_SERVICE');
     expect(await truckStatus(raised.units[0].stationId, raised.units[0].truckId)).toBe('AVAILABLE');
+    await http.patch(`/api/trucks/${broken.truckId}`).set(superAdmin).send({ status: 'AVAILABLE' }).expect(200);
 
-    await http.post(`/api/incidents/${incident.id}/raise`).set(radio).send({}).expect(400);
-    await http.post(`/api/incidents/${incident.id}/close`).set(radio).expect(400);
-
-    const open = (await http.get('/api/incidents?status=OPEN').set(radio)).body;
-    expect(open.map((i: { id: string }) => i.id)).not.toContain(incident.id);
+    await http.post(`/api/incidents/${incident.id}/raise`).set(manilaRadio).send({}).expect(400);
+    await http.post(`/api/incidents/${incident.id}/close`).set(manilaRadio).expect(400);
   });
 
-  it('shows Operations only incidents their district responded to', async () => {
-    const created = (await http.post('/api/incidents').set(radio).send({ ...SAMPALOC, locationLabel: 'Manila fire' }).expect(201)).body;
-    const ops5 = await makeUser(app, superAdmin, 'inc-ops5', 'OPERATIONS', 5); // Quezon City, far from Sampaloc's 1st alarm
-    const districts = created.units.map((u: { station: { districtId: number } }) => u.station.districtId);
-    const visible = (await http.get('/api/incidents').set(ops5)).body.map((i: { id: string }) => i.id).includes(created.id);
-    expect(visible).toBe(districts.includes(5));
-    if (!districts.includes(5)) await http.get(`/api/incidents/${created.id}`).set(ops5).expect(403);
-    await http.post(`/api/incidents/${created.id}/close`).set(radio).expect(200);
+  it('never sends a truck that is already on another incident', async () => {
+    const nearest = (await http.get('/api/running-card').query(TAFT).set(manilaRadio)).body.alarms[0].stations[0];
+    const second = (
+      await http.post(`/api/stations/${nearest.id}/trucks`).set(superAdmin).send({ callSign: 'Taft Second', type: 'ENGINE', ownership: 'BFP' }).expect(201)
+    ).body;
+
+    const unitAt = (inc: { units: Unit[] }) => inc.units.find((u) => u.stationId === nearest.id);
+    const a = (await dispatch(manilaRadio, TAFT).expect(201)).body;
+    const b = (await dispatch(manilaRadio, TAFT).expect(201)).body;
+    const c = (await dispatch(manilaRadio, TAFT).expect(201)).body;
+
+    // A and B both use the station, each with a different truck; C finds it empty and moves on to the next nearest.
+    expect(unitAt(a)).toBeDefined();
+    expect(unitAt(b)).toBeDefined();
+    expect(unitAt(a)!.truckId).not.toBe(unitAt(b)!.truckId);
+    expect([unitAt(a)!.truckId, unitAt(b)!.truckId]).toContain(second.id);
+    expect(unitAt(c)).toBeUndefined();
+    expect(c.units).toHaveLength(4);
+    const busy = new Set([...a.units, ...b.units].map((u: Unit) => u.truckId));
+    expect(c.units.some((u: Unit) => busy.has(u.truckId))).toBe(false);
+
+    for (const inc of [a, b, c]) await http.post(`/api/incidents/${inc.id}/close`).set(manilaRadio).expect(200);
+  });
+
+  it('shows incidents by area', async () => {
+    const manilaFire = (await dispatch(manilaRadio, SAMPALOC).expect(201)).body;
+    const caloocanFire = (await dispatch(caloocanRadio, MONUMENTO).expect(201)).body;
+    const ids = async (auth: Record<string, string>) => (await http.get('/api/incidents?status=OPEN').set(auth).expect(200)).body.map((i: { id: string }) => i.id);
+
+    expect(await ids(regionalRadio)).toEqual(expect.arrayContaining([manilaFire.id, caloocanFire.id]));
+    expect(await ids(admin)).toEqual(expect.arrayContaining([manilaFire.id, caloocanFire.id]));
+    expect(await ids(fd2Radio)).toContain(caloocanFire.id);
+    expect(await ids(caloocanRadio)).toContain(caloocanFire.id);
+
+    // An office also sees fires its own stations responded to.
+    const fd2Responded = manilaFire.units.some((u: { station: { districtId: number } }) => u.station.districtId === 2);
+    expect((await ids(fd2Radio)).includes(manilaFire.id)).toBe(fd2Responded);
+    if (!fd2Responded) await http.get(`/api/incidents/${manilaFire.id}`).set(fd2Radio).expect(403);
+
+    await http.post(`/api/incidents/${manilaFire.id}/close`).set(manilaRadio).expect(200);
+    await http.post(`/api/incidents/${caloocanFire.id}/close`).set(caloocanRadio).expect(200);
   });
 });

@@ -3,7 +3,9 @@ import { PasswordHasher, TokenService } from '@nestjs/authentication';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
-import { Role } from '../generated/prisma/enums.js';
+import { OfficeLevel, Role } from '../generated/prisma/enums.js';
+import { CityDirectory } from '../geo/city-directory.service.js';
+import { OFFICE_LEVELS } from '../auth/area.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import type { CreateUserDto, UpdateUserDto } from './users.dto.js';
 
@@ -12,16 +14,21 @@ const PUBLIC_FIELDS = {
   username: true,
   fullName: true,
   role: true,
+  officeLevel: true,
   districtId: true,
-  district: { select: { code: true, name: true } },
+  district: { select: { code: true, name: true, alias: true } },
+  cityId: true,
+  city: { select: { name: true } },
   isActive: true,
   mustChangePassword: true,
   createdAt: true,
 } as const;
 
-/** Admins manage field accounts; only a Super Admin manages Admins and Super Admins. */
+/** Admin (regional IT) manages every account except Super Admin (developers). */
 export const canManageRole = (actor: Pick<AuthUser, 'role'>, role: Role) =>
-  actor.role === Role.SUPER_ADMIN || (actor.role === Role.ADMIN && (role === Role.OPERATIONS || role === Role.RADIO_OPERATOR));
+  actor.role === Role.SUPER_ADMIN || (actor.role === Role.ADMIN && role !== Role.SUPER_ADMIN);
+
+type OfficeInput = { officeLevel?: OfficeLevel; districtId?: number | null; cityId?: number | null };
 
 const tempPassword = () => randomBytes(9).toString('base64url'); // 12 chars
 
@@ -32,6 +39,7 @@ export class UsersService {
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    private readonly cities: CityDirectory,
   ) {}
 
   list() {
@@ -40,16 +48,16 @@ export class UsersService {
 
   async create(actor: AuthUser, dto: CreateUserDto) {
     this.assertCanManage(actor, dto.role);
-    const districtId = await this.districtFor(dto.role, dto.districtId);
+    const office = await this.office(dto.role, dto);
     if (await this.prisma.user.findUnique({ where: { username: dto.username } })) {
       throw new ConflictException('Username is already taken');
     }
     const password = tempPassword();
     const user = await this.prisma.user.create({
-      data: { username: dto.username, fullName: dto.fullName, role: dto.role, districtId, passwordHash: await this.hasher.hash(password), mustChangePassword: true },
+      data: { username: dto.username, fullName: dto.fullName, role: dto.role, ...office, passwordHash: await this.hasher.hash(password), mustChangePassword: true },
       select: PUBLIC_FIELDS,
     });
-    await this.audit.log(actor.id, 'CREATE', 'User', user.id, { username: user.username, role: user.role, districtId });
+    await this.audit.log(actor.id, 'CREATE', 'User', user.id, { username: user.username, role: user.role, ...office });
     return { user, temporaryPassword: password };
   }
 
@@ -61,10 +69,17 @@ export class UsersService {
     }
     const role = dto.role ?? target.role;
     if (dto.role) this.assertCanManage(actor, dto.role);
-    const districtId = await this.districtFor(role, dto.districtId === undefined ? target.districtId : dto.districtId);
+    const officeChanged = ['role', 'officeLevel', 'districtId', 'cityId'].some((k) => k in dto);
+    const office = officeChanged
+      ? await this.office(role, {
+          officeLevel: dto.officeLevel ?? target.officeLevel,
+          districtId: 'districtId' in dto ? dto.districtId : target.districtId,
+          cityId: 'cityId' in dto ? dto.cityId : target.cityId,
+        })
+      : {};
     const user = await this.prisma.user.update({
       where: { id },
-      data: { fullName: dto.fullName, role, districtId, isActive: dto.isActive },
+      data: { fullName: dto.fullName, role, ...office, isActive: dto.isActive },
       select: PUBLIC_FIELDS,
     });
     if (dto.isActive === false) await this.tokens.revokeAll(id);
@@ -109,12 +124,25 @@ export class UsersService {
     if (!canManageRole(actor, role)) throw new ForbiddenException(`You cannot manage ${role} accounts`);
   }
 
-  // Operations accounts belong to one fire district; everyone else works across NCR.
-  private async districtFor(role: Role, districtId: number | null | undefined) {
-    if (role !== Role.OPERATIONS) return null;
-    if (!districtId || !(await this.prisma.fireDistrict.findUnique({ where: { id: districtId } }))) {
-      throw new BadRequestException('Operations accounts need a valid fire district');
+  /**
+   * Validates and normalizes an office for a role (see OFFICE_LEVELS): Regional has no district or city,
+   * a District office has a district, a City office has a city and the city's district.
+   */
+  private async office(role: Role, input: OfficeInput) {
+    const officeLevel = input.officeLevel ?? OfficeLevel.REGIONAL;
+    if (!OFFICE_LEVELS[role].includes(officeLevel)) {
+      throw new BadRequestException(`${role} accounts can't be at a ${officeLevel} office`);
     }
-    return districtId;
+    if (officeLevel === OfficeLevel.REGIONAL) return { officeLevel, districtId: null, cityId: null };
+    if (officeLevel === OfficeLevel.DISTRICT) {
+      if (!input.districtId || !(await this.prisma.fireDistrict.findUnique({ where: { id: input.districtId } }))) {
+        throw new BadRequestException('A district office needs a valid fire district');
+      }
+      return { officeLevel, districtId: input.districtId, cityId: null };
+    }
+    const city = input.cityId ? await this.cities.get(input.cityId) : null;
+    if (!city) throw new BadRequestException('A city office needs a valid city');
+    return { officeLevel, districtId: city.districtId, cityId: city.id };
   }
+
 }

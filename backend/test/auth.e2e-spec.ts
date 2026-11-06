@@ -55,14 +55,24 @@ describe('auth and user management', () => {
 
   it('enforces who can manage which accounts', async () => {
     const admin = await http.post('/api/users').set(superAdmin).send({ username: 'admin1', fullName: 'Admin One', role: 'ADMIN' }).expect(201);
-    await http.post('/api/users').set(superAdmin).send({ username: 'ops1', fullName: 'Ops', role: 'OPERATIONS' }).expect(400); // needs district
-    const ops = await http.post('/api/users').set(superAdmin).send({ username: 'ops1', fullName: 'Ops', role: 'OPERATIONS', districtId: 2 }).expect(201);
-    expect(ops.body.user.districtId).toBe(2);
+    await http.post('/api/users').set(superAdmin).send({ username: 'ops1', fullName: 'Ops', role: 'OPERATIONS' }).expect(400); // Operations can't be regional
+    await http.post('/api/users').set(superAdmin).send({ username: 'ops1', fullName: 'Ops', role: 'OPERATIONS', officeLevel: 'DISTRICT' }).expect(400); // needs district
+    await http.post('/api/users').set(superAdmin).send({ username: 'adm-x', fullName: 'X', role: 'ADMIN', officeLevel: 'CITY', cityId: 1 }).expect(400); // admins are regional
+    const ops = await http.post('/api/users').set(superAdmin).send({ username: 'ops1', fullName: 'Ops', role: 'OPERATIONS', officeLevel: 'DISTRICT', districtId: 2 }).expect(201);
+    expect(ops.body.user).toMatchObject({ officeLevel: 'DISTRICT', districtId: 2, cityId: null });
+
+    // A city office gets its district from the city.
+    const caloocan = (await http.get('/api/districts').set(superAdmin)).body.find((d: { code: number }) => d.code === 2).cities.find((c: { name: string }) => c.name === 'Caloocan');
+    const cityRadio = await http.post('/api/users').set(superAdmin).send({ username: 'radio-cal', fullName: 'Radio Caloocan', role: 'RADIO_OPERATOR', officeLevel: 'CITY', cityId: caloocan.id }).expect(201);
+    expect(cityRadio.body.user).toMatchObject({ officeLevel: 'CITY', cityId: caloocan.id, districtId: 2 });
 
     const adminAuth = await signIn(app, 'admin1', admin.body.temporaryPassword);
-    await http.post('/api/users').set(adminAuth).send({ username: 'admin2', fullName: 'X', role: 'ADMIN' }).expect(403);
+    // Admin is regional IT: manages every account except Super Admin.
+    await http.post('/api/users').set(adminAuth).send({ username: 'super2', fullName: 'X', role: 'SUPER_ADMIN' }).expect(403);
+    await http.post('/api/users').set(adminAuth).send({ username: 'admin2', fullName: 'X', role: 'ADMIN' }).expect(201);
     const radio = await http.post('/api/users').set(adminAuth).send({ username: 'radio1', fullName: 'Radio', role: 'RADIO_OPERATOR' }).expect(201);
-    await http.patch(`/api/users/${admin.body.user.id}`).set(adminAuth).send({ fullName: 'Me' }).expect(403); // admins can't edit admins
+    const superId = (await http.get('/api/auth/me').set(superAdmin)).body.id;
+    await http.patch(`/api/users/${superId}`).set(adminAuth).send({ fullName: 'Hacked' }).expect(403); // admins can't edit super admins
 
     const radioAuth = await signIn(app, 'radio1', radio.body.temporaryPassword);
     await http.get('/api/users').set(radioAuth).expect(403);

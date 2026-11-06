@@ -13,7 +13,7 @@ export class StationsController {
   @Get('stations')
   @Can(AccessPolicy, 'operate')
   list(@Query() query: StationQuery) {
-    return this.stations.list(query.districtId);
+    return this.stations.list(query.districtId, query.cityId);
   }
 
   @Post('stations')
