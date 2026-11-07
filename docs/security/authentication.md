@@ -74,6 +74,8 @@ sequenceDiagram
 
 `ThrottlerGuard` is global (`app.module.ts`): every route allows `GLOBAL_RATE_LIMIT` (default 600) requests per client IP per 60 s, and `POST /api/auth/login` allows `LOGIN_RATE_LIMIT` (default 30; generous because stations have dynamic, often carrier-NAT shared IPs). The client IP is `req.ip`; behind nginx set `TRUST_PROXY` (e.g. `1`) so Express takes it from `X-Forwarded-For`, otherwise every client shares the proxy's IP. Leave it unset without a proxy, or clients could fake their IP. Tested in `test/rate-limit.e2e-spec.ts`.
 
+**Clock tolerance:** `JwtAuth` verifies access tokens with `clockTolerance: '30s'`. With the library default of 0, a server clock that steps back (WSL/VM time corrections, NTP stepping) makes tokens issued just before the step look "issued in the future" and refuses them with 401. Found 2026-11-07 as intermittent e2e failures on WSL 2, whose clock stepped back 5.8 s every ~30 s. 30 s is negligible against the 15-minute token life.
+
 **Per-account pause** (`LoginAttempts`, `auth/login-attempts.ts`): after 5 wrong passwords for the same account number within 15 minutes, from any IP, sign-in for that account answers 429 `Too many failed sign-ins for this account. Try again in N minutes.` for 5 minutes, without checking the password. A successful sign-in clears the count. The key is the typed account number (uppercased), existing or not, so a pause doesn't reveal which accounts exist. Signed-in sessions are unaffected (refresh doesn't go through sign-in). The pause is short on purpose: someone who knows an account number can pause it, but only briefly. In memory per process (`shortcut:`), like the notification stream.
 
 ## Frontend handling

@@ -4,7 +4,7 @@ Controller `NotificationsController` (`backend/src/notifications/notifications.c
 
 One notification per incident step (dispatch, raise alarm, close), addressed to every **involved city** (`cityIds`): the fire's city, every city with a truck on the incident, and every city with a station on the incident's running card (the snapshot saved at dispatch).
 
-**Who sees it:** accounts whose office area (`areaCityIds`) shares a city with `cityIds`, meaning those cities' city offices and their district offices, and **every Regional account** (area = all NCR, including Super Admin and Admin). There is no acknowledgement; "unread" means newer than the account's `notificationsSeenAt`.
+**Who sees it:** accounts whose office area (`areaCityIds`) shares a city with `cityIds`, meaning those cities' city offices and their district offices, and **every Regional account** (area = all NCR, including Super Admin and Admin). There is no acknowledgement; "unread" means a higher notification id than the account's `notificationsSeenId` (ids only grow, so clock corrections can't make a new notification look read).
 
 **`units` is filtered per account:** an office sees only trucks from cities in its area; Regional accounts see all.
 
@@ -33,9 +33,9 @@ One notification per incident step (dispatch, raise alarm, close), addressed to 
 
 ## POST /api/notifications/seen
 - **Body (optional):** `{ "incidentId"?: uuid }`.
-- **204.** Without a body: sets `notificationsSeenAt = now()` (everything read). With `incidentId`: upserts `IncidentView(user, incident, seenAt = now())`, so that incident's notifications up to now are read; the incident page calls this when it opens and whenever a live notification for it arrives while it is on screen. 404 if the incident doesn't exist.
+- **204.** Without a body: sets `notificationsSeenId` to the highest notification id (everything so far is read). With `incidentId`: upserts `IncidentView(user, incident, seenId)` the same way, so that incident's notifications so far are read; the incident page calls this when it opens and whenever a live notification for it arrives while it is on screen. 404 if the incident doesn't exist.
 - Per account: other accounts of the same office keep their unread state.
-- Unread = `createdAt` after `notificationsSeenAt` **and** after the account's `IncidentView.seenAt` for that incident.
+- Unread = `id` greater than `notificationsSeenId` **and** greater than the account's `IncidentView.seenId` for that incident.
 
 ## GET /api/notifications/stream
 - **Server-Sent Events** (`text/event-stream`). Sends `event: notification` with a Notification (without `unread`) when one visible to me is created (units filtered as above), and `event: ping` every 25 s.

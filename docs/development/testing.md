@@ -38,3 +38,7 @@ Vitest with `vitest.config.e2e.ts`: `**/*.e2e-spec.ts`, `globalSetup: test/globa
 - No CI configuration exists in the repository.
 - No automated UI tests. Screenshots taken during development used an ad-hoc Playwright script that is not committed.
 - Docker images and `docker-compose.yml` are not exercised by any test (**Needs Verification**).
+
+## Clock steps (WSL 2)
+
+The WSL 2 clock can step back and forth by several seconds (seen: −5.8 s every ~30 s). Anything comparing wall-clock times can then flake. The app is hardened against this: access tokens get a 30 s clock tolerance, and notification "seen" marks use ids, not times. If time-based flakes appear, check the clock by sampling `date +%s.%N` against `/proc/uptime`. To stop the drift itself, run `sudo hwclock -s` or `wsl --update`.

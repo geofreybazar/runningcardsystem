@@ -1,6 +1,6 @@
 # Database schema
 
-Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`, `20261108090000_incident_views`, `20261108100000_single_city_district_offices`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
+Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`, `20261108090000_incident_views`, `20261108100000_single_city_district_offices`, `20261108120000_notification_seen_ids`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
 
 14 models, 8 enums. See the [ER diagram](erd.md).
 
@@ -99,7 +99,7 @@ Has many `IncidentUnit`.
 | `isActive` | Boolean | default `true` |
 | `mustChangePassword` | Boolean | default `true` |
 | `deletedAt` | DateTime? | soft delete |
-| `notificationsSeenAt` | DateTime? | notifications created after this are unread for this account |
+| `notificationsSeenId` | Int | default 0. Notifications with a higher id are unread for this account (ids, not times, so clock steps don't matter) |
 | `createdAt` / `updatedAt` | DateTime | |
 
 Relations: `incidentsCreated` / `incidentsClosed` (named relations `IncidentCreatedBy` / `IncidentClosedBy`), `auditLogs`.
@@ -196,13 +196,13 @@ One per incident step (dispatch, raise alarm, close). See [notifications API](..
 
 
 ### IncidentView
-When an account last looked at an incident; its notifications up to `seenAt` count as read.
+An account looked at an incident; its notifications up to id `seenId` count as read.
 
 | Field | Type | Notes |
 |---|---|---|
 | `userId` | String | FK → `User.id`; PK part |
 | `incidentId` | String | FK → `Incident.id`; PK part |
-| `seenAt` | DateTime | |
+| `seenId` | Int | highest notification id when the account last viewed the incident |
 
 ## Unique constraints and indexes (from migrations)
 

@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { JwtSigner } from '@nestjs/authentication';
 import { createApp, person, refreshCookie, signIn, superAdminAuth } from './helpers.js';
 
 describe('auth and user management', () => {
@@ -132,6 +133,19 @@ describe('auth and user management', () => {
     await http.post('/api/auth/login').send({ accountNumber: 'B5004', password: 'Changed-pass-1' }).expect(200);
     await http.post('/api/auth/login').send({ accountNumber: 'B5003', password: 'Changed-pass-1' }).expect(401);
     await http.patch(`/api/users/${id}`).set(superAdmin).send({ role: 'OPERATIONS', officeLevel: 'DISTRICT', districtId: 2, rank: null }).expect(400); // rank can't be removed
+  });
+
+  it('accepts its own tokens across small clock steps, but not large ones', async () => {
+    const me = (await http.get('/api/auth/me').set(superAdmin).expect(200)).body;
+    // A token as the app signs it, on a clock shifted by `offsetMs` (what a WSL/VM time correction looks like).
+    const signedAt = (offsetMs: number) => {
+      const signer = new JwtSigner({ key: process.env.JWT_SECRET!, issuer: 'bfp-ncr-rcs', audience: 'rcs-web', ttl: '15m', now: () => Date.now() + offsetMs });
+      return { Authorization: `Bearer ${signer.sign({ sub: me.id })}` };
+    };
+    await http.get('/api/auth/me').set(signedAt(10_000)).expect(200); // "issued" 10 s in the future
+    await http.get('/api/auth/me').set(signedAt(-15 * 60_000 - 10_000)).expect(200); // expired 10 s ago
+    await http.get('/api/auth/me').set(signedAt(120_000)).expect(401);
+    await http.get('/api/auth/me').set(signedAt(-15 * 60_000 - 90_000)).expect(401);
   });
 
   it('nobody can disable or remove themselves', async () => {

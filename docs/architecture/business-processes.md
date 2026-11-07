@@ -110,7 +110,7 @@ sequenceDiagram
 - **Recipients:** every account of an involved city's office and of its district office (FD1/FD5 district offices are their single city), and every Regional account. Each office's copy lists only its own area's trucks; Regional sees all. A city that is only on the card gets the notification with no trucks.
 - Involved offices can open the incident: `visibleTo()` includes incidents with a notification naming a city in their area.
 - Rows are written inside the incident transaction, so a failed dispatch leaves no notification; live delivery happens after commit.
-- No acknowledgement in this phase: "unread" is per account (`User.notificationsSeenAt`). Acknowledgement, reminders and SMS/email are planned for a future phase.
+- No acknowledgement in this phase: "unread" is per account (`User.notificationsSeenId`, by notification id). Acknowledgement, reminders and SMS/email are planned for a future phase.
 - The UI: bell with unread badge in the top bar, a short red toast with a beep when the account's trucks are sent, a count of open incidents on the sidebar's Incidents item, and the **Notifications** page (open incidents involving us + the feed).
 - Every open page reacts to the live event: the incident page reloads (so a raise by Manila shows up at once in Caloocan), and the incidents list reloads. While an incident is on screen its notifications are marked read (`POST /notifications/seen { incidentId }`) and no toast is shown.
 - The incident page shows a **time log** (dispatch, each alarm raised, close, with time and who) built from the step notifications.

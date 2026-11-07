@@ -9,7 +9,9 @@ export class JwtAuth extends JwtBearerProvider<AuthUser> {
     private readonly users: UserLoader,
     registry: AuthenticationRegistry,
   ) {
-    super({ realm: 'rcs' });
+    // Tolerate clock steps (WSL/VM time corrections, servers syncing): a token "issued" a few seconds in the future
+    // would otherwise be refused. Negligible against the 15-minute token life.
+    super({ realm: 'rcs', clockTolerance: '30s' });
     registry.registerProvider(this);
   }
 

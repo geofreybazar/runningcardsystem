@@ -119,6 +119,21 @@ describe('notifications to involved cities, their districts and the Regional off
     expect(detail.units[0].station.city.name).toBeTruthy();
   });
 
+  it('unread follows notification order, not the clock', async () => {
+    const fire = (await http.post('/api/incidents').set(caloocanRadio).send({ ...MONUMENTO, locationLabel: 'Clock fire' }).expect(201)).body;
+    await http.post('/api/notifications/seen').set(fd2Radio).expect(204);
+    const before = (await http.get('/api/notifications/unread-count').set(fd2Radio).expect(200)).body.count;
+    // A notification written after "seen", but stamped an hour earlier: what a backward clock step produces.
+    const { PrismaService } = await import('../src/prisma/prisma.service.js');
+    const actor = (await http.get('/api/auth/me').set(caloocanRadio).expect(200)).body.id;
+    await app.get(PrismaService).notification.create({
+      data: { incidentId: fire.id, cityIds: [caloocan], type: 'ALARM_RAISED', alarmLevel: '2nd Alarm', units: [], actorId: actor, createdAt: new Date(Date.now() - 3_600_000) },
+    });
+    expect((await http.get('/api/notifications/unread-count').set(fd2Radio).expect(200)).body.count).toBe(before + 1);
+    expect((await notes(fd2Radio, fire.id)).find((n) => n.type === 'ALARM_RAISED')?.unread).toBe(true); // the only raise on this incident
+    await http.post(`/api/incidents/${fire.id}/close`).set(caloocanRadio).expect(200);
+  });
+
   it('pages newest first with a cursor, without overlaps', async () => {
     const page = async (query: string) => (await http.get(`/api/notifications?${query}`).set(regionalRadio).expect(200)).body as { id: number }[];
     const all = (await page('take=100')).map((n) => n.id);

@@ -80,41 +80,40 @@ export class NotificationsService {
   }
 
   async unreadCount(user: AuthUser) {
-    const seenAt = (await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notificationsSeenAt: true } })).notificationsSeenAt;
+    const { notificationsSeenId } = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notificationsSeenId: true } });
     // shortcut: loads everything newer than the last "seen all" to drop per-incident views; fine while that stays small, else count in SQL.
     const [rows, isUnread] = await Promise.all([
-      this.prisma.notification.findMany({
-        where: { ...visibleTo(user), ...(seenAt && { createdAt: { gt: seenAt } }) },
-        select: { incidentId: true, createdAt: true },
-      }),
+      this.prisma.notification.findMany({ where: { ...visibleTo(user), id: { gt: notificationsSeenId } }, select: { id: true, incidentId: true } }),
       this.unreadTest(user),
     ]);
     return { count: rows.filter(isUnread).length };
   }
 
-  /** Without incidentId: everything up to now is read. With it: that incident's notifications are read (the user is viewing it). */
+  /**
+   * Without incidentId: everything so far is read. With it: that incident's notifications are read (the user is viewing it).
+   * "So far" is the highest notification id now, not a time, so a clock step can't make a new notification look old.
+   */
   async markSeen(user: AuthUser, incidentId?: string) {
-    const now = new Date();
+    const seenId = (await this.prisma.notification.aggregate({ _max: { id: true } }))._max.id ?? 0;
     if (!incidentId) {
-      await this.prisma.user.update({ where: { id: user.id }, data: { notificationsSeenAt: now } });
+      await this.prisma.user.update({ where: { id: user.id }, data: { notificationsSeenId: seenId } });
       return;
     }
     if (!(await this.prisma.incident.count({ where: { id: incidentId } }))) throw new NotFoundException('Incident not found');
     await this.prisma.incidentView.upsert({
       where: { userId_incidentId: { userId: user.id, incidentId } },
-      create: { userId: user.id, incidentId, seenAt: now },
-      update: { seenAt: now },
+      create: { userId: user.id, incidentId, seenId },
+      update: { seenId },
     });
   }
 
-  /** Unread = newer than the last "seen all" and than the account's last view of that incident. */
+  /** Unread = a higher id than the last "seen all" and than the account's last view of that incident. */
   private async unreadTest(user: AuthUser) {
-    const { notificationsSeenAt, incidentViews } = await this.prisma.user.findUniqueOrThrow({
+    const { notificationsSeenId, incidentViews } = await this.prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { notificationsSeenAt: true, incidentViews: { select: { incidentId: true, seenAt: true } } },
+      select: { notificationsSeenId: true, incidentViews: { select: { incidentId: true, seenId: true } } },
     });
-    const viewed = new Map(incidentViews.map((v) => [v.incidentId, v.seenAt]));
-    return (n: { incidentId: string; createdAt: Date }) =>
-      (!notificationsSeenAt || n.createdAt > notificationsSeenAt) && !(n.createdAt <= (viewed.get(n.incidentId) ?? new Date(0)));
+    const viewed = new Map(incidentViews.map((v) => [v.incidentId, v.seenId]));
+    return (n: { id: number; incidentId: string }) => n.id > notificationsSeenId && n.id > (viewed.get(n.incidentId) ?? 0);
   }
 }

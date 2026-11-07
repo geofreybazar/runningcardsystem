@@ -170,8 +170,8 @@ model User {
   incidentsClosed     Incident[]     @relation("IncidentClosedBy")
   auditLogs           AuditLog[]
   notificationsActed  Notification[] @relation("NotificationActor")
-  /// Notifications created after this are unread for this account.
-  notificationsSeenAt DateTime?
+  /// Notifications with a higher id are unread for this account (ids, not times: immune to clock steps).
+  notificationsSeenId Int            @default(0)
   incidentViews       IncidentView[]
 }
 
@@ -279,13 +279,13 @@ model Notification {
   @@index([createdAt])
 }
 
-/// When an account last looked at an incident: its notifications up to then count as read.
+/// An account looked at an incident: its notifications up to this id count as read.
 model IncidentView {
   userId     String
   user       User     @relation(fields: [userId], references: [id])
   incidentId String
   incident   Incident @relation(fields: [incidentId], references: [id])
-  seenAt     DateTime
+  seenId     Int
 
   @@id([userId, incidentId])
 }

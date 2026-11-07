@@ -81,12 +81,12 @@ erDiagram
     Boolean isActive
     Boolean mustChangePassword
     DateTime deletedAt "nullable"
-    DateTime notificationsSeenAt "nullable"
+    Int notificationsSeenId
   }
   IncidentView {
     String userId PK
     String incidentId PK
-    DateTime seenAt
+    Int seenId
   }
   Notification {
     Int id PK
