@@ -1,7 +1,7 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { CurrentUser, Public } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { changePasswordSchema, loginSchema, type ChangePasswordDto, type LoginDto } from './auth.dto.js';
@@ -20,8 +20,8 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(200)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 10), ttl: 60_000 } }) // per IP
+  // Per client IP (see TRUST_PROXY); generous because stations may share a carrier-NAT IP. Per-account pauses: LoginAttempts.
+  @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 30), ttl: 60_000 } })
   async login(@Body({ schema: loginSchema }) body: LoginDto, @Res({ passthrough: true }) res: Response) {
     return this.respond(res, await this.auth.login(body.accountNumber, body.password));
   }

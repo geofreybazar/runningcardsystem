@@ -45,7 +45,7 @@ Additional checks outside the policy:
 | Create/edit stations, trucks, truck status | ✓ | — | own area | — | — |
 | List/view incidents | all | all | own area + responded | own area + responded | district area + responded / all (regional) |
 | Dispatch, raise, close | any city | — | — | own city only | — |
-| Next-alarm preview | any | — | — | any incident (no city check) | — |
+| Next-alarm preview | any | — | — | own city only | — |
 | Manage users | all roles | all except SUPER_ADMIN | — | — | — |
 | Audit log | ✓ | ✓ | — | — | — |
 | Change settings | ✓ | — | — | — | — |

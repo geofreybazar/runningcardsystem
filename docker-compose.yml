@@ -23,6 +23,8 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/runningcard
       FRONTEND_ORIGIN: http://localhost:8080
+      SWAGGER: "false"
+      TRUST_PROXY: "1" # nginx (frontend container) is the one hop in front
 
   frontend:
     build:

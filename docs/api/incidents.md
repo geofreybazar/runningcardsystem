@@ -43,7 +43,7 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 ## GET /api/incidents/:id/next-alarm
 - **200:** `{ "alarmLevel": string, "fromAlarmIndex": number, "stations": [card stations] }`, or `null` at the highest level.
 - **Errors:** 404, 400 `This incident is closed`.
-- No `dispatchIn` or area check beyond the `dispatch` ability (see [gaps](../security/gaps.md)).
+- `dispatchIn(incident.cityId)`: only the fire city's dispatchers (and Super Admin) may preview it; others get 403.
 
 ## POST /api/incidents/:id/raise
 - **Body:** `{ "truckPicks"?: object }`.
