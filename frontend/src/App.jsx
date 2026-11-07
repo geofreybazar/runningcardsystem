@@ -14,10 +14,12 @@ import IncidentsPage from "./pages/IncidentsPage.jsx";
 import IncidentDetailPage from "./pages/IncidentDetailPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import AuditLogPage from "./pages/AuditLogPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 
 const PAGES = {
   "/": <Home />,
   "/incidents": <IncidentsPage />,
+  "/notifications": <NotificationsPage />,
   "/stations": <StationsPage />,
   "/users": <UsersPage />,
   "/audit-log": <AuditLogPage />,

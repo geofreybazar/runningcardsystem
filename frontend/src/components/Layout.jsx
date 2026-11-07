@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChevronsUpDown, Flame, KeyRound, LogOut, ScrollText, Settings, Siren, Truck, Users } from "lucide-react";
+import { Bell, ChevronsUpDown, Flame, KeyRound, LogOut, ScrollText, Settings, Siren, Truck, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +28,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { displayName } from "@/lib/person.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
+import { NotificationBell, NotificationsProvider } from "@/components/Notifications.jsx";
 
 const ALL = ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"];
 
@@ -35,6 +36,7 @@ const ALL = ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"];
 export const NAV = [
   { to: "/", label: "Running Card", icon: Flame, group: "Dispatch", roles: ALL },
   { to: "/incidents", label: "Incidents", icon: Siren, group: "Dispatch", roles: ALL },
+  { to: "/notifications", label: "Notifications", icon: Bell, group: "Dispatch", roles: ALL },
   { to: "/stations", label: "Stations & Trucks", icon: Truck, group: "Resources", roles: ALL },
   { to: "/users", label: "Users", icon: Users, group: "Administration", roles: ["SUPER_ADMIN", "ADMIN"] },
   { to: "/audit-log", label: "Audit log", icon: ScrollText, group: "Administration", roles: ["SUPER_ADMIN", "ADMIN"] },
@@ -130,41 +132,46 @@ function Layout() {
   const current = [...items].reverse().find((n) => (n.to === "/" ? pathname === "/" : pathname.startsWith(n.to)));
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible='icon'>
-        <SidebarHeader>
-          <Brand />
-        </SidebarHeader>
-        <SidebarContent>
-          {groups.map((g) => (
-            <SidebarGroup key={g}>
-              <SidebarGroupLabel>{g}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <NavItems items={items.filter((n) => n.group === g)} />
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <UserMenu />
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-      <SidebarInset>
-        <header className='sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator orientation='vertical' className='mr-1 data-[orientation=vertical]:h-4' />
-          <span className='text-sm font-medium'>{current?.label ?? ""}</span>
-        </header>
-        <Outlet />
-      </SidebarInset>
-    </SidebarProvider>
+    <NotificationsProvider>
+      <SidebarProvider>
+        <Sidebar collapsible='icon'>
+          <SidebarHeader>
+            <Brand />
+          </SidebarHeader>
+          <SidebarContent>
+            {groups.map((g) => (
+              <SidebarGroup key={g}>
+                <SidebarGroupLabel>{g}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <NavItems items={items.filter((n) => n.group === g)} />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
+          <SidebarFooter>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <UserMenu />
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
+        <SidebarInset>
+          <header className='sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur'>
+            <SidebarTrigger className='-ml-1' />
+            <Separator orientation='vertical' className='mr-1 data-[orientation=vertical]:h-4' />
+            <span className='text-sm font-medium'>{current?.label ?? ""}</span>
+            <div className='ml-auto'>
+              <NotificationBell />
+            </div>
+          </header>
+          <Outlet />
+        </SidebarInset>
+      </SidebarProvider>
+    </NotificationsProvider>
   );
 }
 

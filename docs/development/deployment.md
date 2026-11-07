@@ -28,6 +28,7 @@ The compose file contains a development-style Postgres password; change it for r
 
 - `node:24-slim` build with `VITE_GOOGLE_API` as a build arg, then `nginx:1.27-alpine` serving `dist/`.
 - `location /api/` → `proxy_pass http://backend:3000` with `Host`, `X-Forwarded-For` and `X-Forwarded-Proto` headers; `location /` → SPA fallback to `index.html`.
+- `location /api/notifications/stream` (Server-Sent Events): same proxy with `proxy_buffering off`, `proxy_cache off`, HTTP/1.1 and `proxy_read_timeout 15m`, so live notifications aren't held in nginx's buffer. Any other proxy in front (load balancer, CDN) needs equivalent settings. Run a single backend process (events are in-process).
 
 ## Production checklist (from code behavior)
 

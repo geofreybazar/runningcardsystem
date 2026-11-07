@@ -19,6 +19,8 @@ erDiagram
   User ||--o{ Incident : "created (IncidentCreatedBy)"
   User |o--o{ Incident : "closed (IncidentClosedBy)"
   User ||--o{ AuditLog : "performed"
+  Incident ||--o{ Notification : "notifies about"
+  User ||--o{ Notification : "acted (NotificationActor)"
 
   FireDistrict {
     Int id PK
@@ -77,6 +79,17 @@ erDiagram
     Boolean isActive
     Boolean mustChangePassword
     DateTime deletedAt "nullable"
+    DateTime notificationsSeenAt "nullable"
+  }
+  Notification {
+    Int id PK
+    String incidentId FK
+    Int[] cityIds "involved cities, no FK"
+    NotificationType type
+    String alarmLevel
+    Json units
+    String actorId FK
+    DateTime createdAt
   }
   Incident {
     String id PK

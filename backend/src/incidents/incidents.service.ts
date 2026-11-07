@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { RunningCardService } from '../running-card/running-card.service.js';
 import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
 import type { CreateIncidentDto, TruckPicks } from './incidents.dto.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['stations'][number];
@@ -18,7 +19,7 @@ const DETAIL_INCLUDE = {
   units: {
     orderBy: { id: 'asc' },
     include: {
-      station: { select: { id: true, name: true, districtId: true, district: { select: { code: true, name: true, color: true } } } },
+      station: { select: { id: true, name: true, cityId: true, districtId: true, district: { select: { code: true, name: true, color: true } } } },
       truck: { select: { id: true, callSign: true, type: true, plateNumber: true, status: true } },
     },
   },
@@ -31,13 +32,20 @@ export class IncidentsService {
     private readonly runningCard: RunningCardService,
     private readonly cities: CityDirectory,
     private readonly authz: AuthorizationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
-  /** Offices see incidents in their cities, plus ones their stations responded to. Regional accounts see all. */
+  /** Offices see incidents in their cities, ones their stations responded to or were on the card for (notified). Regional accounts see all. */
   private visibleTo(user: AuthUser) {
     const area = user.areaCityIds;
     if (area === null) return {};
-    return { OR: [{ cityId: { in: area } }, { units: { some: { station: { cityId: { in: area } } } } }] };
+    return {
+      OR: [
+        { cityId: { in: area } },
+        { units: { some: { station: { cityId: { in: area } } } } },
+        { notifications: { some: { cityIds: { hasSome: area } } } },
+      ],
+    };
   }
 
   /** Operations see incidents their district responded to; everyone else sees all. */
@@ -74,7 +82,7 @@ export class IncidentsService {
     await this.authz.authorize(AccessPolicy, 'dispatchIn', user, city.id);
     const card = await this.runningCard.generate(dto);
     if (card.length === 0) throw new BadRequestException('No station with an available truck is within range');
-    const id = await this.prisma.$transaction(async (tx) => {
+    const [id, notified] = await this.prisma.$transaction(async (tx) => {
       const incident = await tx.incident.create({
         data: {
           lat: dto.lat,
@@ -88,9 +96,10 @@ export class IncidentsService {
         },
       });
       const sent = await this.dispatch(tx, incident.id, card[0].alarmLevel, card[0].stations, dto.truckPicks);
-      if (sent === 0) throw new ConflictException('Every truck on the 1st Alarm became unavailable. Refresh the running card.');
-      return incident.id;
+      if (sent.length === 0) throw new ConflictException('Every truck on the 1st Alarm became unavailable. Refresh the running card.');
+      return [incident.id, await this.notifications.record(tx, incident.id, 'DISPATCHED', card[0].alarmLevel, user.id, sent)] as const;
     });
+    await this.notifications.publish(notified);
     return this.get(user, id);
   }
 
@@ -109,7 +118,7 @@ export class IncidentsService {
     const next = await this.nextAlarm(id);
     if (!next) throw new BadRequestException('This incident is already at the highest alarm level');
     if (next.stations.length === 0) throw new ConflictException('No more stations with an available truck are within range');
-    await this.prisma.$transaction(async (tx) => {
+    const notified = await this.prisma.$transaction(async (tx) => {
       // Conditional bump: two operators pressing Raise at once advance it only once.
       const { count } = await tx.incident.updateMany({
         where: { id, status: 'OPEN', alarmIndex: next.fromAlarmIndex },
@@ -117,8 +126,10 @@ export class IncidentsService {
       });
       if (count === 0) throw new ConflictException('The incident changed meanwhile. Reload and try again.');
       const sent = await this.dispatch(tx, id, next.alarmLevel, next.stations, truckPicks);
-      if (sent === 0) throw new ConflictException('Those trucks became unavailable. Reload and try again.');
+      if (sent.length === 0) throw new ConflictException('Those trucks became unavailable. Reload and try again.');
+      return this.notifications.record(tx, id, 'ALARM_RAISED', next.alarmLevel, user.id, sent);
     });
+    await this.notifications.publish(notified);
     return this.get(user, id);
   }
 
@@ -127,14 +138,15 @@ export class IncidentsService {
     const incident = await this.openIncident(id);
     await this.authz.authorize(AccessPolicy, 'dispatchIn', user, incident.cityId);
     const active = incident.units.filter((u) => !u.releasedAt);
-    await this.prisma.$transaction([
-      this.prisma.truck.updateMany({
-        where: { id: { in: active.map((u) => u.truckId) }, status: 'RESPONDING' },
-        data: { status: 'AVAILABLE' },
-      }),
-      this.prisma.incidentUnit.updateMany({ where: { incidentId: id, releasedAt: null }, data: { releasedAt: new Date() } }),
-      this.prisma.incident.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date(), closedById: user.id } }),
-    ]);
+    const levels = await this.alarmLevels();
+    const notified = await this.prisma.$transaction(async (tx) => {
+      await tx.truck.updateMany({ where: { id: { in: active.map((u) => u.truckId) }, status: 'RESPONDING' }, data: { status: 'AVAILABLE' } });
+      await tx.incidentUnit.updateMany({ where: { incidentId: id, releasedAt: null }, data: { releasedAt: new Date() } });
+      await tx.incident.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date(), closedById: user.id } });
+      // Each city hears which of its trucks were released.
+      return this.notifications.record(tx, id, 'INCIDENT_CLOSED', levels[incident.alarmIndex], user.id, active);
+    });
+    await this.notifications.publish(notified);
     return this.get(user, id);
   }
 
@@ -143,7 +155,7 @@ export class IncidentsService {
    * Each truck is claimed with a conditional update, so a truck can't be sent to two incidents at once.
    */
   private async dispatch(tx: Tx, incidentId: string, alarmLevel: string, stations: CardStation[], picks: TruckPicks = {}) {
-    let sent = 0;
+    const sent = [];
     for (const station of stations) {
       const preferred = station.trucks.find((t) => t.id === picks[station.id]);
       const candidates = preferred ? [preferred, ...station.trucks.filter((t) => t !== preferred)] : station.trucks;
@@ -153,8 +165,12 @@ export class IncidentsService {
           data: { status: 'RESPONDING' },
         });
         if (count === 1) {
-          await tx.incidentUnit.create({ data: { incidentId, stationId: station.id, truckId: truck.id, alarmLevel } });
-          sent++;
+          sent.push(
+            await tx.incidentUnit.create({
+              data: { incidentId, stationId: station.id, truckId: truck.id, alarmLevel },
+              select: { station: { select: { name: true, cityId: true, city: { select: { name: true } } } }, truck: { select: { callSign: true } } },
+            }),
+          );
           break;
         }
       }
@@ -163,7 +179,10 @@ export class IncidentsService {
   }
 
   private async openIncident(id: string) {
-    const incident = await this.prisma.incident.findUnique({ where: { id }, include: { units: true } });
+    const incident = await this.prisma.incident.findUnique({
+      where: { id },
+      include: { units: { include: { station: { select: { name: true, cityId: true, city: { select: { name: true } } } }, truck: { select: { callSign: true } } } } },
+    });
     if (!incident) throw new NotFoundException('Incident not found');
     if (incident.status !== 'OPEN') throw new BadRequestException('This incident is closed');
     return incident;

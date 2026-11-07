@@ -1,8 +1,10 @@
 # Incidents API
 
+Create, raise and close also create a [notification](notifications.md) for every involved city (fire, trucks sent, running card), their districts and the Regional office, (in the same transaction) and push them live after commit. Unit `station` objects include `cityId`.
+
 Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts`), class-level `@Can(AccessPolicy, 'operate')`; the four dispatch routes also carry `@Can(AccessPolicy, 'dispatch')` (Super Admin, or a Radio Operator with a dispatch city). Service `IncidentsService` (`incidents.service.ts`). DTOs in `incidents.dto.ts`.
 
-**Area filter** (`visibleTo`): accounts with `areaCityIds = null` (Regional office, Admin, Super Admin) see every incident. Others see incidents whose `cityId` is in their area, **or** where any unit's station is in their area.
+**Area filter** (`visibleTo`): accounts with `areaCityIds = null` (Regional office, Admin, Super Admin) see every incident. Others see incidents whose `cityId` is in their area, **or** where any unit's station is in their area, **or** that sent them a notification (e.g. a station of theirs is on the running card).
 
 **Incident detail object** (`DETAIL_INCLUDE` + computed fields):
 

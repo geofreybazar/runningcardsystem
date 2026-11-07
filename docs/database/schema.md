@@ -1,8 +1,8 @@
 # Database schema
 
-Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
+Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
 
-12 models, 7 enums. See the [ER diagram](erd.md).
+13 models, 8 enums. See the [ER diagram](erd.md).
 
 ## Enums
 
@@ -15,6 +15,7 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 | `TruckOwnership` | `BFP`, `LGU`, `VOLUNTEER` | `Truck.ownership` |
 | `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE` | `Truck.status` |
 | `IncidentStatus` | `OPEN`, `CLOSED` | `Incident.status` |
+| `NotificationType` | `DISPATCHED`, `ALARM_RAISED`, `INCIDENT_CLOSED` | `Notification.type` |
 
 ## Models
 
@@ -98,6 +99,7 @@ Has many `IncidentUnit`.
 | `isActive` | Boolean | default `true` |
 | `mustChangePassword` | Boolean | default `true` |
 | `deletedAt` | DateTime? | soft delete |
+| `notificationsSeenAt` | DateTime? | notifications created after this are unread for this account |
 | `createdAt` / `updatedAt` | DateTime | |
 
 Relations: `incidentsCreated` / `incidentsClosed` (named relations `IncidentCreatedBy` / `IncidentClosedBy`), `auditLogs`.
@@ -177,6 +179,21 @@ Index: `(status, createdAt)`, `(cityId)`. Has many `IncidentUnit`.
 
 Indexes: `(entity, entityId)`, `(createdAt)`.
 
+
+### Notification
+One per incident step (dispatch, raise alarm, close). See [notifications API](../api/notifications.md).
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Int | PK, autoincrement |
+| `incidentId` | String | FK → `Incident.id` |
+| `cityIds` | Int[] | involved cities: the fire's city, cities with a truck on the incident, cities with a station on its running card. GIN index |
+| `type` | NotificationType | |
+| `alarmLevel` | String | the level dispatched/raised to, or the incident's level at close |
+| `units` | Json | trucks moved in this step: `[{ station, callSign, cityId, city }]`; may be empty |
+| `actorId` | String | FK → `User.id` (relation `NotificationActor`): who dispatched/raised/closed |
+| `createdAt` | DateTime | default `now()`, indexed |
+
 ## Unique constraints and indexes (from migrations)
 
 | Name | Columns | Kind |
@@ -192,6 +209,8 @@ Indexes: `(entity, entityId)`, `(createdAt)`.
 | `Incident_cityId_idx` | `Incident(cityId)` | index |
 | `IncidentUnit_incidentId_idx` | `IncidentUnit(incidentId)` | index |
 | `AuditLog_entity_entityId_idx`, `AuditLog_createdAt_idx` | | index |
+| `Notification_cityIds_idx` | `Notification USING GIN (cityIds)` | index |
+| `Notification_createdAt_idx` | `Notification(createdAt)` | index |
 
 All foreign keys use `ON UPDATE CASCADE`. Delete behavior: required relations `RESTRICT`, optional relations `SET NULL`. No application code hard-deletes rows from these tables except `prisma migrate reset` / the e2e global setup on the test database.
 
@@ -204,4 +223,5 @@ All foreign keys use `ON UPDATE CASCADE`. Delete behavior: required relations `R
 | One truck can be on at most one open incident | conditional update in `IncidentsService.dispatch()` |
 | `Settings.alarmLevels` must have unique names and may not shrink below any open incident's `alarmIndex` | `SettingsController.update` |
 | Removed users get `accountNumber` renamed to `<accountNumber>#deleted-<timestamp>` so the number can be reused | `UsersService.remove` |
+| One notification per incident step, created in the same transaction | `NotificationsService.record` |
 | Only `Settings` row id 1 is used | every `settings.findUniqueOrThrow({ where: { id: 1 } })` |

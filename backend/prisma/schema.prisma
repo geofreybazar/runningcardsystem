@@ -60,6 +60,12 @@ enum Rank {
   FCSUPT
 }
 
+enum NotificationType {
+  DISPATCHED
+  ALARM_RAISED
+  INCIDENT_CLOSED
+}
+
 enum IncidentStatus {
   OPEN
   CLOSED
@@ -141,28 +147,31 @@ model Truck {
 }
 
 model User {
-  id                 String        @id @default(uuid())
+  id                  String         @id @default(uuid())
   /// BFP personnel account number (e.g. B13084), stored uppercase; it is the sign-in name.
-  accountNumber      String        @unique
-  rank               Rank? // required by the API for every role except SUPER_ADMIN
-  firstName          String
-  middleName         String?
-  lastName           String
-  passwordHash       String
-  role               Role
-  officeLevel        OfficeLevel   @default(REGIONAL)
-  districtId         Int? // DISTRICT offices, and CITY offices (derived from the city)
-  cityId             Int? // CITY offices
-  city               City?         @relation(fields: [cityId], references: [id])
-  district           FireDistrict? @relation(fields: [districtId], references: [id])
-  isActive           Boolean       @default(true)
-  mustChangePassword Boolean       @default(true)
-  deletedAt          DateTime? // soft delete keeps names on incident history
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  incidentsCreated   Incident[]    @relation("IncidentCreatedBy")
-  incidentsClosed    Incident[]    @relation("IncidentClosedBy")
-  auditLogs          AuditLog[]
+  accountNumber       String         @unique
+  rank                Rank? // required by the API for every role except SUPER_ADMIN
+  firstName           String
+  middleName          String?
+  lastName            String
+  passwordHash        String
+  role                Role
+  officeLevel         OfficeLevel    @default(REGIONAL)
+  districtId          Int? // DISTRICT offices, and CITY offices (derived from the city)
+  cityId              Int? // CITY offices
+  city                City?          @relation(fields: [cityId], references: [id])
+  district            FireDistrict?  @relation(fields: [districtId], references: [id])
+  isActive            Boolean        @default(true)
+  mustChangePassword  Boolean        @default(true)
+  deletedAt           DateTime? // soft delete keeps names on incident history
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  incidentsCreated    Incident[]     @relation("IncidentCreatedBy")
+  incidentsClosed     Incident[]     @relation("IncidentClosedBy")
+  auditLogs           AuditLog[]
+  notificationsActed  Notification[] @relation("NotificationActor")
+  /// Notifications created after this are unread for this account.
+  notificationsSeenAt DateTime?
 }
 
 /// Store for @nestjs/authentication refresh-token rotation (RefreshTokenStore contract).
@@ -214,6 +223,7 @@ model Incident {
   createdAt     DateTime       @default(now())
   closedAt      DateTime?
   units         IncidentUnit[]
+  notifications Notification[]
 
   @@index([status, createdAt])
   @@index([cityId])
@@ -245,5 +255,24 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/// One per incident step (dispatch, raise, close), sent to every involved city and its district office, and to the Regional office.
+model Notification {
+  id         Int              @id @default(autoincrement())
+  incidentId String
+  incident   Incident         @relation(fields: [incidentId], references: [id])
+  /// Involved cities: the fire's city, cities with a truck on the incident, and cities with a station on its running card.
+  cityIds    Int[]
+  type       NotificationType
+  alarmLevel String
+  /// Trucks moved in this step: [{ station, callSign, cityId, city }] (sent, or released on close).
+  units      Json
+  actorId    String
+  actor      User             @relation("NotificationActor", fields: [actorId], references: [id])
+  createdAt  DateTime         @default(now())
+
+  @@index([cityIds], type: Gin)
   @@index([createdAt])
 }

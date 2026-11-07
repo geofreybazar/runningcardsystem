@@ -133,10 +133,12 @@ describe('incidents: dispatch, raise alarm, close', () => {
     expect(await ids(fd2Radio)).toContain(caloocanFire.id);
     expect(await ids(caloocanRadio)).toContain(caloocanFire.id);
 
-    // An office also sees fires its own stations responded to.
-    const fd2Responded = manilaFire.units.some((u: { station: { districtId: number } }) => u.station.districtId === 2);
-    expect((await ids(fd2Radio)).includes(manilaFire.id)).toBe(fd2Responded);
-    if (!fd2Responded) await http.get(`/api/incidents/${manilaFire.id}`).set(fd2Radio).expect(403);
+    // An office also sees fires its own stations responded to or are on the running card for (it was notified).
+    const fd2Involved =
+      manilaFire.units.some((u: { station: { districtId: number } }) => u.station.districtId === 2) ||
+      manilaFire.runningCard.some((a: { stations: { district: { code: number } }[] }) => a.stations.some((st) => st.district.code === 2));
+    expect((await ids(fd2Radio)).includes(manilaFire.id)).toBe(fd2Involved);
+    if (!fd2Involved) await http.get(`/api/incidents/${manilaFire.id}`).set(fd2Radio).expect(403);
 
     await http.post(`/api/incidents/${manilaFire.id}/close`).set(manilaRadio).expect(200);
     await http.post(`/api/incidents/${caloocanFire.id}/close`).set(caloocanRadio).expect(200);

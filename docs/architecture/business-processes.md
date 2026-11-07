@@ -86,6 +86,33 @@ One transaction:
 
 Units are released only when the whole incident closes; there is no per-unit release endpoint.
 
+## 5a. Notifying involved cities
+
+Source: `notifications.service.ts` (`record`, `publish`), called from `create`, `raise` and `close`.
+
+```mermaid
+sequenceDiagram
+  participant R as Manila radio operator
+  participant I as IncidentsService
+  participant N as NotificationsService
+  participant DB as PostgreSQL
+  participant C as Involved offices + Regional (browsers)
+  R->>I: POST /incidents/:id/raise
+  I->>DB: transaction: claim trucks, create units
+  I->>N: record(tx, ALARM_RAISED, units of this step)
+  N->>DB: one Notification, cityIds = involved cities
+  I->>N: publish(ids) after commit
+  N-->>C: SSE event: notification (each office sees only its own trucks)
+```
+
+- **Involved cities** at each step: the fire's city, the city of every station with a unit on the incident (earlier alarms included), and the city of every station on the incident's running card snapshot (all alarm levels, saved at dispatch).
+- **Types:** `DISPATCHED` (incident created, 1st Alarm), `ALARM_RAISED`, `INCIDENT_CLOSED` (lists released trucks).
+- **Recipients:** every account of an involved city's office and of its district office (FD1/FD5 district offices are their single city), and every Regional account. Each office's copy lists only its own area's trucks; Regional sees all. A city that is only on the card gets the notification with no trucks.
+- Involved offices can open the incident: `visibleTo()` includes incidents with a notification naming a city in their area.
+- Rows are written inside the incident transaction, so a failed dispatch leaves no notification; live delivery happens after commit.
+- No acknowledgement in this phase: "unread" is per account (`User.notificationsSeenAt`). Acknowledgement, reminders and SMS/email are planned for a future phase.
+- The UI: bell with unread badge in the top bar, a red toast with a beep when the account's trucks are sent, and the **Notifications** page (open incidents involving us + the feed).
+
 ## 6. Account lifecycle
 
 Source: `backend/src/users/users.service.ts`, `auth/auth.service.ts`.
