@@ -52,6 +52,7 @@ describe('running card and barangay pins', () => {
 
   it('rejects bad coordinates', async () => {
     await http.get('/api/running-card').query({ lat: 'x', lng: 121 }).set(radio).expect(400);
+    await http.get('/api/running-card').query(QUIAPO).set(ops2).expect(403); // only radio operators and super admin use the card
   });
 
   it('lets anyone set a first barangay pin, but only Operations of that district correct it', async () => {
@@ -90,7 +91,7 @@ describe('settings', () => {
     const rules = { stationsPerAlarm: 3, maxDistanceKm: 100, alarmLevels: ['First', 'Second'] };
     await http.put('/api/settings').set(superAdmin).send({ ...rules, alarmLevels: ['A', 'A'] }).expect(400);
     await http.put('/api/settings').set(superAdmin).send(rules).expect(200);
-    const card = (await http.get('/api/running-card').query(QUIAPO).set(admin)).body.alarms;
+    const card = (await http.get('/api/running-card').query(QUIAPO).set(superAdmin)).body.alarms;
     expect(card.map((a: { alarmLevel: string }) => a.alarmLevel)).toEqual(['First', 'Second']);
     expect(card[0].stations).toHaveLength(3);
 

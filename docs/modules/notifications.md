@@ -7,7 +7,7 @@
   - `publish(ids)`: called after the transaction commits; loads the rows and pushes them to `events` (RxJS `Subject`).
   - `isFor(user, n)`: Regional (`areaCityIds = null`) always; otherwise the area shares a city with `n.cityIds`.
   - `forUser(user, n)`: keeps only `units` from the account's area (Regional: all).
-  - `list`, `unreadCount`, `markSeen`: see [API](../api/notifications.md).
+  - `list`, `unreadCount`, `markSeen(user, incidentId?)`: see [API](../api/notifications.md). Unread also respects `IncidentView` (viewing an incident reads it).
 - `NotificationsController`: the four routes, including the SSE `stream` (`@Sse`), filtered per connection with `isFor` and `forUser`.
 
 Frontend: `src/components/Notifications.jsx` (`NotificationsProvider`: stream loop, unread count, alert toast + beep; `NotificationBell`), `src/pages/NotificationsPage.jsx`, helpers in `src/lib/notifications.js`, SSE reader `stream()` / `parseSse()` in `src/api/client.js`.

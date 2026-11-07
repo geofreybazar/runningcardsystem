@@ -22,6 +22,7 @@ Findings from reading the code. Severity is a judgment for this application (an 
 | 16a | High (availability) | **Backend container likely cannot start.** The runtime image lacks `src/`, which `prisma/seed.ts` imports, and the start command runs the seed before the API. See [deployment](../development/deployment.md#backend-image-backenddockerfile). | `backend/Dockerfile` | Copy the required sources into the runtime image or seed from the build stage. |
 | 16 | Info | **Backend image installs dev dependencies** (`npm ci` without `--omit=dev`) because the seed needs `tsx` and `barangay`. Larger attack surface in production. | `backend/Dockerfile` | Separate seed image or step. |
 | 17 | Info | **Google Maps key is public by design** (browser key, embedded at build time). It must be restricted by HTTP referrer and API in Google Cloud. A previous key value exists in git history (an old commented line in `index.html`, since removed). | `frontend/Dockerfile`, git history | Restrict or rotate the key. |
+| 19 | Very low | **"Mark incident seen" accepts incidents outside the caller's area.** `POST /notifications/seen { incidentId }` only changes the caller's own unread state, but 204 vs 404 confirms that an incident id exists. | `notifications.service.ts` (`markSeen`) | Apply the incidents `visibleTo()` filter. |
 | 18 | Info | **Station list has no pagination**; all stations and trucks are returned to every signed-in user. Acceptable at the current size (~156). | `stations.service.ts` | Add pagination if the data grows. |
 
 ## Sensitive data exposure review

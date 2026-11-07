@@ -9,7 +9,7 @@ function AuthShell({ title, description, children }) {
           <div className='flex size-9 items-center justify-center rounded-lg bg-white/15 text-gold'>
             <Flame className='size-5' fill='currentColor' />
           </div>
-          Bureau of Fire Protection · NCR
+          Bureau of Fire Protection, NCR
         </div>
         <div>
           <div className='mb-4 h-1 w-16 rounded bg-gold' />

@@ -22,6 +22,7 @@ export class RunningCardService {
           lat: true,
           lng: true,
           contactNumber: true,
+          city: { select: { name: true } },
           district: { select: { code: true, name: true, color: true } },
           trucks: {
             where: { isActive: true, status: 'AVAILABLE' },

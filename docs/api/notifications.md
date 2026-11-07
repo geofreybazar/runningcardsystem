@@ -31,7 +31,10 @@ One notification per incident step (dispatch, raise alarm, close), addressed to 
 - **200:** `{ "count": number }`.
 
 ## POST /api/notifications/seen
-- **204.** Sets `notificationsSeenAt = now()` for the caller. Per account: other accounts of the same office keep their unread state.
+- **Body (optional):** `{ "incidentId"?: uuid }`.
+- **204.** Without a body: sets `notificationsSeenAt = now()` (everything read). With `incidentId`: upserts `IncidentView(user, incident, seenAt = now())`, so that incident's notifications up to now are read; the incident page calls this when it opens and whenever a live notification for it arrives while it is on screen. 404 if the incident doesn't exist.
+- Per account: other accounts of the same office keep their unread state.
+- Unread = `createdAt` after `notificationsSeenAt` **and** after the account's `IncidentView.seenAt` for that incident.
 
 ## GET /api/notifications/stream
 - **Server-Sent Events** (`text/event-stream`). Sends `event: notification` with a Notification (without `unread`) when one visible to me is created (units filtered as above), and `event: ping` every 25 s.

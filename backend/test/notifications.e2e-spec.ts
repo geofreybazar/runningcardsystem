@@ -93,6 +93,32 @@ describe('notifications to involved cities, their districts and the Regional off
     expect(await notes(farRadio, created.id)).toEqual([]);
   });
 
+  it('viewing an incident marks its notifications read, and the incident keeps a time log', async () => {
+    const fire = (await http.post('/api/incidents').set(caloocanRadio).send({ ...MONUMENTO, locationLabel: 'Log fire' }).expect(201)).body;
+    await http.post(`/api/incidents/${fire.id}/raise`).set(caloocanRadio).send({}).expect(200);
+    await http.post('/api/notifications/seen').set(fd2Radio).expect(204); // start clean, then one new step
+    await http.post(`/api/incidents/${fire.id}/raise`).set(caloocanRadio).send({}).expect(200);
+
+    expect((await notes(fd2Radio, fire.id)).some((n) => n.unread)).toBe(true);
+    const before = (await http.get('/api/notifications/unread-count').set(fd2Radio).expect(200)).body.count;
+    await http.post('/api/notifications/seen').set(fd2Radio).send({ incidentId: fire.id }).expect(204);
+    expect((await notes(fd2Radio, fire.id)).every((n) => !n.unread)).toBe(true);
+    expect((await http.get('/api/notifications/unread-count').set(fd2Radio).expect(200)).body.count).toBeLessThan(before);
+    expect((await notes(regionalRadio, fire.id)).some((n) => n.unread)).toBe(true); // per account
+    await http.post('/api/notifications/seen').set(fd2Radio).send({ incidentId: '00000000-0000-4000-8000-000000000000' }).expect(404);
+
+    await http.post(`/api/incidents/${fire.id}/close`).set(caloocanRadio).expect(200);
+    const detail = (await http.get(`/api/incidents/${fire.id}`).set(fd2Radio).expect(200)).body;
+    expect(detail.timeline.map((t: { type: string; alarmLevel: string }) => `${t.type} ${t.alarmLevel}`)).toEqual([
+      'DISPATCHED 1st Alarm',
+      'ALARM_RAISED 2nd Alarm',
+      'ALARM_RAISED 3rd Alarm',
+      'INCIDENT_CLOSED 3rd Alarm',
+    ]);
+    expect(detail.timeline.every((t: { by: { accountNumber: string }; at: string }) => t.by.accountNumber === 'N6002' && t.at)).toBe(true);
+    expect(detail.units[0].station.city.name).toBeTruthy();
+  });
+
   it('streams new notifications live (SSE) to the offices they are for', async () => {
     const server = app.getHttpServer();
     if (!server.listening) await new Promise<void>((resolve) => server.listen(0, resolve));

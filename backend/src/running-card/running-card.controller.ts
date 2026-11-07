@@ -18,8 +18,8 @@ export class RunningCardController {
   ) {}
 
   @Get()
-  @Can(AccessPolicy, 'operate')
-  /** Anyone may preview a card; `city` tells the UI whose dispatchers own this location (null = outside NCR). */
+  @Can(AccessPolicy, 'viewRunningCard')
+  /** Radio operators may preview any card; `city` tells the UI whose dispatchers own this location (null = outside NCR). */
   async get(@Query({ schema: runningCardQuerySchema }) { lat, lng }: z.infer<typeof runningCardQuerySchema>) {
     const [city, alarms] = await Promise.all([this.cities.cityAt(lat, lng), this.runningCard.generate({ lat, lng })]);
     return { city, alarms };

@@ -66,6 +66,15 @@ describe('auth and user management', () => {
     const cityRadio = await http.post('/api/users').set(superAdmin).send(person('A1005', 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: caloocan.id })).expect(201);
     expect(cityRadio.body.user).toMatchObject({ officeLevel: 'CITY', cityId: caloocan.id, districtId: 2 });
 
+    // Manila and Quezon City are their own districts: no city-level offices there.
+    const districts = (await http.get('/api/districts').set(superAdmin)).body;
+    for (const code of [1, 5]) {
+      const only = districts.find((d: { code: number }) => d.code === code).cities[0];
+      const res = await http.post('/api/users').set(superAdmin).send(person(`A10${code}9`, 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: only.id })).expect(400);
+      expect(res.body.message).toContain('fire district office');
+    }
+    await http.patch(`/api/users/${cityRadio.body.user.id}`).set(superAdmin).send({ cityId: districts[0].cities[0].id }).expect(400);
+
     const adminAuth = await signIn(app, 'A1002', admin.body.temporaryPassword);
     // Admin is regional IT: manages every account except Super Admin.
     await http.post('/api/users').set(adminAuth).send(person('A1006', 'SUPER_ADMIN')).expect(403);

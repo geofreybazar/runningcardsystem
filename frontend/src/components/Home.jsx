@@ -88,7 +88,7 @@ function Home() {
             <div>
               <div className='font-medium'>
                 {label}
-                {city && <span className='font-normal text-muted-foreground'> · {city.name}</span>}
+                {city && <span className='block text-xs font-normal text-muted-foreground'>{city.name}</span>}
               </div>
               <div className='font-mono text-xs text-muted-foreground'>
                 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}

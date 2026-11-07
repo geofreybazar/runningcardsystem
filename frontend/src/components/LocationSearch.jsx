@@ -9,6 +9,7 @@ import SimpleSelect from "@/components/SimpleSelect.jsx";
 import Field from "@/components/Field.jsx";
 import { cn } from "@/lib/utils";
 import variables from "@/variables/variables.js";
+import { districtName } from "@/auth/permissions.js";
 import { api } from "@/api/client.js";
 
 const { parseCoordinates, NCR_BOUNDS } = variables;
@@ -247,7 +248,7 @@ function LocationSearch({ onSelect }) {
             onChange={pickDistrict}
             placeholder='District'
             className='w-full bg-card'
-            options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+            options={districts.map((d) => ({ value: d.id, label: districtName(d) }))}
           />
         </Field>
         <Field label='City'>

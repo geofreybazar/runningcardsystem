@@ -1,8 +1,8 @@
 # Database schema
 
-Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
+Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`, `20261108090000_incident_views`, `20261108100000_single_city_district_offices`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
 
-13 models, 8 enums. See the [ER diagram](erd.md).
+14 models, 8 enums. See the [ER diagram](erd.md).
 
 ## Enums
 
@@ -194,6 +194,16 @@ One per incident step (dispatch, raise alarm, close). See [notifications API](..
 | `actorId` | String | FK → `User.id` (relation `NotificationActor`): who dispatched/raised/closed |
 | `createdAt` | DateTime | default `now()`, indexed |
 
+
+### IncidentView
+When an account last looked at an incident; its notifications up to `seenAt` count as read.
+
+| Field | Type | Notes |
+|---|---|---|
+| `userId` | String | FK → `User.id`; PK part |
+| `incidentId` | String | FK → `Incident.id`; PK part |
+| `seenAt` | DateTime | |
+
 ## Unique constraints and indexes (from migrations)
 
 | Name | Columns | Kind |
@@ -219,7 +229,7 @@ All foreign keys use `ON UPDATE CASCADE`. Delete behavior: required relations `R
 | Rule | Where |
 |---|---|
 | A station's `districtId` always equals its city's district | `StationsService.create/update`, seed backfill |
-| A user's office fields match `OFFICE_LEVELS[role]` (REGIONAL: no district/city; DISTRICT: district; CITY: city + its district) | `UsersService.office()` |
+| A user's office fields match `OFFICE_LEVELS[role]` (REGIONAL: no district/city; DISTRICT: district; CITY: city + its district, never Manila or Quezon City) | `UsersService.office()` |
 | One truck can be on at most one open incident | conditional update in `IncidentsService.dispatch()` |
 | `Settings.alarmLevels` must have unique names and may not shrink below any open incident's `alarmIndex` | `SettingsController.update` |
 | Removed users get `accountNumber` renamed to `<accountNumber>#deleted-<timestamp>` so the number can be reused | `UsersService.remove` |

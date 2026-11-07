@@ -1,13 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, stream } from "@/api/client.js";
-import { displayName } from "@/lib/person.js";
-import { NOTIFICATION_TITLES, unitsLine } from "@/lib/notifications.js";
 
-const Ctx = createContext({ unread: 0, version: 0, markSeen: () => {} });
+const Ctx = createContext({ unread: 0, openIncidents: 0, last: null, version: 0, markSeen: () => {}, viewIncident: () => () => {}, refreshOpen: () => {} });
 export const useNotifications = () => useContext(Ctx);
 
 /** Two short tones; no audio file to ship. Browsers may block it until the user has interacted with the page. */
@@ -32,20 +30,29 @@ function beep() {
 export function NotificationsProvider({ children }) {
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
-  const [version, setVersion] = useState(0); // bumps on every live notification so open pages can reload
+  const [openIncidents, setOpenIncidents] = useState(0); // open incidents in my area, for the sidebar bubble
+  const [last, setLast] = useState(null); // latest live notification, so open pages can reload
+  const [announcement, setAnnouncement] = useState("");
+  const viewing = useRef(null); // id of the incident on screen: its notifications count as read
 
+  const refreshOpen = useCallback(() => api("/incidents?status=OPEN").then((l) => setOpenIncidents(l.length), () => {}), []);
+  const refreshUnread = useCallback(() => api("/notifications/unread-count").then((r) => setUnread(r.count), () => {}), []);
+
+  /** Brief: what happened and where; the details are on the incident page. */
   const alert = useCallback(
     (n) => {
-      const ours = unitsLine(n);
-      const message = `${NOTIFICATION_TITLES[n.type]}: ${n.alarmLevel} · ${n.incident.locationLabel}`;
-      const description = [ours, `${n.incident.city?.name ?? ""} fire · by ${displayName(n.actor)}`].filter(Boolean).join("\n");
+      const closed = n.type === "INCIDENT_CLOSED";
+      const message = closed ? `Closed: ${n.incident.locationLabel}` : `${n.alarmLevel}: ${n.incident.locationLabel}`;
+      const count = n.units.length;
+      const description = count ? `${count} of your truck${count > 1 ? "s" : ""} ${closed ? "released" : "sent"}` : undefined;
       const options = { description, action: { label: "View", onClick: () => navigate(`/incidents/${n.incidentId}`) } };
-      // Our trucks sent out: loud and long. Everything else (including releases on close): a normal toast.
-      if (ours && n.type !== "INCIDENT_CLOSED") {
+      // Our trucks sent out: sound and a longer red toast. Everything else: a normal toast.
+      if (count && !closed) {
         beep();
-        toast.error(message, { ...options, duration: 60_000, className: "whitespace-pre-line" });
+        toast.error(message, { ...options, duration: 30_000 });
+        setAnnouncement(`${message}. ${description}`); // sonner only announces politely; dispatches interrupt
       } else {
-        toast.info(message, { ...options, className: "whitespace-pre-line" });
+        toast.info(message, options);
       }
     },
     [navigate],
@@ -57,14 +64,19 @@ export function NotificationsProvider({ children }) {
       while (!abort.signal.aborted) {
         try {
           // Catch up on anything missed while disconnected, then listen.
-          setUnread((await api("/notifications/unread-count")).count);
+          await Promise.all([refreshUnread(), refreshOpen()]);
           await stream(
             "/notifications/stream",
             (type, n) => {
               if (type !== "notification") return;
-              setUnread((c) => c + 1);
-              setVersion((v) => v + 1);
-              alert(n);
+              setLast(n);
+              refreshOpen();
+              if (viewing.current === n.incidentId) {
+                api("/notifications/seen", { method: "POST", body: { incidentId: n.incidentId } }).catch(() => {});
+              } else {
+                setUnread((c) => c + 1);
+                alert(n);
+              }
             },
             abort.signal,
           );
@@ -75,14 +87,33 @@ export function NotificationsProvider({ children }) {
       }
     })();
     return () => abort.abort();
-  }, [alert]);
+  }, [alert, refreshOpen, refreshUnread]);
 
   const markSeen = useCallback(() => {
     setUnread(0);
     return api("/notifications/seen", { method: "POST" }).catch(() => {});
   }, []);
 
-  return <Ctx.Provider value={{ unread, version, markSeen }}>{children}</Ctx.Provider>;
+  /** Called by the incident page while it is on screen; returns the cleanup. */
+  const viewIncident = useCallback(
+    (incidentId) => {
+      viewing.current = incidentId;
+      api("/notifications/seen", { method: "POST", body: { incidentId } }).then(refreshUnread, () => {});
+      return () => {
+        if (viewing.current === incidentId) viewing.current = null;
+      };
+    },
+    [refreshUnread],
+  );
+
+  return (
+    <Ctx.Provider value={{ unread, openIncidents, last, version: last?.id ?? 0, markSeen, viewIncident, refreshOpen }}>
+      {children}
+      <div className='sr-only' role='alert' aria-live='assertive'>
+        {announcement}
+      </div>
+    </Ctx.Provider>
+  );
 }
 
 export function NotificationBell() {

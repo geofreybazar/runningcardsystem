@@ -2,12 +2,12 @@ import { Truck } from "lucide-react";
 import { Card as Panel } from "@/components/ui/card";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
 import { cn } from "@/lib/utils";
+import { alarmTone } from "@/lib/alarm.js";
+import { districtName } from "@/auth/permissions.js";
 import { TRUCK_TYPES } from "@/labels.js";
 
-const truckLabel = (t) => `${t.callSign} · ${TRUCK_TYPES[t.type]}`;
+const truckLabel = (t) => `${t.callSign} (${TRUCK_TYPES[t.type]})`;
 
-// Alarms escalate visually: red for the numbered alarms, dark for task forces, black for general alarm.
-const headerTone = (i) => (i < 5 ? "bg-primary text-primary-foreground" : i < 9 ? "bg-neutral-800 text-white" : "bg-black text-white");
 
 function Empty({ children }) {
   return (
@@ -33,7 +33,7 @@ function Card({ runningCard, truckPicks = {}, onPickTruck }) {
           .map((d) => (
             <span key={d.code} className='flex items-center gap-1.5'>
               <span className='size-2.5 rounded-full' style={{ background: d.color }} />
-              {d.name}
+              {districtName(d)}
             </span>
           ))}
       </div>
@@ -41,8 +41,8 @@ function Card({ runningCard, truckPicks = {}, onPickTruck }) {
       <div className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
         {runningCard.map((alarm, i) => (
           <Panel key={alarm.alarmLevel} className='gap-0 overflow-hidden py-0'>
-            <div className={cn("flex items-center justify-between px-4 py-2 text-sm font-semibold", headerTone(i))}>
-              {alarm.alarmLevel}
+            <div className={cn("flex items-center justify-between px-4 py-2", alarmTone(alarm.index ?? i))}>
+              <span className='font-condensed text-base font-semibold'>{alarm.alarmLevel}</span>
               <span className='text-xs font-normal opacity-80'>{alarm.stations.length} stations</span>
             </div>
             <ul className='divide-y'>
@@ -54,10 +54,13 @@ function Card({ runningCard, truckPicks = {}, onPickTruck }) {
                     <span
                       className='size-2.5 shrink-0 rounded-full ring-2 ring-background'
                       style={{ background: station.district.color }}
-                      title={station.district.name}
+                      title={districtName(station.district)}
                     />
                     <div className='min-w-0 flex-1'>
-                      <div className='truncate text-sm font-medium'>{station.name}</div>
+                      <div className='truncate text-sm font-medium'>
+                        {station.name}
+                        {station.city && <span className='font-normal text-muted-foreground'>, {station.city.name}</span>}
+                      </div>
                       {onPickTruck && station.trucks.length > 1 ? (
                         <SimpleSelect
                           value={truckId}
@@ -66,10 +69,10 @@ function Card({ runningCard, truckPicks = {}, onPickTruck }) {
                           options={station.trucks.map((t) => ({ value: t.id, label: truckLabel(t) }))}
                         />
                       ) : (
-                        <div className='truncate text-xs text-muted-foreground'>{truckLabel(truck)}</div>
+                        <div className='truncate font-condensed text-sm text-muted-foreground'>{truckLabel(truck)}</div>
                       )}
                     </div>
-                    <span className='shrink-0 text-sm tabular-nums text-muted-foreground'>{station.distance.toFixed(2)} km</span>
+                    <span className='shrink-0 font-condensed text-base tabular-nums text-muted-foreground'>{station.distance.toFixed(2)} km</span>
                   </li>
                 );
               })}

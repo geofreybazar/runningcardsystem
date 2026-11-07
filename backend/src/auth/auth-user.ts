@@ -12,6 +12,9 @@ export interface AuthUser {
   officeLevel: OfficeLevel;
   districtId: number | null;
   cityId: number | null;
+  /** For the office name shown in the UI. */
+  city: { name: string } | null;
+  district: { code: number; name: string; alias: string | null } | null;
   mustChangePassword: boolean;
   /** Cities this office is responsible for; null = all of NCR. */
   areaCityIds: number[] | null;
@@ -30,6 +33,8 @@ export const AUTH_USER_SELECT = {
   officeLevel: true,
   districtId: true,
   cityId: true,
+  city: { select: { name: true } },
+  district: { select: { code: true, name: true, alias: true } },
   mustChangePassword: true,
 } as const;
 

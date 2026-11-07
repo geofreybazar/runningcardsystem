@@ -170,6 +170,10 @@ export class UsersService {
     }
     const city = input.cityId ? await this.cities.get(input.cityId) : null;
     if (!city) throw new BadRequestException('A city office needs a valid city');
+    // Manila (FD1) and Quezon City (FD5) are their own fire districts: their accounts sit at the district office.
+    if ((await this.cities.ofDistrict(city.districtId)).length === 1) {
+      throw new BadRequestException(`${city.name} has no city office; use its fire district office`);
+    }
     return { officeLevel, districtId: city.districtId, cityId: city.id };
   }
 

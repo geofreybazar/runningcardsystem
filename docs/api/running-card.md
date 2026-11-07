@@ -3,7 +3,7 @@
 Controller `RunningCardController` (`backend/src/running-card/running-card.controller.ts`), services `RunningCardService` + `CityDirectory`.
 
 ## GET /api/running-card
-- **Access:** `operate` (everyone signed in, including view-only offices).
+- **Access:** `viewRunningCard`: Radio Operators (any office, including view-only district/regional ones) and Super Admin. Admin and Operations get 403.
 - **Query:** `lat` (latitude), `lng` (longitude), both required, converted to numbers.
 - **200:**
 

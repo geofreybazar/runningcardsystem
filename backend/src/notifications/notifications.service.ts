@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
@@ -66,27 +66,50 @@ export class NotificationsService {
   }
 
   async list(user: AuthUser, take = 50) {
-    const [rows, seenAt] = await Promise.all([
+    const [rows, isUnread] = await Promise.all([
       this.prisma.notification.findMany({ where: visibleTo(user), include: INCLUDE, orderBy: { createdAt: 'desc' }, take }),
-      this.seenAt(user),
+      this.unreadTest(user),
     ]);
     // Unread first, newest first within each group.
-    return rows
-      .map((n) => ({ ...this.forUser(user, n), unread: !seenAt || n.createdAt > seenAt }))
-      .sort((a, b) => Number(b.unread) - Number(a.unread));
+    return rows.map((n) => ({ ...this.forUser(user, n), unread: isUnread(n) })).sort((a, b) => Number(b.unread) - Number(a.unread));
   }
 
   async unreadCount(user: AuthUser) {
-    const seenAt = await this.seenAt(user);
-    const count = await this.prisma.notification.count({ where: { ...visibleTo(user), ...(seenAt && { createdAt: { gt: seenAt } }) } });
-    return { count };
+    const seenAt = (await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notificationsSeenAt: true } })).notificationsSeenAt;
+    // shortcut: loads everything newer than the last "seen all" to drop per-incident views; fine while that stays small, else count in SQL.
+    const [rows, isUnread] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { ...visibleTo(user), ...(seenAt && { createdAt: { gt: seenAt } }) },
+        select: { incidentId: true, createdAt: true },
+      }),
+      this.unreadTest(user),
+    ]);
+    return { count: rows.filter(isUnread).length };
   }
 
-  async markSeen(user: AuthUser) {
-    await this.prisma.user.update({ where: { id: user.id }, data: { notificationsSeenAt: new Date() } });
+  /** Without incidentId: everything up to now is read. With it: that incident's notifications are read (the user is viewing it). */
+  async markSeen(user: AuthUser, incidentId?: string) {
+    const now = new Date();
+    if (!incidentId) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { notificationsSeenAt: now } });
+      return;
+    }
+    if (!(await this.prisma.incident.count({ where: { id: incidentId } }))) throw new NotFoundException('Incident not found');
+    await this.prisma.incidentView.upsert({
+      where: { userId_incidentId: { userId: user.id, incidentId } },
+      create: { userId: user.id, incidentId, seenAt: now },
+      update: { seenAt: now },
+    });
   }
 
-  private async seenAt(user: AuthUser) {
-    return (await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notificationsSeenAt: true } })).notificationsSeenAt;
+  /** Unread = newer than the last "seen all" and than the account's last view of that incident. */
+  private async unreadTest(user: AuthUser) {
+    const { notificationsSeenAt, incidentViews } = await this.prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { notificationsSeenAt: true, incidentViews: { select: { incidentId: true, seenAt: true } } },
+    });
+    const viewed = new Map(incidentViews.map((v) => [v.incidentId, v.seenAt]));
+    return (n: { incidentId: string; createdAt: Date }) =>
+      (!notificationsSeenAt || n.createdAt > notificationsSeenAt) && !(n.createdAt <= (viewed.get(n.incidentId) ?? new Date(0)));
   }
 }

@@ -72,3 +72,14 @@ Routes are generated from `NAV` in `src/components/Layout.jsx`, filtered by `use
 - Theme tokens in `src/index.css`; colors are referenced through tokens (`bg-primary`, `text-muted-foreground`, `bg-gold`). District colors come from the database (`FireDistrict.color`).
 - Responsive: collapsible sidebar (a sheet on mobile); several pages render cards below the `md` breakpoint and tables above it.
 - Toasts (`sonner`) report action results; inline `Alert` shows form errors.
+
+## UI conventions (2026-11 refresh)
+
+- **Office names** (`officeName`, `districtName` in `src/auth/permissions.js`): "Caloocan City Fire Station", "Pateros Municipal Fire Station", "Fire District II (CAMANAVA)", "Manila Fire District", "Quezon City Fire District", "Regional Headquarters".
+- **Alarm scale** (`alarmTone` in `src/lib/alarm.js`, `AlarmBadge` in `src/components/Alarm.jsx`): BFP red for 1st–5th Alarm, charcoal for task forces, black with a gold ring for the general alarm. Used on running cards, incident badges, the incident alarm strip, the time log and notifications.
+- **Typography:** Inter for text; Barlow Condensed (`font-condensed`) for call signs, alarm levels and figures.
+- **Incident page:** alarm strip with live elapsed time (`Elapsed`), map with the fire and one pin per responding station (district colour), units with their city, and a time log of dispatch / raises / close.
+- **Night mode:** user menu toggle; `dark` class on `<html>`, remembered in `localStorage` (`rcs-theme`), defaults to the system setting (`src/lib/theme.js`). The Google map follows it.
+- **Live updates:** `NotificationsProvider` exposes `last`, `version`, `openIncidents` (sidebar bubble on Incidents), `viewIncident(id)`; the incident page and incidents list reload on live events. Urgent dispatches are also announced through an `aria-live="assertive"` region.
+- **Home page** is the first page the role may open: Running Card for Radio Operators and Super Admin, Incidents for others.
+- All clickable elements get `cursor: pointer` (`index.css` base layer).

@@ -16,14 +16,36 @@ const DETAIL_INCLUDE = {
   barangay: { select: { name: true, city: { select: { name: true } } } },
   createdBy: { select: PERSON_SELECT },
   closedBy: { select: PERSON_SELECT },
+  notifications: { select: { type: true, alarmLevel: true, units: true, createdAt: true, actor: { select: PERSON_SELECT } }, orderBy: { id: 'asc' } },
   units: {
     orderBy: { id: 'asc' },
     include: {
-      station: { select: { id: true, name: true, cityId: true, districtId: true, district: { select: { code: true, name: true, color: true } } } },
+      station: { select: { id: true, name: true, lat: true, lng: true, cityId: true, city: { select: { name: true } }, districtId: true, district: { select: { code: true, name: true, color: true } } } },
       truck: { select: { id: true, callSign: true, type: true, plateNumber: true, status: true } },
     },
   },
 } as const;
+
+type DetailIncident = { units: { alarmLevel: string; dispatchedAt: Date }[]; closedAt: Date | null; closedBy: object | null; createdBy: object } & {
+  notifications: { type: string; alarmLevel: string; units: unknown; createdAt: Date; actor: object }[];
+};
+
+/**
+ * Time log of the incident: one entry per dispatch / alarm raised / close, with who did it and how many trucks moved.
+ * Each step writes a notification, so they are the log; incidents from before notifications existed fall back to the units.
+ */
+function timeline(i: DetailIncident) {
+  if (i.notifications.length) {
+    return i.notifications.map((n) => ({ type: n.type, alarmLevel: n.alarmLevel, at: n.createdAt, by: n.actor, trucks: (n.units as unknown[]).length }));
+  }
+  const levels = [...new Set(i.units.map((u) => u.alarmLevel))];
+  const steps = levels.map((alarmLevel, idx) => {
+    const units = i.units.filter((u) => u.alarmLevel === alarmLevel);
+    return { type: idx === 0 ? 'DISPATCHED' : 'ALARM_RAISED', alarmLevel, at: units[0].dispatchedAt, by: idx === 0 ? i.createdBy : null, trucks: units.length };
+  });
+  if (i.closedAt) steps.push({ type: 'INCIDENT_CLOSED', alarmLevel: levels.at(-1) ?? '', at: i.closedAt, by: i.closedBy, trucks: i.units.length });
+  return steps;
+}
 
 @Injectable()
 export class IncidentsService {
@@ -72,7 +94,8 @@ export class IncidentsService {
       throw new NotFoundException('Incident not found');
     }
     const levels = await this.alarmLevels();
-    return { ...incident, alarmLevel: levels[incident.alarmIndex], nextAlarmLevel: levels[incident.alarmIndex + 1] ?? null };
+    const { notifications, ...rest } = incident;
+    return { ...rest, alarmLevel: levels[incident.alarmIndex], nextAlarmLevel: levels[incident.alarmIndex + 1] ?? null, timeline: timeline(incident) };
   }
 
   /** Saves the incident and dispatches the 1st Alarm in one transaction. */

@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, Query, Sse, type MessageEvent } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Sse, type MessageEvent } from '@nestjs/common';
 import { CurrentUser } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
 import { filter, interval, map, merge, takeUntil, timer, type Observable } from 'rxjs';
@@ -8,6 +8,8 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { NotificationsService } from './notifications.service.js';
 
 const listQuery = z.strictObject({ take: z.coerce.number().int().min(1).max(200).optional() });
+// Posted without a body to mark everything read.
+const seenBody = z.strictObject({ incidentId: z.uuid().optional() }).default({});
 
 @Controller('notifications')
 @Can(AccessPolicy, 'operate')
@@ -25,11 +27,11 @@ export class NotificationsController {
     return this.notifications.unreadCount(user);
   }
 
-  /** Marks everything up to now as read for this account. */
+  /** Marks everything (or, with incidentId, that incident's notifications) read up to now for this account. */
   @Post('seen')
   @HttpCode(204)
-  async seen(@CurrentUser() user: AuthUser) {
-    await this.notifications.markSeen(user);
+  async seen(@CurrentUser() user: AuthUser, @Body({ schema: seenBody }) body: z.infer<typeof seenBody>) {
+    await this.notifications.markSeen(user, body.incidentId);
   }
 
   /**

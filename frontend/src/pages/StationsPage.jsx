@@ -17,7 +17,7 @@ import MapComponent from "@/components/MapComponent.jsx";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
-import { canEditCity } from "@/auth/permissions.js";
+import { canEditCity, districtName } from "@/auth/permissions.js";
 import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
 
 const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
@@ -150,7 +150,7 @@ function StationsPage() {
             value={districtId}
             onChange={setDistrictId}
             className='w-full bg-card sm:w-72'
-            options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+            options={districts.map((d) => ({ value: d.id, label: districtName(d) }))}
           />
           {canAddHere && (
             <Button onClick={() => openStationForm(null)}>
@@ -160,7 +160,8 @@ function StationsPage() {
         </>
       }
     >
-      <div className='grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,1fr)_2fr]'>
+      {/* Fixed list column; the detail column may shrink (minmax(0,…)) so long call signs scroll inside it instead of resizing the layout. */}
+      <div className='grid grid-cols-1 gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]'>
         {/* On small screens the list and the detail take turns. */}
         <Card className={cn("gap-0 py-0 lg:flex", selected && "hidden")}>
           <div className='border-b p-3'>
@@ -196,7 +197,7 @@ function StationsPage() {
         </Card>
 
         {selected ? (
-          <Card className='gap-4 px-4 py-4 md:px-6'>
+          <Card className='min-w-0 gap-4 px-4 py-4 md:px-6'>
             <button onClick={() => setSelectedId(null)} className='flex w-fit items-center gap-1 text-sm text-muted-foreground lg:hidden'>
               <ChevronLeft className='size-4' /> Stations
             </button>
@@ -260,12 +261,12 @@ function StationsPage() {
                   {selected.trucks.map((t) => (
                     <div key={t.id} className='rounded-lg border p-3'>
                       <div className='flex items-start justify-between gap-2'>
-                        <div>
-                          <div className='font-medium'>{t.callSign}</div>
+                        <div className='min-w-0'>
+                          <div className='break-words font-condensed text-base font-semibold'>{t.callSign}</div>
                           <div className='text-xs text-muted-foreground'>
-                            {TRUCK_TYPES[t.type]} · {OWNERSHIP[t.ownership]}
-                            {t.plateNumber && ` · ${t.plateNumber}`}
-                            {t.waterCapacityLiters != null && ` · ${t.waterCapacityLiters} L`}
+                            {[TRUCK_TYPES[t.type], OWNERSHIP[t.ownership], t.plateNumber, t.waterCapacityLiters != null && `${t.waterCapacityLiters} L`]
+                              .filter(Boolean)
+                              .join(", ")}
                           </div>
                         </div>
                         {editable && (
@@ -306,7 +307,9 @@ function StationsPage() {
                     <TableBody>
                       {selected.trucks.map((t) => (
                         <TableRow key={t.id}>
-                          <TableCell className='font-medium'>{t.callSign}</TableCell>
+                          <TableCell className='max-w-48 truncate font-condensed text-base font-semibold' title={t.callSign}>
+                            {t.callSign}
+                          </TableCell>
                           <TableCell>{TRUCK_TYPES[t.type]}</TableCell>
                           <TableCell>{t.plateNumber ?? "—"}</TableCell>
                           <TableCell className='text-right tabular-nums'>{t.waterCapacityLiters ?? "—"}</TableCell>

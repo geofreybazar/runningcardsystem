@@ -2,31 +2,30 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Page from "@/components/Page.jsx";
 import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
+import { useNotifications } from "@/components/Notifications.jsx";
+import { AlarmBadge as Alarm } from "@/components/Alarm.jsx";
 
 const fmt = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
-function AlarmBadge({ incident }) {
-  return incident.status === "OPEN" ? <Badge>{incident.alarmLevel}</Badge> : <Badge variant='secondary'>{incident.alarmLevel}</Badge>;
-}
+const AlarmBadge = ({ incident }) => <Alarm level={incident.alarmLevel} index={incident.alarmIndex} closed={incident.status !== "OPEN"} />;
 
 function IncidentsPage() {
   const [status, setStatus] = useState("OPEN");
   const [incidents, setIncidents] = useState(null);
   const navigate = useNavigate();
+  const { version } = useNotifications(); // any dispatch, raise or close in my area reloads the list
 
   useEffect(() => {
-    setIncidents(null);
     api(`/incidents?status=${status}`)
       .then(setIncidents)
       .catch((e) => toast.error(e.message));
-  }, [status]);
+  }, [status, version]);
 
   const open = (i) => navigate(`/incidents/${i.id}`);
   const empty = incidents?.length === 0 && (
@@ -54,10 +53,13 @@ function IncidentsPage() {
               <span className='truncate font-medium'>{i.locationLabel}</span>
               <ChevronRight className='size-4 shrink-0 text-muted-foreground' />
             </div>
-            <div className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
+            <div className='flex flex-wrap items-center gap-2'>
               <AlarmBadge incident={i} />
-              {i.city?.name && `${i.city.name} · `}
-              {fmt(i.createdAt)} · {i._count.units} units · {displayName(i.createdBy)}
+              <span className='text-sm'>{i.city?.name}</span>
+              <span className='ml-auto font-condensed text-sm tabular-nums text-muted-foreground'>{i._count.units} units</span>
+            </div>
+            <div className='text-xs text-muted-foreground'>
+              {fmt(i.createdAt)}, by {displayName(i.createdBy)}
             </div>
           </Card>
         ))}

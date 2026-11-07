@@ -16,7 +16,7 @@ import SimpleSelect from "@/components/SimpleSelect.jsx";
 import ConfirmDialog from "@/components/ConfirmDialog.jsx";
 import { api } from "@/api/client.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
-import { OFFICE_LABELS, OFFICE_LEVELS, officeName } from "@/auth/permissions.js";
+import { OFFICE_LABELS, OFFICE_LEVELS, districtName, officeName } from "@/auth/permissions.js";
 import { RANKS, displayName } from "@/lib/person.js";
 
 // Mirrors the backend rule: Admin (regional IT) manages every account except Super Admin.
@@ -24,15 +24,18 @@ const manageableRoles = (role) => Object.keys(ROLE_LABELS).filter((r) => role ==
 
 const EMPTY = { rank: "", firstName: "", middleName: "", lastName: "", accountNumber: "", role: "RADIO_OPERATOR", officeLevel: "CITY", districtId: "", cityId: "" };
 
+const hasCityOffices = (d) => d.cities.length > 1;
+
 /** Role → office level → district → city, keeping only combinations the role allows. */
 function normalizeOffice(form, districts) {
   const levels = OFFICE_LEVELS[form.role];
   const officeLevel = levels.includes(form.officeLevel) ? form.officeLevel : levels[0];
-  const district = districts.find((d) => d.id === form.districtId);
+  let district = districts.find((d) => d.id === form.districtId);
+  // Manila (FD1) and Quezon City (FD5) are their own districts: they have no city office.
+  if (officeLevel === "CITY" && district && !hasCityOffices(district)) district = undefined;
   let cityId = officeLevel === "CITY" ? form.cityId : "";
-  if (officeLevel === "CITY" && district?.cities.length === 1) cityId = district.cities[0].id; // FD1 Manila, FD5 Quezon City
   if (cityId && !district?.cities.some((c) => c.id === cityId)) cityId = "";
-  return { ...form, officeLevel, districtId: officeLevel === "REGIONAL" ? "" : form.districtId, cityId };
+  return { ...form, officeLevel, districtId: officeLevel === "REGIONAL" ? "" : (district?.id ?? ""), cityId };
 }
 
 const dispatchNote = (form, districts) => {
@@ -154,8 +157,9 @@ function UsersPage() {
               <div className='min-w-0'>
                 <div className='truncate font-medium'>{displayName(u)}</div>
                 <div className='text-xs text-muted-foreground'>
-                  {u.accountNumber} · {ROLE_LABELS[u.role]} · {officeName(u)}
+                  {ROLE_LABELS[u.role]}, {officeName(u)}
                 </div>
+                <div className='font-condensed text-sm tabular-nums text-muted-foreground'>{u.accountNumber}</div>
               </div>
               <Switch checked={u.isActive} disabled={!editable(u)} onCheckedChange={(v) => setActive(u, v)} aria-label='Active' />
             </div>
@@ -260,7 +264,9 @@ function UsersPage() {
                     <SimpleSelect
                       value={form.districtId}
                       onChange={(districtId) => setForm(normalizeOffice({ ...form, districtId }, districts))}
-                      options={districts.map((d) => ({ value: d.id, label: d.alias ? `${d.name} · ${d.alias}` : d.name }))}
+                      options={districts
+                        .filter((d) => form.officeLevel !== "CITY" || hasCityOffices(d))
+                        .map((d) => ({ value: d.id, label: districtName(d) }))}
                     />
                   </Field>
                   {form.officeLevel === "CITY" && (

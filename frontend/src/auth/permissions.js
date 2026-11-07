@@ -7,7 +7,7 @@ export const OFFICE_LEVELS = {
   RADIO_OPERATOR: ["REGIONAL", "DISTRICT", "CITY"],
 };
 
-export const OFFICE_LABELS = { REGIONAL: "Regional office", DISTRICT: "District office", CITY: "City office" };
+export const OFFICE_LABELS = { REGIONAL: "Regional Headquarters", DISTRICT: "Fire District", CITY: "City Fire Station" };
 
 /** May dispatch / raise / close for a fire in this city. */
 export const canDispatchIn = (user, cityId) =>
@@ -19,9 +19,24 @@ export const canDispatchAnywhere = (user) => user.role === "SUPER_ADMIN" || user
 export const canEditCity = (user, cityId) =>
   user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && cityId != null && !!user.areaCityIds?.includes(cityId));
 
-/** "Caloocan · City office", "Fire District 2 · District office", "Regional office". */
+const ROMAN = ["", "I", "II", "III", "IV", "V"];
+// FD1 and FD5 are named after their single city.
+const DISTRICT_NAMES = { 1: "Manila Fire District", 5: "Quezon City Fire District" };
+
+/** "Fire District II (CAMANAVA)", "Manila Fire District": the BFP name of a fire district. */
+export const districtName = (d) =>
+  DISTRICT_NAMES[d.code] ?? `Fire District ${ROMAN[d.code] ?? d.code}${d.alias ? ` (${d.alias})` : ""}`;
+
+/** BFP office names: "Caloocan City Fire Station", "Fire District II", "Manila Fire District", "Regional Headquarters". */
 export function officeName(u) {
-  if (u.officeLevel === "CITY") return `${u.city?.name ?? "City"} City office`;
-  if (u.officeLevel === "DISTRICT") return `${u.district?.name ?? "District"}${u.district?.alias ? ` (${u.district.alias})` : ""}`;
-  return "Regional office";
+  const code = u.district?.code;
+  if (u.officeLevel === "CITY") {
+    if (DISTRICT_NAMES[code]) return DISTRICT_NAMES[code];
+    const name = u.city?.name ?? "City";
+    // Pateros is a municipality; names already ending in "City" don't repeat it.
+    if (name === "Pateros") return "Pateros Municipal Fire Station";
+    return `${name.replace(/ City$/, "")} City Fire Station`;
+  }
+  if (u.officeLevel === "DISTRICT") return DISTRICT_NAMES[code] ?? `Fire District ${ROMAN[code] ?? code}`;
+  return "Regional Headquarters";
 }

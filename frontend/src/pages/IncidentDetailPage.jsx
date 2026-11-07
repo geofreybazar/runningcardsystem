@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, LoaderCircle, Siren } from "lucide-react";
+import { ChevronLeft, CircleCheck, LoaderCircle, Siren, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card as Panel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,9 +15,70 @@ import { useAuth } from "@/auth/AuthContext.jsx";
 import { canDispatchIn } from "@/auth/permissions.js";
 import { displayName } from "@/lib/person.js";
 import { TRUCK_TYPES } from "@/labels.js";
+import { useNotifications } from "@/components/Notifications.jsx";
+import { AlarmBadge, Elapsed } from "@/components/Alarm.jsx";
+import { alarmTone } from "@/lib/alarm.js";
+import { cn } from "@/lib/utils";
 
 const time = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 const when = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+
+const STEP = {
+  DISPATCHED: { icon: Siren, label: (s) => `${s.alarmLevel} dispatched`, verb: "sent" },
+  ALARM_RAISED: { icon: TrendingUp, label: (s) => `Raised to ${s.alarmLevel}`, verb: "sent" },
+  INCIDENT_CLOSED: { icon: CircleCheck, label: () => "Incident closed", verb: "released" },
+};
+
+/** Time log: when each alarm was dispatched or raised, and the close, with who did it. */
+function Timeline({ steps }) {
+  if (!steps?.length) return null;
+  return (
+    <Panel className='gap-3 px-4 py-4'>
+      <h2 className='text-sm font-semibold'>Time log</h2>
+      <ol className='relative grid gap-4 border-l pl-5'>
+        {steps.map((s, i) => {
+          const { icon: Icon, label, verb } = STEP[s.type];
+          const closed = s.type === "INCIDENT_CLOSED";
+          // Each dispatch/raise is one level up the scale; the close is shown neutral.
+          const index = steps.slice(0, i).filter((p) => p.type !== "INCIDENT_CLOSED").length;
+          return (
+            <li key={i} className='relative'>
+              <span
+                className={cn(
+                  "absolute top-0.5 -left-[1.95rem] flex size-5 items-center justify-center rounded-full",
+                  closed ? "border bg-card text-success" : alarmTone(index),
+                )}
+              >
+                <Icon className='size-3' />
+              </span>
+              <div className='flex flex-wrap items-baseline gap-x-3'>
+                <span className='text-sm font-medium'>{label(s)}</span>
+                <time className='text-sm tabular-nums text-muted-foreground' dateTime={s.at}>
+                  {when(s.at)}
+                </time>
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                {s.trucks} truck{s.trucks === 1 ? "" : "s"} {verb}
+                {s.by && `, by ${displayName(s.by)}`}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+    </Panel>
+  );
+}
+
+/** One pin per responding station, in its district colour. */
+function stationMarkers(units) {
+  const byStation = new Map(units.map((u) => [u.station.id, u.station]));
+  return [...byStation.values()].map((s) => ({ id: s.id, position: { lat: s.lat, lng: s.lng }, color: s.district.color, title: s.name }));
+}
+
+function IncidentMap({ lat, lng, markers }) {
+  const position = useMemo(() => ({ lat, lng }), [lat, lng]); // stable, so the map only refits when something changes
+  return <MapComponent position={position} markers={markers} />;
+}
 
 function IncidentDetailPage() {
   const { id } = useParams();
@@ -36,9 +96,14 @@ function IncidentDetailPage() {
     setNext(data.status === "OPEN" && canDispatchIn(user, data.cityId) ? await api(`/incidents/${id}/next-alarm`) : null);
   }, [id, user]);
 
+  const { last, viewIncident } = useNotifications();
+  useEffect(() => viewIncident(id), [id, viewIncident]); // on screen = its notifications are read
+
+  // Another office raised or closed it (or the card changed): reload so every involved city sees it at once.
+  const lastForThis = last?.incidentId === id ? last.id : null;
   useEffect(() => {
     load().catch((e) => toast.error(e.message));
-  }, [load]);
+  }, [load, lastForThis]);
 
   const act = async (path, body, success) => {
     setBusy(true);
@@ -63,6 +128,7 @@ function IncidentDetailPage() {
   }
 
   const open = incident.status === "OPEN";
+  const markers = stationMarkers(incident.units);
   const mine = open && canDispatchIn(user, incident.cityId); // only this city's dispatchers act on it
   const levels = [...new Set(incident.units.map((u) => u.alarmLevel))];
 
@@ -72,29 +138,48 @@ function IncidentDetailPage() {
         <ChevronLeft className='size-4' /> All incidents
       </Link>
 
-      <div className='flex flex-wrap items-start gap-3'>
+      <div className='flex flex-col gap-4 lg:flex-row lg:items-stretch'>
         <div className='min-w-0 flex-1'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <h1 className='text-xl font-semibold tracking-tight md:text-2xl'>{incident.locationLabel}</h1>
-            {open ? <Badge>OPEN · {incident.alarmLevel}</Badge> : <Badge variant='secondary'>CLOSED</Badge>}
-          </div>
+          <h1 className='text-xl font-semibold tracking-tight md:text-2xl'>{incident.locationLabel}</h1>
           <p className='mt-1 text-sm text-muted-foreground'>
-            {incident.barangay ? `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name} · ` : incident.city && `${incident.city.name} · `}
-            Dispatched {when(incident.createdAt)} by {displayName(incident.createdBy)}
-            {incident.closedAt && ` · Closed ${when(incident.closedAt)} by ${displayName(incident.closedBy)}`}
+            {incident.barangay ? `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name}` : incident.city?.name}
           </p>
+          <p className='text-sm text-muted-foreground'>
+            Dispatched {when(incident.createdAt)} by {displayName(incident.createdBy)}
+          </p>
+          {incident.closedAt && (
+            <p className='text-sm text-muted-foreground'>
+              Closed {when(incident.closedAt)} by {displayName(incident.closedBy)}
+            </p>
+          )}
           {incident.notes && <p className='mt-2 text-sm'>{incident.notes}</p>}
+          {mine && (
+            <Button variant='outline' className='mt-3' onClick={() => setConfirmClose(true)} disabled={busy}>
+              Close incident
+            </Button>
+          )}
         </div>
-        {mine && (
-          <Button variant='outline' onClick={() => setConfirmClose(true)} disabled={busy}>
-            Close incident
-          </Button>
-        )}
+        {/* The one loud element: where the incident stands and for how long. */}
+        <div
+          className={cn(
+            "flex min-w-56 flex-col justify-center rounded-xl px-5 py-3",
+            open ? alarmTone(incident.alarmIndex) : "border bg-card text-card-foreground",
+          )}
+          aria-label={open ? `${incident.alarmLevel}, open` : `Closed at ${incident.alarmLevel}`}
+        >
+          <span className='font-condensed text-3xl leading-none font-bold'>{open ? incident.alarmLevel : "Closed"}</span>
+          <span className={cn("mt-1 flex items-baseline gap-1.5 text-sm", open ? "opacity-90" : "text-muted-foreground")}>
+            <span className='text-xl font-semibold'>
+              <Elapsed from={incident.createdAt} to={incident.closedAt} />
+            </span>
+            {open ? "since dispatch" : `total, at ${incident.alarmLevel}`}
+          </span>
+        </div>
       </div>
 
       <div className='grid grid-cols-1 gap-4 xl:grid-cols-[2fr_3fr]'>
         <div className='h-64 overflow-hidden rounded-xl border md:h-80 xl:h-full xl:min-h-80'>
-          <MapComponent position={{ lat: incident.lat, lng: incident.lng }} onChange={() => {}} />
+          <IncidentMap lat={incident.lat} lng={incident.lng} markers={markers} />
         </div>
         <Panel className='py-0'>
           <div className='overflow-x-auto'>
@@ -114,16 +199,19 @@ function IncidentDetailPage() {
                     .filter((u) => u.alarmLevel === level)
                     .map((u, i) => (
                       <TableRow key={u.id}>
-                        <TableCell className='whitespace-nowrap font-medium'>{i === 0 ? level : ""}</TableCell>
+                        <TableCell className='whitespace-nowrap'>{i === 0 && <AlarmBadge level={level} index={levels.indexOf(level)} closed={!open} />}</TableCell>
                         <TableCell>
                           <span className='flex items-center gap-2'>
                             <span className='size-2.5 shrink-0 rounded-full' style={{ background: u.station.district.color }} />
-                            {u.station.name}
+                            <span>
+                              {u.station.name}
+                              {u.station.city && <span className='block text-xs text-muted-foreground'>{u.station.city.name}</span>}
+                            </span>
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className='font-condensed text-base font-semibold'>
                           {u.truck.callSign}
-                          <div className='text-xs text-muted-foreground'>{TRUCK_TYPES[u.truck.type]}</div>
+                          <div className='font-sans text-xs font-normal text-muted-foreground'>{TRUCK_TYPES[u.truck.type]}</div>
                         </TableCell>
                         <TableCell className='tabular-nums'>{time(u.dispatchedAt)}</TableCell>
                         <TableCell className='tabular-nums text-muted-foreground'>{u.releasedAt ? time(u.releasedAt) : "—"}</TableCell>
@@ -135,6 +223,8 @@ function IncidentDetailPage() {
           </div>
         </Panel>
       </div>
+
+      <Timeline steps={incident.timeline} />
 
       {open && !mine && (
         <p className='text-sm text-muted-foreground'>View only: the {incident.city?.name ?? "city"} office raises the alarm and closes this incident.</p>
@@ -151,7 +241,7 @@ function IncidentDetailPage() {
             </Button>
           </div>
           <Card
-            runningCard={next.stations.length ? [{ alarmLevel: next.alarmLevel, stations: next.stations }] : []}
+            runningCard={next.stations.length ? [{ alarmLevel: next.alarmLevel, index: incident.alarmIndex + 1, stations: next.stations }] : []}
             truckPicks={truckPicks}
             onPickTruck={(stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId }))}
           />

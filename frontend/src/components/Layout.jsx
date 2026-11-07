@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Bell, ChevronsUpDown, Flame, KeyRound, LogOut, ScrollText, Settings, Siren, Truck, Users } from "lucide-react";
+import { Bell, ChevronsUpDown, Flame, KeyRound, LogOut, Moon, ScrollText, Settings, Siren, Sun, Truck, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +10,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -28,13 +29,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { displayName } from "@/lib/person.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
-import { NotificationBell, NotificationsProvider } from "@/components/Notifications.jsx";
+import { NotificationBell, NotificationsProvider, useNotifications } from "@/components/Notifications.jsx";
+import { officeName } from "@/auth/permissions.js";
+import { useTheme } from "@/components/Alarm.jsx";
 
 const ALL = ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"];
 
 /** Pages, their sidebar group, and the roles that see them. The backend enforces the same rules. */
 export const NAV = [
-  { to: "/", label: "Running Card", icon: Flame, group: "Dispatch", roles: ALL },
+  // The running card is the dispatcher's tool.
+  { to: "/", label: "Running Card", icon: Flame, group: "Dispatch", roles: ["SUPER_ADMIN", "RADIO_OPERATOR"] },
   { to: "/incidents", label: "Incidents", icon: Siren, group: "Dispatch", roles: ALL },
   { to: "/notifications", label: "Notifications", icon: Bell, group: "Dispatch", roles: ALL },
   { to: "/stations", label: "Stations & Trucks", icon: Truck, group: "Resources", roles: ALL },
@@ -68,6 +72,8 @@ function Brand() {
 function NavItems({ items }) {
   const { pathname } = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
+  const { openIncidents } = useNotifications();
+  const badges = { "/incidents": openIncidents };
   return items.map((n) => {
     const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
     return (
@@ -83,6 +89,11 @@ function NavItems({ items }) {
             <span>{n.label}</span>
           </NavLink>
         </SidebarMenuButton>
+        {badges[n.to] > 0 && (
+          <SidebarMenuBadge className='rounded-full bg-primary text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-data-[active=true]/menu-button:text-primary-foreground' aria-label={`${badges[n.to]} open`}>
+            {badges[n.to]}
+          </SidebarMenuBadge>
+        )}
       </SidebarMenuItem>
     );
   });
@@ -90,17 +101,19 @@ function NavItems({ items }) {
 
 function UserMenu() {
   const { user, logout } = useAuth();
+  const [theme, toggleTheme] = useTheme();
   const { isMobile } = useSidebar();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarMenuButton size='lg' className='data-[state=open]:bg-sidebar-accent'>
+        <SidebarMenuButton size='lg' className='h-auto py-2 data-[state=open]:bg-sidebar-accent'>
           <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-semibold'>
             {initials(`${user.firstName} ${user.lastName}`)}
           </div>
           <div className='grid flex-1 text-left leading-tight'>
             <span className='truncate text-sm font-medium'>{displayName(user)}</span>
             <span className='truncate text-xs text-muted-foreground'>{ROLE_LABELS[user.role]}</span>
+            <span className='truncate text-xs text-muted-foreground'>{officeName(user)}</span>
           </div>
           <ChevronsUpDown className='ml-auto size-4' />
         </SidebarMenuButton>
@@ -108,6 +121,9 @@ function UserMenu() {
       <DropdownMenuContent side={isMobile ? "bottom" : "right"} align='end' className='w-56'>
         <DropdownMenuLabel className='font-normal'>
           <div className='text-sm font-medium'>{displayName(user)}</div>
+          <div className='text-xs text-muted-foreground'>
+            {ROLE_LABELS[user.role]}, {officeName(user)}
+          </div>
           <div className='text-xs text-muted-foreground'>Account no. {user.accountNumber}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -115,6 +131,9 @@ function UserMenu() {
           <NavLink to='/change-password'>
             <KeyRound /> Change password
           </NavLink>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => (e.preventDefault(), toggleTheme())}>
+          {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? "Light mode" : "Night mode"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={logout}>
           <LogOut /> Sign out

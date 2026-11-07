@@ -21,6 +21,7 @@ Allowed office levels per role (`OFFICE_LEVELS`): SUPER_ADMIN and ADMIN → REGI
 | Ability | Grants |
 |---|---|
 | `operate` | any signed-in user |
+| `viewRunningCard` | SUPER_ADMIN, RADIO_OPERATOR (any office) |
 | `editStations` | SUPER_ADMIN, OPERATIONS (route gate) |
 | `editCity(cityId)` | SUPER_ADMIN; OPERATIONS whose `areaCityIds` include `cityId` (record check) |
 | `dispatch` | SUPER_ADMIN; RADIO_OPERATOR with a non-null `dispatchCityId` (route gate) |
@@ -39,18 +40,22 @@ Additional checks outside the policy:
 | Action | SUPER_ADMIN | ADMIN | OPERATIONS (district / city) | RADIO_OPERATOR city, FD1/FD5 district | RADIO_OPERATOR FD2–4 district, regional |
 |---|---|---|---|---|---|
 | Read districts, barangays, stations, settings | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Preview running card | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Preview running card | ✓ | — | — | ✓ | ✓ |
 | Set first barangay pin | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Overwrite barangay pin | ✓ | — | own area | — | — |
 | Create/edit stations, trucks, truck status | ✓ | — | own area | — | — |
-| List/view incidents | all | all | own area + responded | own area + responded | district area + responded / all (regional) |
+| List/view incidents | all | all | own area + responded/notified | own area + responded/notified | district area + responded/notified / all (regional) |
 | Dispatch, raise, close | any city | — | — | own city only | — |
 | Next-alarm preview | any | — | — | any incident (no city check) | — |
 | Manage users | all roles | all except SUPER_ADMIN | — | — | — |
 | Audit log | ✓ | ✓ | — | — | — |
 | Change settings | ✓ | — | — | — | — |
 
-"Responded" means at least one unit's station is in the office's area.
+"Responded" means at least one unit's station is in the office's area; "notified" means a notification named a city in the area (e.g. its station was on the running card).
+
+Manila (FD1) and Quezon City (FD5) offices exist only at district level; migration `20261108100000_single_city_district_offices` moved any city-level accounts there (their area and dispatch city are unchanged).
+
+The frontend hides the Running Card page from Admin and Operations; their home page is Incidents.
 
 ## Where each rule is enforced
 

@@ -111,7 +111,9 @@ sequenceDiagram
 - Involved offices can open the incident: `visibleTo()` includes incidents with a notification naming a city in their area.
 - Rows are written inside the incident transaction, so a failed dispatch leaves no notification; live delivery happens after commit.
 - No acknowledgement in this phase: "unread" is per account (`User.notificationsSeenAt`). Acknowledgement, reminders and SMS/email are planned for a future phase.
-- The UI: bell with unread badge in the top bar, a red toast with a beep when the account's trucks are sent, and the **Notifications** page (open incidents involving us + the feed).
+- The UI: bell with unread badge in the top bar, a short red toast with a beep when the account's trucks are sent, a count of open incidents on the sidebar's Incidents item, and the **Notifications** page (open incidents involving us + the feed).
+- Every open page reacts to the live event: the incident page reloads (so a raise by Manila shows up at once in Caloocan), and the incidents list reloads. While an incident is on screen its notifications are marked read (`POST /notifications/seen { incidentId }`) and no toast is shown.
+- The incident page shows a **time log** (dispatch, each alarm raised, close, with time and who) built from the step notifications.
 
 ## 6. Account lifecycle
 

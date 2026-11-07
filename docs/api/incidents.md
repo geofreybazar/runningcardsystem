@@ -33,7 +33,7 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 - **200:** incidents in the caller's area, newest first, without `runningCard`, with `createdBy` (account number, rank, names), `city { name }`, `_count { units }`, and computed `alarmLevel`.
 
 ## GET /api/incidents/:id
-- **200:** detail object. **403** `This incident is outside your area` if it exists but is not visible; **404** if it does not exist.
+- **200:** detail object, including `timeline`: one entry per step `{ type: DISPATCHED | ALARM_RAISED | INCIDENT_CLOSED, alarmLevel, at, by: person | null, trucks }` (from the step's notification; incidents older than notifications fall back to the units, with `by` only for the dispatch and close). Unit stations include `city { name }`. **403** `This incident is outside your area` if it exists but is not visible; **404** if it does not exist.
 
 ## POST /api/incidents (dispatch)
 - **Body:** `lat`, `lng`, `locationLabel` (1–250), `barangayId?` int, `notes?` (≤2000), `truckPicks?` object `{ "<stationId>": truckId }` (validated only as an object).

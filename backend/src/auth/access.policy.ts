@@ -19,6 +19,11 @@ export class AccessPolicy implements PolicyBefore<AuthUser> {
     return !!user;
   }
 
+  /** The running card is a dispatcher's tool: Radio Operators (any office) and Super Admin. */
+  viewRunningCard(user: AuthUser | null) {
+    return is(user, 'SUPER_ADMIN', 'RADIO_OPERATOR');
+  }
+
   editStations(user: AuthUser | null) {
     return is(user, 'SUPER_ADMIN', 'OPERATIONS');
   }

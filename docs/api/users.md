@@ -12,7 +12,7 @@ Controller `UsersController` (`backend/src/users/users.controller.ts`), class-le
 | OPERATIONS | DISTRICT, CITY |
 | RADIO_OPERATOR | REGIONAL, DISTRICT, CITY |
 
-REGIONAL stores no district/city. DISTRICT requires a valid `districtId` (city cleared). CITY requires a valid `cityId`; `districtId` is set from the city. Violations → 400.
+REGIONAL stores no district/city. DISTRICT requires a valid `districtId` (city cleared). CITY requires a valid `cityId`; `districtId` is set from the city. **Manila (FD1) and Quezon City (FD5) have no city offices**: their accounts are district-level (400 `<city> has no city office; use its fire district office`). Violations → 400.
 
 **User object** (`PUBLIC_FIELDS`):
 

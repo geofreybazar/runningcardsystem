@@ -172,6 +172,7 @@ model User {
   notificationsActed  Notification[] @relation("NotificationActor")
   /// Notifications created after this are unread for this account.
   notificationsSeenAt DateTime?
+  incidentViews       IncidentView[]
 }
 
 /// Store for @nestjs/authentication refresh-token rotation (RefreshTokenStore contract).
@@ -224,6 +225,7 @@ model Incident {
   closedAt      DateTime?
   units         IncidentUnit[]
   notifications Notification[]
+  views         IncidentView[]
 
   @@index([status, createdAt])
   @@index([cityId])
@@ -275,4 +277,15 @@ model Notification {
 
   @@index([cityIds], type: Gin)
   @@index([createdAt])
+}
+
+/// When an account last looked at an incident: its notifications up to then count as read.
+model IncidentView {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  seenAt     DateTime
+
+  @@id([userId, incidentId])
 }

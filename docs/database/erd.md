@@ -21,6 +21,8 @@ erDiagram
   User ||--o{ AuditLog : "performed"
   Incident ||--o{ Notification : "notifies about"
   User ||--o{ Notification : "acted (NotificationActor)"
+  User ||--o{ IncidentView : "viewed"
+  Incident ||--o{ IncidentView : "viewed by"
 
   FireDistrict {
     Int id PK
@@ -80,6 +82,11 @@ erDiagram
     Boolean mustChangePassword
     DateTime deletedAt "nullable"
     DateTime notificationsSeenAt "nullable"
+  }
+  IncidentView {
+    String userId PK
+    String incidentId PK
+    DateTime seenAt
   }
   Notification {
     Int id PK
