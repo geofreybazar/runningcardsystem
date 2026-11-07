@@ -1,0 +1,7 @@
+# Context is the repo root: send only what the frontend build needs.
+**
+!frontend/
+!backend/src/shared/
+**/node_modules
+**/dist
+**/.env

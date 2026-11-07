@@ -19,16 +19,37 @@ import { api } from "@/api/client.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { canEditCity, districtName } from "@/auth/permissions.js";
 
+import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
+import { formErrors } from "@/lib/validation.js";
+import { TRUCK_TYPES as ALLOWED_TRUCK_TYPES, createStationSchema, createTruckSchema } from "@shared/validation";
+
 // Ambulance and Rescue are no longer offered; an existing truck of that type keeps showing it until edited.
 const truckTypeOptions = (current) =>
   Object.keys(TRUCK_TYPES)
-    .filter((t) => NEW_TRUCK_TYPES.includes(t) || t === current)
+    .filter((t) => ALLOWED_TRUCK_TYPES.includes(t) || t === current)
     .map((t) => ({ value: t, label: TRUCK_TYPES[t] }));
-import { NEW_TRUCK_TYPES, OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
+
+const nullIfBlank = (v) => (v === "" || v == null ? null : v);
+
+const stationBody = (f) => ({
+  name: f.name.trim(),
+  lat: f.lat ?? undefined,
+  lng: f.lng ?? undefined,
+  cityId: nullIfBlank(f.cityId) ?? undefined,
+  address: nullIfBlank(f.address?.trim()),
+  contactNumber: nullIfBlank(f.contactNumber?.trim()),
+});
+
+const truckBody = (f) => ({
+  callSign: f.callSign.trim(),
+  plateNumber: nullIfBlank(f.plateNumber?.trim()),
+  type: f.type,
+  ownership: f.ownership,
+  waterCapacityLiters: f.waterCapacityLiters === "" ? null : Number(f.waterCapacityLiters),
+});
 
 const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
 
-const nullIfBlank = (v) => (v === "" || v == null ? null : v);
 
 function IconAction({ label, onClick, children, destructive }) {
   return (
@@ -53,6 +74,7 @@ function StationsPage() {
   const [stationForm, setStationForm] = useState(null);
   const [truckForm, setTruckForm] = useState(null);
   const [formError, setFormError] = useState("");
+  const [tried, setTried] = useState(false); // after the first Save attempt, errors follow the form as it is edited
   const [confirm, setConfirm] = useState(null); // { title, description, onConfirm }
 
   const district = districts.find((d) => d.id === districtId);
@@ -84,18 +106,15 @@ function StationsPage() {
     }
   };
 
+  const stationErrors = tried && stationForm ? formErrors(createStationSchema, stationBody(stationForm)) : null;
+  const truckErrors = tried && truckForm ? formErrors(createTruckSchema, truckBody(truckForm)) : null;
+
   const saveStation = async () => {
     setFormError("");
+    setTried(true);
     const f = stationForm;
-    if (!f.lat) return setFormError("Click the map to place the station.");
-    const body = {
-      name: f.name.trim(),
-      lat: f.lat,
-      lng: f.lng,
-      cityId: nullIfBlank(f.cityId),
-      address: nullIfBlank(f.address?.trim()),
-      contactNumber: nullIfBlank(f.contactNumber?.trim()),
-    };
+    const body = stationBody(f);
+    if (formErrors(createStationSchema, body)) return; // shown under the fields
     try {
       const saved = f.id
         ? await api(`/stations/${f.id}`, { method: "PATCH", body })
@@ -111,14 +130,10 @@ function StationsPage() {
 
   const saveTruck = async () => {
     setFormError("");
+    setTried(true);
     const f = truckForm;
-    const body = {
-      callSign: f.callSign.trim(),
-      plateNumber: nullIfBlank(f.plateNumber?.trim()),
-      type: f.type,
-      ownership: f.ownership,
-      waterCapacityLiters: f.waterCapacityLiters === "" ? null : Number(f.waterCapacityLiters),
-    };
+    const body = truckBody(f);
+    if (formErrors(createTruckSchema, body)) return; // shown under the fields
     try {
       if (f.id) await api(`/trucks/${f.id}`, { method: "PATCH", body });
       else await api(`/stations/${selectedId}/trucks`, { method: "POST", body });
@@ -132,6 +147,7 @@ function StationsPage() {
 
   const openStationForm = (s) => {
     setFormError("");
+    setTried(false);
     setStationForm(
       s
         ? { ...s, cityId: s.cityId ?? "", address: s.address ?? "", contactNumber: s.contactNumber ?? "" }
@@ -141,6 +157,7 @@ function StationsPage() {
 
   const openTruckForm = (t) => {
     setFormError("");
+    setTried(false);
     setTruckForm(t ? { ...EMPTY_TRUCK, ...t, plateNumber: t.plateNumber ?? "", waterCapacityLiters: t.waterCapacityLiters ?? "" } : EMPTY_TRUCK);
   };
 
@@ -363,10 +380,10 @@ function StationsPage() {
                     <AlertDescription>{formError}</AlertDescription>
                   </Alert>
                 )}
-                <Field label='Station name'>
+                <Field label='Station name' error={stationErrors?.name}>
                   <Input value={stationForm.name} onChange={(e) => setStationForm({ ...stationForm, name: e.target.value })} />
                 </Field>
-                <Field label='City'>
+                <Field label='City' error={stationErrors?.cityId}>
                   <SimpleSelect
                     value={stationForm.cityId}
                     onChange={(cityId) => setStationForm({ ...stationForm, cityId })}
@@ -375,13 +392,13 @@ function StationsPage() {
                       .map((c) => ({ value: c.id, label: c.name }))}
                   />
                 </Field>
-                <Field label='Address'>
+                <Field label='Address' error={stationErrors?.address}>
                   <Input value={stationForm.address} onChange={(e) => setStationForm({ ...stationForm, address: e.target.value })} />
                 </Field>
-                <Field label='Contact number'>
+                <Field label='Contact number' error={stationErrors?.contactNumber}>
                   <Input value={stationForm.contactNumber} onChange={(e) => setStationForm({ ...stationForm, contactNumber: e.target.value })} />
                 </Field>
-                <p className='font-mono text-xs text-muted-foreground'>
+                <p className={`font-mono text-xs ${stationErrors?.lat ? "text-destructive" : "text-muted-foreground"}`}>
                   {stationForm.lat ? `${stationForm.lat.toFixed(6)}, ${stationForm.lng.toFixed(6)}` : "Click the map to place the station"}
                 </p>
               </div>
@@ -415,20 +432,20 @@ function StationsPage() {
                   <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               )}
-              <Field label='Call sign'>
+              <Field label='Call sign' error={truckErrors?.callSign}>
                 <Input value={truckForm.callSign} onChange={(e) => setTruckForm({ ...truckForm, callSign: e.target.value })} />
               </Field>
               <div className='grid grid-cols-2 gap-4'>
-                <Field label='Type'>
+                <Field label='Type' error={truckErrors?.type}>
                   <SimpleSelect value={truckForm.type} onChange={(type) => setTruckForm({ ...truckForm, type })} options={truckTypeOptions(truckForm.type)} />
                 </Field>
-                <Field label='Owner'>
+                <Field label='Owner' error={truckErrors?.ownership}>
                   <SimpleSelect value={truckForm.ownership} onChange={(ownership) => setTruckForm({ ...truckForm, ownership })} options={toOptions(OWNERSHIP)} />
                 </Field>
-                <Field label='Plate number'>
+                <Field label='Plate number' error={truckErrors?.plateNumber}>
                   <Input value={truckForm.plateNumber} onChange={(e) => setTruckForm({ ...truckForm, plateNumber: e.target.value })} />
                 </Field>
-                <Field label='Water (liters)'>
+                <Field label='Water (liters)' error={truckErrors?.waterCapacityLiters}>
                   <Input
                     type='number'
                     min={0}

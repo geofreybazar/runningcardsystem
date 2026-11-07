@@ -1,17 +1,13 @@
 import { BadRequestException, Body, Controller, Get, Put } from '@nestjs/common';
 import { CurrentUser } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
-import { z } from 'zod';
+import type { z } from 'zod';
+import { settingsSchema } from '../shared/validation.js';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 
-const settingsSchema = z.strictObject({
-  stationsPerAlarm: z.int().min(1).max(20),
-  maxDistanceKm: z.number().min(1).max(200),
-  alarmLevels: z.array(z.string().min(1).max(40)).min(1).max(30),
-});
 
 @Controller('settings')
 export class SettingsController {

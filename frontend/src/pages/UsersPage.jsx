@@ -17,7 +17,9 @@ import ConfirmDialog from "@/components/ConfirmDialog.jsx";
 import { api } from "@/api/client.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
 import { OFFICE_LABELS, OFFICE_LEVELS, districtName, officeName } from "@/auth/permissions.js";
-import { RANKS, displayName } from "@/lib/person.js";
+import { displayName } from "@/lib/person.js";
+import { formErrors } from "@/lib/validation.js";
+import { RANKS, userFormSchema } from "@shared/validation";
 
 // Mirrors the backend rule: Admin (regional IT) manages every account except Super Admin.
 const manageableRoles = (role) => Object.keys(ROLE_LABELS).filter((r) => role === "SUPER_ADMIN" || r !== "SUPER_ADMIN");
@@ -65,6 +67,22 @@ function Actions({ onEdit, onReset, onRemove }) {
   );
 }
 
+/** The request body for the form; the account number is sent on create, and on edit only when changed (older ones may predate the format). */
+function userBody(form) {
+  const accountNumber = form.accountNumber.trim().toUpperCase();
+  return {
+    rank: form.role === "SUPER_ADMIN" ? null : form.rank || null,
+    firstName: form.firstName.trim(),
+    middleName: form.middleName?.trim() || null,
+    lastName: form.lastName.trim(),
+    role: form.role,
+    officeLevel: form.officeLevel,
+    districtId: form.officeLevel === "DISTRICT" ? form.districtId || null : null,
+    cityId: form.officeLevel === "CITY" ? form.cityId || null : null,
+    ...((!form.id || accountNumber !== form.originalAccountNumber) && { accountNumber }),
+  };
+}
+
 function UsersPage() {
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
@@ -73,6 +91,7 @@ function UsersPage() {
   const [formError, setFormError] = useState("");
   const [password, setPassword] = useState(null); // { user, temporaryPassword }
   const [confirmRemove, setConfirmRemove] = useState(null);
+  const [tried, setTried] = useState(false);
   const roles = manageableRoles(me.role);
 
   const load = useCallback(() => api("/users").then(setUsers).catch((e) => toast.error(e.message)), []);
@@ -91,27 +110,20 @@ function UsersPage() {
     }
   };
 
+  // After the first Save attempt, errors follow the form as it is edited.
+  const errors = tried && form ? formErrors(userFormSchema, userBody(form)) : null;
+
   const save = async () => {
     setFormError("");
-    const body = {
-      rank: form.role === "SUPER_ADMIN" ? null : form.rank || null,
-      firstName: form.firstName.trim(),
-      middleName: form.middleName?.trim() || null,
-      lastName: form.lastName.trim(),
-      role: form.role,
-      officeLevel: form.officeLevel,
-      districtId: form.officeLevel === "DISTRICT" ? form.districtId || null : null,
-      cityId: form.officeLevel === "CITY" ? form.cityId || null : null,
-    };
+    setTried(true);
+    const body = userBody(form);
+    if (formErrors(userFormSchema, body)) return; // shown under the fields
     try {
-      const accountNumber = form.accountNumber.trim().toUpperCase();
       if (form.id) {
-        // Sent only when changed: older accounts (e.g. the seeded Super Admin) may not match the format.
-        if (accountNumber !== form.originalAccountNumber) body.accountNumber = accountNumber;
         await api(`/users/${form.id}`, { method: "PATCH", body });
         toast.success("User updated");
       } else {
-        const res = await api("/users", { method: "POST", body: { ...body, accountNumber } });
+        const res = await api("/users", { method: "POST", body });
         setPassword({ user: res.user, temporaryPassword: res.temporaryPassword });
       }
       setForm(null);
@@ -130,6 +142,7 @@ function UsersPage() {
   const setActive = (u, isActive) => run(() => api(`/users/${u.id}`, { method: "PATCH", body: { isActive } }), `${displayName(u)} ${isActive ? "enabled" : "disabled"}`);
   const edit = (u) => {
     setFormError("");
+    setTried(false);
     setForm({ ...u, rank: u.rank ?? "", middleName: u.middleName ?? "", originalAccountNumber: u.accountNumber, districtId: u.districtId ?? "", cityId: u.cityId ?? "" });
   };
   const editable = (u) => roles.includes(u.role) && u.id !== me.id;
@@ -142,6 +155,7 @@ function UsersPage() {
         <Button
           onClick={() => {
             setFormError("");
+            setTried(false);
             setForm(EMPTY);
           }}
         >
@@ -220,20 +234,20 @@ function UsersPage() {
                 </Alert>
               )}
               {form.role !== "SUPER_ADMIN" && (
-                <Field label='Rank' className='sm:col-span-2'>
+                <Field label='Rank' className='sm:col-span-2' error={errors?.rank}>
                   <SimpleSelect value={form.rank} placeholder='Select rank…' onChange={(rank) => setForm({ ...form, rank })} options={RANKS.map((r) => ({ value: r, label: r }))} />
                 </Field>
               )}
-              <Field label='First name'>
+              <Field label='First name' error={errors?.firstName}>
                 <Input value={form.firstName} autoComplete='off' onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
               </Field>
-              <Field label='Middle name' hint='Optional'>
+              <Field label='Middle name' hint='Optional' error={errors?.middleName}>
                 <Input value={form.middleName} autoComplete='off' onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
               </Field>
-              <Field label='Last name'>
+              <Field label='Last name' error={errors?.lastName}>
                 <Input value={form.lastName} autoComplete='off' onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
               </Field>
-              <Field label='Account number' hint='Their sign-in name, e.g. B13084'>
+              <Field label='Account number' hint='Their sign-in name, e.g. B13084' error={errors?.accountNumber}>
                 <Input
                   value={form.accountNumber}
                   autoComplete='off'
@@ -243,14 +257,14 @@ function UsersPage() {
                   onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
                 />
               </Field>
-              <Field label='Role'>
+              <Field label='Role' error={errors?.role}>
                 <SimpleSelect
                   value={form.role}
                   onChange={(role) => setForm(normalizeOffice({ ...form, role }, districts))}
                   options={roles.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
                 />
               </Field>
-              <Field label='Office'>
+              <Field label='Office' error={errors?.officeLevel}>
                 <SimpleSelect
                   value={form.officeLevel}
                   disabled={OFFICE_LEVELS[form.role].length === 1}
@@ -260,7 +274,7 @@ function UsersPage() {
               </Field>
               {form.officeLevel !== "REGIONAL" && (
                 <div className='grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2'>
-                  <Field label='Fire district'>
+                  <Field label='Fire district' error={errors?.districtId}>
                     <SimpleSelect
                       value={form.districtId}
                       onChange={(districtId) => setForm(normalizeOffice({ ...form, districtId }, districts))}
@@ -270,7 +284,7 @@ function UsersPage() {
                     />
                   </Field>
                   {form.officeLevel === "CITY" && (
-                    <Field label='City'>
+                    <Field label='City' error={errors?.cityId}>
                       <SimpleSelect
                         value={form.cityId}
                         disabled={!form.districtId}

@@ -28,7 +28,9 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      # Repo root, so the image can include the validation rules shared with the API (backend/src/shared).
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         VITE_GOOGLE_API: ${VITE_GOOGLE_API}
     depends_on:
