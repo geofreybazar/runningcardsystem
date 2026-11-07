@@ -1,13 +1,13 @@
 # API conventions
 
-REST/JSON API served by the NestJS backend: 33 routes in 9 controllers, plus the Swagger UI.
+REST/JSON API served by the NestJS backend: 33 routes in 9 controllers, plus the Swagger UI in development.
 
 ## Base URL and transport
 
 - Every route is under the global prefix **`/api`** (`backend/src/app.setup.ts`).
 - In development the frontend calls `/api/*` on its own origin and Vite proxies it. In Docker, nginx proxies `/api/` to the backend.
 - CORS allows only `FRONTEND_ORIGIN`, with credentials.
-- Swagger UI is mounted at **`/api/docs`** (`backend/src/main.ts`). No `@ApiProperty`/`@ApiTags` decorators or Swagger CLI plugin are used, so the generated document lists routes but **not** request/response schemas. This page set is the reference.
+- Swagger UI is mounted at **`/api/docs`** (`backend/src/main.ts`) only when `SWAGGER=true`, or when `SWAGGER` is unset and `NODE_ENV` is not `production`. It bypasses Nest guards, so it is off in production by default. No `@ApiProperty`/`@ApiTags` decorators or Swagger CLI plugin are used, so the generated document lists routes but **not** request/response schemas. This page set is the reference.
 
 ## Authentication
 
@@ -91,4 +91,4 @@ Exact 401/403 bodies from `@nestjs/authentication` / `@nestjs/authorization` are
 | GET | `/api/settings` | `operate` | [settings](settings.md) |
 | PUT | `/api/settings` | `manageSettings` | [settings](settings.md) |
 | GET | `/api/audit-logs` | `viewAuditLog` | [audit](audit.md) |
-| GET | `/api/docs` | Swagger UI (see [gaps](../security/gaps.md)) | — |
+| GET | `/api/docs` | Swagger UI (development only, see above) | — |

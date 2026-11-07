@@ -36,8 +36,8 @@ export class IncidentsController {
 
   @Can(AccessPolicy, 'dispatch')
   @Get(':id/next-alarm')
-  nextAlarm(@Param('id', ParseUUIDPipe) id: string) {
-    return this.incidents.nextAlarm(id);
+  nextAlarm(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.incidents.previewNextAlarm(user, id);
   }
 
   @Can(AccessPolicy, 'dispatch')

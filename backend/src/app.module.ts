@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthenticationModule } from '@nestjs/authentication';
 import { AuthorizationModule } from '@nestjs/authorization';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { GeoModule } from './geo/geo.module.js';
 import { AuditModule } from './audit/audit.module.js';
@@ -26,7 +27,8 @@ import { NotificationsModule } from './notifications/notifications.module.js';
       }),
     }),
     AuthorizationModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    // Every route, per client IP. Generous: one radio room may share an IP and pages reload on live events.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: Number(process.env.GLOBAL_RATE_LIMIT ?? 600) }]),
     PrismaModule,
     GeoModule,
     AuditModule,
@@ -39,5 +41,6 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     SettingsModule,
     NotificationsModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

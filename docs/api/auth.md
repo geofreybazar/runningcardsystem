@@ -19,7 +19,7 @@ Controller `AuthController` (`backend/src/auth/auth.controller.ts`), service `Au
 - **Access:** Public. `ThrottlerGuard`, limit `LOGIN_RATE_LIMIT` per 60 s (default 10), keyed by client IP.
 - **Body:** `{ "accountNumber": string (1–100, trimmed and uppercased), "password": string (1–200) }`. The account number is the sign-in name; there is no username. The format is not checked here (the seeded Super Admin may not follow it). The old `username` field is rejected with 400.
 - **200:** `{ "accessToken": string, "expiresIn": number, "user": AuthUser }` and sets the `rcs_rt` cookie.
-- **Errors:** 400 validation; 401 `Invalid account number or password` (unknown user, wrong password, disabled or removed account all give the same message); 429 rate limit.
+- **Errors:** 400 validation; 401 `Invalid account number or password` (unknown user, wrong password, disabled or removed account all give the same message); 429 rate limit (`LOGIN_RATE_LIMIT` per client IP), or 429 `Too many failed sign-ins for this account. Try again in N minutes.` after 5 wrong passwords for that account (5-minute pause, any IP).
 - **Side effects:** rehashes the password if the hasher's parameters changed.
 
 ## POST /api/auth/refresh

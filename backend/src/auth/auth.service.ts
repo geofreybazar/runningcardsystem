@@ -3,6 +3,7 @@ import { PasswordHasher, TokenService } from '@nestjs/authentication';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthUser } from './auth-user.js';
 import { UserLoader } from './user-loader.service.js';
+import { LoginAttempts } from './login-attempts.js';
 
 const subOf = (accessToken: string): string =>
   JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString()).sub;
@@ -14,13 +15,19 @@ export class AuthService {
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
     private readonly users: UserLoader,
+    private readonly attempts: LoginAttempts,
   ) {}
 
   async login(accountNumber: string, password: string) {
+    this.attempts.assertAllowed(accountNumber); // paused: don't even check the password
     const found = await this.prisma.user.findFirst({ where: { accountNumber, deletedAt: null } });
     // verify() checks a dummy hash when there is no account, so timing doesn't reveal account numbers.
     const valid = await this.hasher.verify(password, found?.passwordHash);
-    if (!found || !valid || !found.isActive) throw new UnauthorizedException('Invalid account number or password');
+    if (!found || !valid || !found.isActive) {
+      this.attempts.failed(accountNumber);
+      throw new UnauthorizedException('Invalid account number or password');
+    }
+    this.attempts.succeeded(accountNumber);
     if (this.hasher.needsRehash(found.passwordHash)) {
       await this.prisma.user.update({ where: { id: found.id }, data: { passwordHash: await this.hasher.hash(password) } });
     }

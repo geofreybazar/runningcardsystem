@@ -76,6 +76,7 @@ describe('incidents: dispatch, raise alarm, close', () => {
 
     // Next alarm skips stations already on the incident.
     const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(manilaRadio).expect(200)).body;
+    await http.get(`/api/incidents/${incident.id}/next-alarm`).set(caloocanRadio).expect(403); // only the fire city's dispatchers preview it
     expect(next.alarmLevel).toBe('2nd Alarm');
     const onIncident = incident.units.map((u: Unit) => u.stationId);
     expect(next.stations.some((s: { id: number }) => onIncident.includes(s.id))).toBe(false);

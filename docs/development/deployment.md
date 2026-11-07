@@ -21,6 +21,7 @@ The compose file contains a development-style Postgres password; change it for r
 
 - Multi-stage on `node:24-slim`: the build stage runs `npm ci`, `prisma generate`, `npm run build`.
 - The runtime stage runs `npm ci` (dev dependencies included), copies `dist/`, `prisma/` and `prisma.config.ts`, and sets `NODE_ENV=production`.
+- `docker-compose.yml` sets `SWAGGER=false` and `TRUST_PROXY=1` (nginx is one hop in front). It does not set `NODE_ENV=production`, which would also make the refresh cookie `Secure` (needs HTTPS beyond localhost; see `COOKIE_SECURE`).
 - Start command: `npx prisma migrate deploy && npx prisma db seed && node dist/main.js`. Migrations and the re-runnable seed run on **every start**.
 - **Known defect (from reading the files):** the runtime stage copies `dist/`, `prisma/` and `prisma.config.ts` but **not `src/`**. `prisma db seed` runs `tsx prisma/seed.ts`, which imports `../src/generated/prisma/client.js` and `../src/geo/city-locator.js`. Those paths do not exist in the runtime image (and `src/generated` is also in `.dockerignore`), so the seed should fail. Because the start command chains with `&&`, the API would not start. Fix by copying the needed sources into the runtime image or running the seed from the build stage. Not yet confirmed by running the image.
 

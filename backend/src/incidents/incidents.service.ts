@@ -126,6 +126,12 @@ export class IncidentsService {
     return this.get(user, id);
   }
 
+  /** The preview for the dispatchers of the incident's city only, like raise itself. */
+  async previewNextAlarm(user: AuthUser, id: string) {
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, (await this.openIncident(id)).cityId);
+    return this.nextAlarm(id);
+  }
+
   /** What "Raise alarm" would send now: the nearest stations not yet on this incident. */
   async nextAlarm(id: string) {
     const incident = await this.openIncident(id);

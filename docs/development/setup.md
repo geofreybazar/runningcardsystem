@@ -21,7 +21,10 @@ Names only; see the `.env.example` files for placeholders. Real `.env` files are
 | `PORT` | API port (default 3000) |
 | `SUPERADMIN_ACCOUNT_NUMBER`, `SUPERADMIN_PASSWORD` | first Super Admin (sign-in name and password), created by the seed. Renamed from `SUPERADMIN_USERNAME`: rename it in an existing `backend/.env` |
 | `SEED_PLACEHOLDER_TRUCKS` | `true` adds one placeholder engine per seeded station |
-| `LOGIN_RATE_LIMIT` | login attempts per IP per minute (default 10) |
+| `LOGIN_RATE_LIMIT` | sign-in attempts per client IP per minute (default 30) |
+| `GLOBAL_RATE_LIMIT` | requests per client IP per minute on every route (default 600) |
+| `TRUST_PROXY` | set only behind a reverse proxy: hop count (`1`) or proxy addresses; rate limits then see the real client IP |
+| `SWAGGER` | `true`/`false` for the `/api/docs` UI; default on unless `NODE_ENV=production` |
 | `COOKIE_SECURE` | optional override of the refresh cookie `Secure` flag |
 
 **`frontend/.env`**
