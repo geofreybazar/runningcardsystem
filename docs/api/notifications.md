@@ -24,8 +24,9 @@ One notification per incident step (dispatch, raise alarm, close), addressed to 
 `units` lists trucks moved in that step (sent for `DISPATCHED`/`ALARM_RAISED`, released for `INCIDENT_CLOSED`), after the per-account filter; it is empty when none of the account's trucks moved (e.g. a city that is only on the running card). `unread` is present on `GET /notifications` only.
 
 ## GET /api/notifications
-- **Query:** `take` (1–200, default 50).
-- **200:** `Notification[]` visible to me, the newest `take`, unread first, then newest first.
+- **Query:** `take` (1–100, default 20), `before` (optional notification id: return only older ones).
+- **200:** `Notification[]` visible to me, newest first (by id), at most `take`. A page shorter than `take` is the last one.
+- **Paging** is by cursor: pass the `id` of the last notification you have as `before` for the next page. Ids only grow, so notifications arriving meanwhile don't shift pages (no duplicates or gaps). The Notifications page loads pages of 20 as you scroll (with a "Load older notifications" button as fallback) and merges live notifications in at the top.
 
 ## GET /api/notifications/unread-count
 - **200:** `{ "count": number }`.

@@ -7,7 +7,11 @@ import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { NotificationsService } from './notifications.service.js';
 
-const listQuery = z.strictObject({ take: z.coerce.number().int().min(1).max(200).optional() });
+// Cursor paging: `before` is the id of the last notification already shown (ids only grow, so live inserts don't shift pages).
+const listQuery = z.strictObject({
+  take: z.coerce.number().int().min(1).max(100).optional(),
+  before: z.coerce.number().int().min(1).optional(),
+});
 // Posted without a body to mark everything read.
 const seenBody = z.strictObject({ incidentId: z.uuid().optional() }).default({});
 
@@ -16,10 +20,10 @@ const seenBody = z.strictObject({ incidentId: z.uuid().optional() }).default({})
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
-  /** Notifications naming a city in my office's area (Regional: all), unread first. */
+  /** Notifications naming a city in my office's area (Regional: all), newest first, one page at a time. */
   @Get()
   list(@CurrentUser() user: AuthUser, @Query({ schema: listQuery }) query: z.infer<typeof listQuery>) {
-    return this.notifications.list(user, query.take);
+    return this.notifications.list(user, query.take, query.before);
   }
 
   @Get('unread-count')

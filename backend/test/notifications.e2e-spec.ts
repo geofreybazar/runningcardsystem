@@ -32,7 +32,7 @@ describe('notifications to involved cities, their districts and the Regional off
   afterAll(() => app.close());
 
   const notes = async (auth: Auth, incidentId: string): Promise<Note[]> =>
-    (await http.get('/api/notifications').set(auth).expect(200)).body.filter((n: Note) => n.incidentId === incidentId);
+    (await http.get('/api/notifications?take=100').set(auth).expect(200)).body.filter((n: Note) => n.incidentId === incidentId);
   const callSigns = (units: Unit[], city?: number, level?: string) =>
     units.filter((u) => (!city || u.station.cityId === city) && (!level || u.alarmLevel === level)).map((u) => u.truck.callSign).sort();
   const signs = (n: Note) => n.units.map((u) => u.callSign).sort();
@@ -117,6 +117,23 @@ describe('notifications to involved cities, their districts and the Regional off
     ]);
     expect(detail.timeline.every((t: { by: { accountNumber: string }; at: string }) => t.by.accountNumber === 'N6002' && t.at)).toBe(true);
     expect(detail.units[0].station.city.name).toBeTruthy();
+  });
+
+  it('pages newest first with a cursor, without overlaps', async () => {
+    const page = async (query: string) => (await http.get(`/api/notifications?${query}`).set(regionalRadio).expect(200)).body as { id: number }[];
+    const all = (await page('take=100')).map((n) => n.id);
+    expect(all.length).toBeGreaterThanOrEqual(5); // earlier tests created at least this many
+    expect(all).toEqual([...all].sort((a, b) => b - a)); // newest first
+
+    const first = (await page('take=2')).map((n) => n.id);
+    const second = (await page(`take=2&before=${first[1]}`)).map((n) => n.id);
+    expect(first).toEqual(all.slice(0, 2));
+    expect(second).toEqual(all.slice(2, 4)); // continues exactly where the first page ended
+    expect((await page(`take=100&before=${all.at(-1)}`)).length).toBe(0); // nothing older than the oldest
+    expect((await page('')).length).toBeLessThanOrEqual(20); // default page size
+
+    await http.get('/api/notifications?before=0').set(regionalRadio).expect(400);
+    await http.get('/api/notifications?take=500').set(regionalRadio).expect(400);
   });
 
   it('streams new notifications live (SSE) to the offices they are for', async () => {

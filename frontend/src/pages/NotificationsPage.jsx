@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { BellOff, ChevronRight, CircleCheck, Siren, TrendingUp } from "lucide-react";
+import { BellOff, ChevronRight, CircleCheck, LoaderCircle, Siren, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Page from "@/components/Page.jsx";
 import { useNotifications } from "@/components/Notifications.jsx";
@@ -9,6 +10,8 @@ import { AlarmBadge, useAlarmIndex } from "@/components/Alarm.jsx";
 import { NOTIFICATION_TITLES } from "@/lib/notifications.js";
 import { api } from "@/api/client.js";
 import { displayName } from "@/lib/person.js";
+
+const PAGE = 20;
 
 const fmt = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 const ICONS = { DISPATCHED: Siren, ALARM_RAISED: TrendingUp, INCIDENT_CLOSED: CircleCheck };
@@ -35,16 +38,49 @@ function NotificationsPage() {
   const alarmIndex = useAlarmIndex();
   const [incidents, setIncidents] = useState(null);
   const [notes, setNotes] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loaded = useRef(false);
+  const sentinel = useRef(null);
 
+  // First page on open; on each live notification, the newest page is merged in on top so the scroll position stays.
   useEffect(() => {
-    Promise.all([api("/incidents?status=OPEN"), api("/notifications")])
-      .then(([i, n]) => {
+    Promise.all([api("/incidents?status=OPEN"), api(`/notifications?take=${PAGE}`)])
+      .then(([i, page]) => {
         setIncidents(i);
-        setNotes(n);
+        if (!loaded.current) {
+          loaded.current = true;
+          setHasMore(page.length === PAGE);
+        }
+        setNotes((prev) => (prev ? [...page.filter((n) => !prev.some((p) => p.id === n.id)), ...prev] : page));
         markSeen(); // opening the page reads them; the unread dots stay until the next visit
       })
       .catch((e) => toast.error(e.message));
   }, [version, markSeen]);
+
+  // Older pages by cursor: everything before the last notification shown.
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !notes?.length) return;
+    setLoadingMore(true);
+    try {
+      const page = await api(`/notifications?take=${PAGE}&before=${notes.at(-1).id}`);
+      setNotes((prev) => [...prev, ...page.filter((n) => !prev.some((p) => p.id === n.id))]);
+      setHasMore(page.length === PAGE);
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, notes]);
+
+  // Infinite scroll: load the next page as the button at the end nears the viewport (the button still works by hand).
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && loadMore(), { rootMargin: "400px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   return (
     <Page title='Notifications' description='Incidents your area is involved in (fire, trucks sent, or on the running card), and every dispatch, alarm and close.'>
@@ -110,6 +146,13 @@ function NotificationsPage() {
               </Card>
             );
           })}
+          {hasMore && (
+            <Button ref={sentinel} variant='outline' className='mt-1' onClick={loadMore} disabled={loadingMore}>
+              {loadingMore && <LoaderCircle className='animate-spin' />}
+              {loadingMore ? "Loading" : "Load older notifications"}
+            </Button>
+          )}
+          {!hasMore && notes?.length > PAGE && <p className='py-2 text-center text-xs text-muted-foreground'>You have reached the oldest notification.</p>}
         </Section>
       </div>
     </Page>
