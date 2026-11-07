@@ -24,12 +24,12 @@ describe('incidents: dispatch, raise alarm, close', () => {
     http = request(app.getHttpServer());
     superAdmin = await superAdminAuth(app);
     const caloocan = await cityId(app, superAdmin, 'Caloocan');
-    manilaRadio = await makeUser(app, superAdmin, 'inc-radio-fd1', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 1 });
-    caloocanRadio = await makeUser(app, superAdmin, 'inc-radio-cal', 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: caloocan });
-    fd2Radio = await makeUser(app, superAdmin, 'inc-radio-fd2', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 2 });
-    regionalRadio = await makeUser(app, superAdmin, 'inc-radio-reg', 'RADIO_OPERATOR');
-    manilaOps = await makeUser(app, superAdmin, 'inc-ops-fd1', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 1 });
-    admin = await makeUser(app, superAdmin, 'inc-admin', 'ADMIN');
+    manilaRadio = await makeUser(app, superAdmin, 'I2001', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 1 });
+    caloocanRadio = await makeUser(app, superAdmin, 'I2002', 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: caloocan });
+    fd2Radio = await makeUser(app, superAdmin, 'I2003', 'RADIO_OPERATOR', { officeLevel: 'DISTRICT', districtId: 2 });
+    regionalRadio = await makeUser(app, superAdmin, 'I2004', 'RADIO_OPERATOR');
+    manilaOps = await makeUser(app, superAdmin, 'I2005', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 1 });
+    admin = await makeUser(app, superAdmin, 'I2006', 'ADMIN');
   });
   afterAll(() => app.close());
 

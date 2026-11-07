@@ -1,18 +1,17 @@
 import { BadRequestException, Body, Controller, Get, Put } from '@nestjs/common';
 import { CurrentUser } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, IsNumber, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { z } from 'zod';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 
-class SettingsDto {
-  @IsInt() @Min(1) @Max(20) stationsPerAlarm: number;
-  @IsNumber() @Min(1) @Max(200) maxDistanceKm: number;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(30) @IsString({ each: true }) @MinLength(1, { each: true }) @MaxLength(40, { each: true })
-  alarmLevels: string[];
-}
+const settingsSchema = z.strictObject({
+  stationsPerAlarm: z.int().min(1).max(20),
+  maxDistanceKm: z.number().min(1).max(200),
+  alarmLevels: z.array(z.string().min(1).max(40)).min(1).max(30),
+});
 
 @Controller('settings')
 export class SettingsController {
@@ -29,7 +28,7 @@ export class SettingsController {
 
   @Put()
   @Can(AccessPolicy, 'manageSettings')
-  async update(@CurrentUser() user: AuthUser, @Body() dto: SettingsDto) {
+  async update(@CurrentUser() user: AuthUser, @Body({ schema: settingsSchema }) dto: z.infer<typeof settingsSchema>) {
     const alarmLevels = dto.alarmLevels.map((l) => l.trim());
     if (new Set(alarmLevels).size !== alarmLevels.length) throw new BadRequestException('Alarm level names must be unique');
     // Open incidents refer to alarm levels by position, so the list can't shrink below the highest one in use.

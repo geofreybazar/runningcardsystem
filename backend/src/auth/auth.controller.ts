@@ -4,7 +4,7 @@ import { Can } from '@nestjs/authorization';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
-import { ChangePasswordDto, LoginDto } from './auth.dto.js';
+import { changePasswordSchema, loginSchema, type ChangePasswordDto, type LoginDto } from './auth.dto.js';
 import type { AuthUser } from './auth-user.js';
 
 const COOKIE = 'rcs_rt';
@@ -22,8 +22,8 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 10), ttl: 60_000 } }) // per IP
-  async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
-    return this.respond(res, await this.auth.login(body.username, body.password));
+  async login(@Body({ schema: loginSchema }) body: LoginDto, @Res({ passthrough: true }) res: Response) {
+    return this.respond(res, await this.auth.login(body.accountNumber, body.password));
   }
 
   @Post('refresh')
@@ -59,7 +59,7 @@ export class AuthController {
   @HttpCode(200)
   async changePassword(
     @CurrentUser() user: AuthUser,
-    @Body() body: ChangePasswordDto,
+    @Body({ schema: changePasswordSchema }) body: ChangePasswordDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.respond(res, await this.auth.changePassword(user, body.currentPassword, body.newPassword));

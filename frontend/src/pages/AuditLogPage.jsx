@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Page from "@/components/Page.jsx";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
+import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
 
 const PAGE = 100;
@@ -59,7 +60,7 @@ function AuditLogPage() {
               {rows.map((r) => (
                 <TableRow key={r.id} className='align-top'>
                   <TableCell className='whitespace-nowrap text-muted-foreground'>{when(r.createdAt)}</TableCell>
-                  <TableCell className='whitespace-nowrap'>{r.user.fullName}</TableCell>
+                  <TableCell className='whitespace-nowrap'>{displayName(r.user)}</TableCell>
                   <TableCell>
                     <Badge variant='outline'>{r.action}</Badge>
                   </TableCell>

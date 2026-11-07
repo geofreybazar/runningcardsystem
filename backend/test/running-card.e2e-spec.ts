@@ -15,8 +15,8 @@ describe('running card and barangay pins', () => {
     app = await createApp();
     http = request(app.getHttpServer());
     superAdmin = await superAdminAuth(app);
-    radio = await makeUser(app, superAdmin, 'rc-radio', 'RADIO_OPERATOR');
-    ops2 = await makeUser(app, superAdmin, 'rc-ops2', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
+    radio = await makeUser(app, superAdmin, 'R3001', 'RADIO_OPERATOR');
+    ops2 = await makeUser(app, superAdmin, 'R3002', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
   });
   afterAll(() => app.close());
 
@@ -83,7 +83,7 @@ describe('settings', () => {
   afterAll(() => app.close());
 
   it('only super admin changes the running card rules, and the card follows them', async () => {
-    const admin = await makeUser(app, superAdmin, 'set-admin', 'ADMIN');
+    const admin = await makeUser(app, superAdmin, 'R3003', 'ADMIN');
     const original = (await http.get('/api/settings').set(admin).expect(200)).body;
     await http.put('/api/settings').set(admin).send({ ...original, id: undefined }).expect(403);
 

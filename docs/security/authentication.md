@@ -25,7 +25,7 @@ sequenceDiagram
   participant S as AuthService
   participant T as TokenService (library)
   participant DB as PostgreSQL
-  UI->>A: POST /api/auth/login {username,password}
+  UI->>A: POST /api/auth/login {accountNumber,password}
   A->>S: login()
   S->>DB: find user (deletedAt null)
   S->>S: PasswordHasher.verify (dummy hash if no user)
@@ -64,7 +64,7 @@ sequenceDiagram
 | Timing | `verify()` checks against a dummy hash when the user does not exist |
 | Policy | new password 8–200 chars and different from the current one; no complexity rules |
 | Temporary passwords | `randomBytes(9).toString('base64url')` (12 chars), returned once on create/reset; `mustChangePassword = true` |
-| First Super Admin | from `SUPERADMIN_USERNAME` / `SUPERADMIN_PASSWORD` at seed time, must change on first sign-in |
+| First Super Admin | from `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD` at seed time, must change on first sign-in |
 
 ## Forced password change
 

@@ -1,45 +1,40 @@
-import { IsBoolean, IsEnum, IsInt, IsLatitude, IsLongitude, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
-import { Type } from 'class-transformer';
+import { z } from 'zod';
 import { TruckOwnership, TruckStatus, TruckType } from '../generated/prisma/enums.js';
 
-export class StationQuery {
-  @IsOptional() @Type(() => Number) @IsInt() districtId?: number;
-  @IsOptional() @Type(() => Number) @IsInt() cityId?: number;
-}
+export const lat = z.number().min(-90).max(90);
+export const lng = z.number().min(-180).max(180);
 
-export class CreateStationDto {
-  @IsString() @MinLength(1) @MaxLength(150) name: string;
-  @IsLatitude() lat: number;
-  @IsLongitude() lng: number;
+export const stationQuerySchema = z.strictObject({
+  districtId: z.coerce.number().int().optional(),
+  cityId: z.coerce.number().int().optional(),
+});
+
+const stationFields = {
+  name: z.string().min(1).max(150),
+  lat,
+  lng,
   /** The fire district follows from the city. */
-  @IsInt() cityId: number;
-  @IsOptional() @IsString() @MaxLength(250) address?: string | null;
-  @IsOptional() @IsString() @MaxLength(50) contactNumber?: string | null;
-}
+  cityId: z.int(),
+  address: z.string().max(250).nullable().optional(),
+  contactNumber: z.string().max(50).nullable().optional(),
+};
 
-export class UpdateStationDto {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(150) name?: string;
-  @IsOptional() @IsLatitude() lat?: number;
-  @IsOptional() @IsLongitude() lng?: number;
-  @IsOptional() @IsInt() cityId?: number;
-  @IsOptional() @IsString() @MaxLength(250) address?: string | null;
-  @IsOptional() @IsString() @MaxLength(50) contactNumber?: string | null;
-  @IsOptional() @IsBoolean() isActive?: boolean;
-}
+export const createStationSchema = z.strictObject(stationFields);
+export const updateStationSchema = z.strictObject({ ...stationFields, isActive: z.boolean() }).partial();
 
-export class CreateTruckDto {
-  @IsString() @MinLength(1) @MaxLength(80) callSign: string;
-  @IsOptional() @IsString() @MaxLength(20) plateNumber?: string | null;
-  @IsEnum(TruckType) type: TruckType;
-  @IsOptional() @IsInt() @Min(0) waterCapacityLiters?: number | null;
-  @IsEnum(TruckOwnership) ownership: TruckOwnership;
-}
+const truckFields = {
+  callSign: z.string().min(1).max(80),
+  plateNumber: z.string().max(20).nullable().optional(),
+  type: z.enum(TruckType),
+  waterCapacityLiters: z.int().min(0).nullable().optional(),
+  ownership: z.enum(TruckOwnership),
+};
 
-export class UpdateTruckDto {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(80) callSign?: string;
-  @IsOptional() @IsString() @MaxLength(20) plateNumber?: string | null;
-  @IsOptional() @IsEnum(TruckType) type?: TruckType;
-  @IsOptional() @IsInt() @Min(0) waterCapacityLiters?: number | null;
-  @IsOptional() @IsEnum(TruckOwnership) ownership?: TruckOwnership;
-  @IsOptional() @IsEnum(TruckStatus) status?: TruckStatus;
-}
+export const createTruckSchema = z.strictObject(truckFields);
+export const updateTruckSchema = z.strictObject({ ...truckFields, status: z.enum(TruckStatus) }).partial();
+
+export type StationQuery = z.infer<typeof stationQuerySchema>;
+export type CreateStationDto = z.infer<typeof createStationSchema>;
+export type UpdateStationDto = z.infer<typeof updateStationSchema>;
+export type CreateTruckDto = z.infer<typeof createTruckSchema>;
+export type UpdateTruckDto = z.infer<typeof updateTruckSchema>;

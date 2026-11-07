@@ -67,7 +67,7 @@ Solid arrows are `imports`; dotted arrows are injections of providers from `@Glo
 
 - **Authentication.** The global guard from `@nestjs/authentication` runs `JwtAuth` (a `JwtBearerProvider`) on every route not marked `@Public()`. See [authentication](../security/authentication.md).
 - **Authorization.** The global `AuthorizationGuard` denies by default. Each handler declares `@Can(AccessPolicy, '<ability>')` or `@Can.Anyone()`. See [authorization](../security/authorization.md).
-- **Validation.** Global `ValidationPipe` with `whitelist: true, forbidNonWhitelisted: true, transform: true`. Unknown body fields cause a 400.
+- **Validation.** Global `StandardSchemaValidationPipe` with Zod schemas on `@Body`/`@Query({ schema })`. Schemas are strict objects, so unknown fields cause a 400.
 - **Rate limiting.** `ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])` is registered, but `ThrottlerGuard` is applied only to `POST /api/auth/login` (`@UseGuards(ThrottlerGuard)` plus `@Throttle` with `LOGIN_RATE_LIMIT`, default 10/min). There is no global `APP_GUARD`, so other routes are not rate-limited. See [gaps](../security/gaps.md).
 - **Errors.** No custom exception filters or interceptors exist. Services throw Nest HTTP exceptions; `@nestjs/authorization` converts `AuthorizationError` to 401/403. See [API conventions](../api/README.md#errors).
 - **Audit.** `AuditService.log()` is called explicitly from services (users, stations, barangay pins, settings). Incident actions are not audited.

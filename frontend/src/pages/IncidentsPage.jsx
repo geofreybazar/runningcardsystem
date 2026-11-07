@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Page from "@/components/Page.jsx";
+import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
 
 const fmt = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
@@ -56,7 +57,7 @@ function IncidentsPage() {
             <div className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
               <AlarmBadge incident={i} />
               {i.city?.name && `${i.city.name} · `}
-              {fmt(i.createdAt)} · {i._count.units} units · {i.createdBy.fullName}
+              {fmt(i.createdAt)} · {i._count.units} units · {displayName(i.createdBy)}
             </div>
           </Card>
         ))}
@@ -86,7 +87,7 @@ function IncidentsPage() {
                     <AlarmBadge incident={i} />
                   </TableCell>
                   <TableCell className='text-right tabular-nums'>{i._count.units}</TableCell>
-                  <TableCell>{i.createdBy.fullName}</TableCell>
+                  <TableCell>{displayName(i.createdBy)}</TableCell>
                   {status === "CLOSED" && <TableCell className='whitespace-nowrap text-muted-foreground'>{fmt(i.closedAt)}</TableCell>}
                 </TableRow>
               ))}

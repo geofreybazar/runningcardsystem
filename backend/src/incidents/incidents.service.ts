@@ -4,7 +4,7 @@ import { AccessPolicy } from '../auth/access.policy.js';
 import { CityDirectory } from '../geo/city-directory.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RunningCardService } from '../running-card/running-card.service.js';
-import type { AuthUser } from '../auth/auth-user.js';
+import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
 import type { CreateIncidentDto, TruckPicks } from './incidents.dto.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
@@ -13,8 +13,8 @@ type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['
 const DETAIL_INCLUDE = {
   city: { select: { id: true, name: true } },
   barangay: { select: { name: true, city: { select: { name: true } } } },
-  createdBy: { select: { fullName: true, username: true } },
-  closedBy: { select: { fullName: true, username: true } },
+  createdBy: { select: PERSON_SELECT },
+  closedBy: { select: PERSON_SELECT },
   units: {
     orderBy: { id: 'asc' },
     include: {
@@ -48,7 +48,7 @@ export class IncidentsService {
       orderBy: { createdAt: 'desc' },
       take: Math.min(take, 500),
       include: {
-        createdBy: { select: { fullName: true } },
+        createdBy: { select: PERSON_SELECT },
         city: { select: { name: true } },
         _count: { select: { units: true } },
       },

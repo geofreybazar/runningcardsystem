@@ -18,7 +18,7 @@ export default async function setup() {
   const env = {
     ...process.env,
     DATABASE_URL: url,
-    SUPERADMIN_USERNAME: 'superadmin',
+    SUPERADMIN_ACCOUNT_NUMBER: 'superadmin',
     SUPERADMIN_PASSWORD: 'Initial-pass-1',
     SEED_PLACEHOLDER_TRUCKS: 'true',
   };

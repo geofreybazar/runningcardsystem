@@ -1,12 +1,13 @@
 # Auth API
 
-Controller `AuthController` (`backend/src/auth/auth.controller.ts`), service `AuthService` (`auth.service.ts`). DTOs in `auth.dto.ts`.
+Controller `AuthController` (`backend/src/auth/auth.controller.ts`), service `AuthService` (`auth.service.ts`). Zod schemas in `auth.dto.ts`.
 
 `AuthUser` (returned as `user` below) — `backend/src/auth/auth-user.ts`:
 
 ```json
 {
-  "id": "uuid", "username": "jdelacruz", "fullName": "Juan Dela Cruz",
+  "id": "uuid", "accountNumber": "B13084", "rank": "SFO2",
+  "firstName": "Juan", "middleName": "Santos", "lastName": "Dela Cruz",
   "role": "RADIO_OPERATOR", "officeLevel": "CITY", "districtId": 2, "cityId": 3,
   "mustChangePassword": false,
   "areaCityIds": [3],          // null = all of NCR
@@ -16,9 +17,9 @@ Controller `AuthController` (`backend/src/auth/auth.controller.ts`), service `Au
 
 ## POST /api/auth/login
 - **Access:** Public. `ThrottlerGuard`, limit `LOGIN_RATE_LIMIT` per 60 s (default 10), keyed by client IP.
-- **Body:** `{ "username": string (1–100), "password": string (1–200) }`
+- **Body:** `{ "accountNumber": string (1–100, trimmed and uppercased), "password": string (1–200) }`. The account number is the sign-in name; there is no username. The format is not checked here (the seeded Super Admin may not follow it). The old `username` field is rejected with 400.
 - **200:** `{ "accessToken": string, "expiresIn": number, "user": AuthUser }` and sets the `rcs_rt` cookie.
-- **Errors:** 400 validation; 401 `Invalid username or password` (unknown user, wrong password, disabled or removed account all give the same message); 429 rate limit.
+- **Errors:** 400 validation; 401 `Invalid account number or password` (unknown user, wrong password, disabled or removed account all give the same message); 429 rate limit.
 - **Side effects:** rehashes the password if the hasher's parameters changed.
 
 ## POST /api/auth/refresh

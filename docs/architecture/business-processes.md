@@ -97,7 +97,7 @@ stateDiagram-v2
   Active --> TempPassword: Admin resets password (all sessions revoked)
   Active --> Disabled: Admin sets isActive = false (all sessions revoked)
   Disabled --> Active: Admin sets isActive = true
-  Active --> Removed: Admin deletes (soft: deletedAt, username renamed, sessions revoked)
+  Active --> Removed: Admin deletes (soft: deletedAt, account number renamed, sessions revoked)
   Disabled --> Removed
   Removed --> [*]
 ```

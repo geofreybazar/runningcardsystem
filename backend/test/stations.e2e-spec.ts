@@ -16,9 +16,9 @@ describe('stations and trucks', () => {
     http = request(app.getHttpServer());
     superAdmin = await superAdminAuth(app);
     [caloocan, malabon, pasay] = await Promise.all(['Caloocan', 'Malabon', 'Pasay'].map((n) => cityId(app, superAdmin, n)));
-    ops2 = await makeUser(app, superAdmin, 'st-ops2', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
-    opsCaloocan = await makeUser(app, superAdmin, 'st-ops-cal', 'OPERATIONS', { officeLevel: 'CITY', cityId: caloocan });
-    radio = await makeUser(app, superAdmin, 'st-radio', 'RADIO_OPERATOR');
+    ops2 = await makeUser(app, superAdmin, 'S4001', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
+    opsCaloocan = await makeUser(app, superAdmin, 'S4002', 'OPERATIONS', { officeLevel: 'CITY', cityId: caloocan });
+    radio = await makeUser(app, superAdmin, 'S4003', 'RADIO_OPERATOR');
   });
   afterAll(() => app.close());
 

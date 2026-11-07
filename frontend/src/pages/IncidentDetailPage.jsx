@@ -14,6 +14,7 @@ import MapComponent from "@/components/MapComponent.jsx";
 import { api } from "@/api/client.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { canDispatchIn } from "@/auth/permissions.js";
+import { displayName } from "@/lib/person.js";
 import { TRUCK_TYPES } from "@/labels.js";
 
 const time = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -79,8 +80,8 @@ function IncidentDetailPage() {
           </div>
           <p className='mt-1 text-sm text-muted-foreground'>
             {incident.barangay ? `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name} · ` : incident.city && `${incident.city.name} · `}
-            Dispatched {when(incident.createdAt)} by {incident.createdBy.fullName}
-            {incident.closedAt && ` · Closed ${when(incident.closedAt)} by ${incident.closedBy?.fullName}`}
+            Dispatched {when(incident.createdAt)} by {displayName(incident.createdBy)}
+            {incident.closedAt && ` · Closed ${when(incident.closedAt)} by ${displayName(incident.closedBy)}`}
           </p>
           {incident.notes && <p className='mt-2 text-sm'>{incident.notes}</p>}
         </div>

@@ -8,7 +8,7 @@ Observed in the code; follow them when changing it.
 - **Routes must declare access.** The authorization guard denies by default: add `@Can(AccessPolicy, '<ability>')`, `@Can.Anyone()` or `@Public()`. New abilities go in `src/auth/access.policy.ts`; their user parameter must be typed `AuthUser | null`.
 - **Record-level rules live in services**, after loading the record: `await this.authz.authorize(AccessPolicy, 'editCity' | 'dispatchIn', user, cityId)`.
 - **Office logic stays in one place:** `src/auth/area.ts` (`OFFICE_LEVELS`, `areaCityIds`, `dispatchCityId`). The frontend copy is `frontend/src/auth/permissions.js`; keep the two in sync.
-- **DTOs** use class-validator; the global pipe forbids unknown fields. Do not spread DTO class instances into Prisma `data` (oxlint `no-misused-spread`); list fields explicitly.
+- **Validation** uses Zod schemas (`z.strictObject`, so unknown fields → 400) on `@Body({ schema })` / `@Query({ schema })`, enforced by the global `StandardSchemaValidationPipe`; export `type XDto = z.infer<typeof xSchema>`. Don't use class-validator (Nest runs one validation approach per app). List fields explicitly in Prisma `data` rather than spreading the DTO.
 - **Race-safe writes:** conditional `updateMany` + check `count` (see `IncidentsService.dispatch`).
 - **Soft delete** users (`deletedAt`), stations and trucks (`isActive`).
 - **Audit** changes to users, stations, trucks, barangay pins and settings with `AuditService.log()`.

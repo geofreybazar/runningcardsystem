@@ -43,6 +43,23 @@ enum OfficeLevel {
   CITY
 }
 
+/// BFP ranks, lowest to highest (declaration order is the sort order).
+enum Rank {
+  FO1
+  FO2
+  FO3
+  SFO1
+  SFO2
+  SFO3
+  SFO4
+  FINSP
+  FSINSP
+  FCINSP
+  FSUPT
+  FSSUPT
+  FCSUPT
+}
+
 enum IncidentStatus {
   OPEN
   CLOSED
@@ -125,8 +142,12 @@ model Truck {
 
 model User {
   id                 String        @id @default(uuid())
-  username           String        @unique
-  fullName           String
+  /// BFP personnel account number (e.g. B13084), stored uppercase; it is the sign-in name.
+  accountNumber      String        @unique
+  rank               Rank? // required by the API for every role except SUPER_ADMIN
+  firstName          String
+  middleName         String?
+  lastName           String
   passwordHash       String
   role               Role
   officeLevel        OfficeLevel   @default(REGIONAL)

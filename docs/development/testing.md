@@ -25,9 +25,9 @@ Vitest with `vitest.config.e2e.ts`: `**/*.e2e-spec.ts`, `globalSetup: test/globa
 | `test/running-card.e2e-spec.ts` | ordering/grouping; skipping stations without available trucks; `city` in response; bad coordinates; barangay pin rules; settings changes apply to the card |
 | `test/incidents.e2e-spec.ts` | who may dispatch where (city, FD1, FD2, regional, Operations, Admin, Super Admin, outside NCR); lifecycle (picks, next alarm, raise, close, out-of-service kept); busy-station rule; area visibility |
 
-**Helpers** (`test/helpers.ts`): `superAdminAuth(app)` (works whichever spec ran first), `makeUser(app, admin, username, role, office?)` (creates and signs in, changing the temporary password), `cityId(app, auth, name)`, `refreshCookie(res)`.
+**Helpers** (`test/helpers.ts`): `superAdminAuth(app)` (works whichever spec ran first), `makeUser(app, admin, accountNumber, role, office?)` (creates and signs in, changing the temporary password), `cityId(app, auth, name)`, `refreshCookie(res)`.
 
-**Writing specs:** files run in any order on one database. Use unique usernames, look up ids by name (`cityId`), and never assume a fresh seed beyond the reference data.
+**Writing specs:** files run in any order on one database. Use unique account numbers (each spec has its own prefix/range), look up ids by name (`cityId`), and never assume a fresh seed beyond the reference data.
 
 ## Frontend tests (`npm test`)
 

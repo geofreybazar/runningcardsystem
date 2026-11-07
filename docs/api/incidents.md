@@ -13,8 +13,8 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
   "createdById": "uuid", "closedById": null, "createdAt": "…", "closedAt": null,
   "city": { "id": 7, "name": "Manila" },
   "barangay": { "name": "…", "city": { "name": "…" } } | null,
-  "createdBy": { "fullName": "…", "username": "…" },
-  "closedBy": { "fullName": "…", "username": "…" } | null,
+  "createdBy": { "accountNumber": "…", "rank": "…", "firstName": "…", "middleName": "…", "lastName": "…" },
+  "closedBy": { /* same */ } | null,
   "units": [{
     "id": 1, "incidentId": "uuid", "stationId": 12, "truckId": 30, "alarmLevel": "1st Alarm",
     "dispatchedAt": "…", "releasedAt": null,
@@ -28,7 +28,7 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 
 ## GET /api/incidents
 - **Query:** `status?` (`OPEN`|`CLOSED`), `take?` int (service caps at 500, default 100; no lower bound).
-- **200:** incidents in the caller's area, newest first, without `runningCard`, with `createdBy { fullName }`, `city { name }`, `_count { units }`, and computed `alarmLevel`.
+- **200:** incidents in the caller's area, newest first, without `runningCard`, with `createdBy` (account number, rank, names), `city { name }`, `_count { units }`, and computed `alarmLevel`.
 
 ## GET /api/incidents/:id
 - **200:** detail object. **403** `This incident is outside your area` if it exists but is not visible; **404** if it does not exist.

@@ -3,7 +3,7 @@ import { PasswordHasher, TokenService } from '@nestjs/authentication';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
-import { OfficeLevel, Role } from '../generated/prisma/enums.js';
+import { OfficeLevel, Role, type Rank } from '../generated/prisma/enums.js';
 import { CityDirectory } from '../geo/city-directory.service.js';
 import { OFFICE_LEVELS } from '../auth/area.js';
 import type { AuthUser } from '../auth/auth-user.js';
@@ -11,8 +11,11 @@ import type { CreateUserDto, UpdateUserDto } from './users.dto.js';
 
 const PUBLIC_FIELDS = {
   id: true,
-  username: true,
-  fullName: true,
+  accountNumber: true,
+  rank: true,
+  firstName: true,
+  middleName: true,
+  lastName: true,
   role: true,
   officeLevel: true,
   districtId: true,
@@ -30,6 +33,13 @@ export const canManageRole = (actor: Pick<AuthUser, 'role'>, role: Role) =>
 
 type OfficeInput = { officeLevel?: OfficeLevel; districtId?: number | null; cityId?: number | null };
 
+/** Super Admin (developers) has no rank; every other account needs one. */
+function rankFor(role: Role, rank: Rank | null | undefined): Rank | null {
+  if (role === Role.SUPER_ADMIN) return null;
+  if (!rank) throw new BadRequestException('rank is required');
+  return rank;
+}
+
 const tempPassword = () => randomBytes(9).toString('base64url'); // 12 chars
 
 @Injectable()
@@ -43,21 +53,21 @@ export class UsersService {
   ) {}
 
   list() {
-    return this.prisma.user.findMany({ where: { deletedAt: null }, select: PUBLIC_FIELDS, orderBy: { username: 'asc' } });
+    return this.prisma.user.findMany({ where: { deletedAt: null }, select: PUBLIC_FIELDS, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] });
   }
 
   async create(actor: AuthUser, dto: CreateUserDto) {
     this.assertCanManage(actor, dto.role);
     const office = await this.office(dto.role, dto);
-    if (await this.prisma.user.findUnique({ where: { username: dto.username } })) {
-      throw new ConflictException('Username is already taken');
-    }
+    const rank = rankFor(dto.role, dto.rank);
+    await this.assertAccountNumberFree(dto.accountNumber);
     const password = tempPassword();
+    const name = { firstName: dto.firstName, middleName: dto.middleName ?? null, lastName: dto.lastName };
     const user = await this.prisma.user.create({
-      data: { username: dto.username, fullName: dto.fullName, role: dto.role, ...office, passwordHash: await this.hasher.hash(password), mustChangePassword: true },
+      data: { accountNumber: dto.accountNumber, rank, ...name, role: dto.role, ...office, passwordHash: await this.hasher.hash(password), mustChangePassword: true },
       select: PUBLIC_FIELDS,
     });
-    await this.audit.log(actor.id, 'CREATE', 'User', user.id, { username: user.username, role: user.role, ...office });
+    await this.audit.log(actor.id, 'CREATE', 'User', user.id, { accountNumber: user.accountNumber, rank, ...name, role: user.role, ...office });
     return { user, temporaryPassword: password };
   }
 
@@ -77,9 +87,21 @@ export class UsersService {
           cityId: 'cityId' in dto ? dto.cityId : target.cityId,
         })
       : {};
+    // Rank is checked when the edit touches rank or role, so legacy accounts without one can still be disabled.
+    const rank = 'rank' in dto || 'role' in dto ? rankFor(role, 'rank' in dto ? dto.rank : target.rank) : undefined;
+    if (dto.accountNumber && dto.accountNumber !== target.accountNumber) await this.assertAccountNumberFree(dto.accountNumber);
     const user = await this.prisma.user.update({
       where: { id },
-      data: { fullName: dto.fullName, role, ...office, isActive: dto.isActive },
+      data: {
+        accountNumber: dto.accountNumber,
+        rank,
+        firstName: dto.firstName,
+        middleName: dto.middleName,
+        lastName: dto.lastName,
+        role,
+        ...office,
+        isActive: dto.isActive,
+      },
       select: PUBLIC_FIELDS,
     });
     if (dto.isActive === false) await this.tokens.revokeAll(id);
@@ -107,17 +129,23 @@ export class UsersService {
     if (id === actor.id) throw new BadRequestException('You cannot remove your own account');
     await this.prisma.user.update({
       where: { id },
-      // Free the username for reuse.
-      data: { deletedAt: new Date(), isActive: false, username: `${target.username}#deleted-${Date.now()}` },
+      // Free the account number for reuse; '#' can't appear in a valid one, so the renamed value never clashes.
+      data: { deletedAt: new Date(), isActive: false, accountNumber: `${target.accountNumber}#deleted-${Date.now()}` },
     });
     await this.tokens.revokeAll(id);
-    await this.audit.log(actor.id, 'DELETE', 'User', id, { username: target.username });
+    await this.audit.log(actor.id, 'DELETE', 'User', id, { accountNumber: target.accountNumber });
   }
 
   private async find(id: string) {
     const user = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  private async assertAccountNumberFree(accountNumber: string) {
+    if (await this.prisma.user.findUnique({ where: { accountNumber } })) {
+      throw new ConflictException('Account number is already registered');
+    }
   }
 
   private assertCanManage(actor: AuthUser, role: Role) {

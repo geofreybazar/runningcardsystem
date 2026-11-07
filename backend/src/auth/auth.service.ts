@@ -16,11 +16,11 @@ export class AuthService {
     private readonly users: UserLoader,
   ) {}
 
-  async login(username: string, password: string) {
-    const found = await this.prisma.user.findFirst({ where: { username, deletedAt: null } });
-    // verify() checks a dummy hash when there is no account, so timing doesn't reveal usernames.
+  async login(accountNumber: string, password: string) {
+    const found = await this.prisma.user.findFirst({ where: { accountNumber, deletedAt: null } });
+    // verify() checks a dummy hash when there is no account, so timing doesn't reveal account numbers.
     const valid = await this.hasher.verify(password, found?.passwordHash);
-    if (!found || !valid || !found.isActive) throw new UnauthorizedException('Invalid username or password');
+    if (!found || !valid || !found.isActive) throw new UnauthorizedException('Invalid account number or password');
     if (this.hasher.needsRehash(found.passwordHash)) {
       await this.prisma.user.update({ where: { id: found.id }, data: { passwordHash: await this.hasher.hash(password) } });
     }

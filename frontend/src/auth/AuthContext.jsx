@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     ready,
-    login: (username, password) => api("/auth/login", { method: "POST", body: { username, password } }).then(start),
+    login: (accountNumber, password) => api("/auth/login", { method: "POST", body: { accountNumber, password } }).then(start),
     changePassword: (currentPassword, newPassword) =>
       api("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } }).then(start),
     logout: async () => {

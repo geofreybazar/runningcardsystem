@@ -1,8 +1,8 @@
 # Database schema
 
-Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
+Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
 
-12 models, 6 enums. See the [ER diagram](erd.md).
+12 models, 7 enums. See the [ER diagram](erd.md).
 
 ## Enums
 
@@ -10,6 +10,7 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 |---|---|---|
 | `Role` | `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `RADIO_OPERATOR` | `User.role` |
 | `OfficeLevel` | `REGIONAL`, `DISTRICT`, `CITY` | `User.officeLevel` |
+| `Rank` | `FO1`, `FO2`, `FO3`, `SFO1`, `SFO2`, `SFO3`, `SFO4`, `FINSP`, `FSINSP`, `FCINSP`, `FSUPT`, `FSSUPT`, `FCSUPT` (lowest → highest) | `User.rank` |
 | `TruckType` | `ENGINE`, `TANKER`, `AERIAL_LADDER`, `RESCUE`, `AMBULANCE`, `OTHER` | `Truck.type` |
 | `TruckOwnership` | `BFP`, `LGU`, `VOLUNTEER` | `Truck.ownership` |
 | `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE` | `Truck.status` |
@@ -84,8 +85,11 @@ Has many `IncidentUnit`.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | String | PK, `uuid()` |
-| `username` | String | **unique** |
-| `fullName` | String | |
+| `accountNumber` | String | **unique**. BFP personnel account number, stored uppercase; the sign-in name. Renamed from `username` |
+| `rank` | Rank? | null only for Super Admin (and accounts migrated before ranks existed, until edited) |
+| `firstName` | String | |
+| `middleName` | String? | |
+| `lastName` | String | |
 | `passwordHash` | String | scrypt hash from `@nestjs/authentication` `PasswordHasher` |
 | `role` | Role | |
 | `officeLevel` | OfficeLevel | default `REGIONAL` |
@@ -97,6 +101,10 @@ Has many `IncidentUnit`.
 | `createdAt` / `updatedAt` | DateTime | |
 
 Relations: `incidentsCreated` / `incidentsClosed` (named relations `IncidentCreatedBy` / `IncidentClosedBy`), `auditLogs`.
+
+Display name (frontend `displayName()` in `src/lib/person.js`): rank, first name, middle initial, last name, e.g. `SFO2 Juan D. Dela Cruz`.
+
+Migration `20261107120000_user_rank_account_number` renamed `username` → `accountNumber` (uppercased), and split `fullName`: last word → `lastName`, the rest → `firstName` (a one-word name leaves `lastName` empty). Existing users get `rank = null`.
 
 ### RefreshToken
 Store for `@nestjs/authentication` refresh-token rotation.
@@ -176,7 +184,7 @@ Indexes: `(entity, entityId)`, `(createdAt)`.
 | `FireDistrict_code_key` | `FireDistrict(code)` | unique |
 | `City_name_key` | `City(name)` | unique |
 | `Barangay_cityId_name_key` | `Barangay(cityId, name)` | unique |
-| `User_username_key` | `User(username)` | unique |
+| `User_accountNumber_key` | `User(accountNumber)` | unique |
 | `Station_districtId_idx` | `Station(districtId)` | index |
 | `Truck_stationId_idx` | `Truck(stationId)` | index |
 | `RefreshToken_userId_idx`, `RefreshToken_familyId_idx` | | index |
@@ -195,5 +203,5 @@ All foreign keys use `ON UPDATE CASCADE`. Delete behavior: required relations `R
 | A user's office fields match `OFFICE_LEVELS[role]` (REGIONAL: no district/city; DISTRICT: district; CITY: city + its district) | `UsersService.office()` |
 | One truck can be on at most one open incident | conditional update in `IncidentsService.dispatch()` |
 | `Settings.alarmLevels` must have unique names and may not shrink below any open incident's `alarmIndex` | `SettingsController.update` |
-| Removed users get `username` renamed to `<name>#deleted-<timestamp>` so the name can be reused | `UsersService.remove` |
+| Removed users get `accountNumber` renamed to `<accountNumber>#deleted-<timestamp>` so the number can be reused | `UsersService.remove` |
 | Only `Settings` row id 1 is used | every `settings.findUniqueOrThrow({ where: { id: 1 } })` |

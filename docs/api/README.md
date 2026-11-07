@@ -30,8 +30,8 @@ Details: [security/authentication](../security/authentication.md).
 
 ## Validation
 
-Global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`:
-- Bodies and queries are validated against DTO classes (class-validator).
+Global `StandardSchemaValidationPipe` (Nest 12):
+- Bodies and queries are validated against Zod schemas passed as `@Body({ schema })` / `@Query({ schema })`. They are `z.strictObject`s, so unknown fields → 400; query numbers are coerced.
 - Unknown properties cause **400** (`property X should not exist`).
 - Query strings are converted with `@Type(() => Number)` where declared.
 - Path ids use `ParseIntPipe` (integers) or `ParseUUIDPipe` (users, incidents); bad ids give **400**.
@@ -52,7 +52,7 @@ Validation errors return `message` as an array of strings.
 | 401 | Missing/invalid/expired access token (authentication guard, `WWW-Authenticate: Bearer realm="rcs"`); bad login; invalid, expired or reused refresh token |
 | 403 | `@Can` ability denied; `authorize()` record check denied; `ForbiddenException` in services. The body does not name the ability |
 | 404 | `NotFoundException` (record missing or soft-deleted) |
-| 409 | `ConflictException` (username taken; trucks or incident changed during dispatch) |
+| 409 | `ConflictException` (account number already registered; trucks or incident changed during dispatch) |
 | 429 | Login rate limit (`ThrottlerGuard`) |
 | 500 | Unhandled errors (e.g. `findUniqueOrThrow` on a missing `Settings` row) |
 

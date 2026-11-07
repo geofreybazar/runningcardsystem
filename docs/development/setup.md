@@ -19,7 +19,7 @@ Names only; see the `.env.example` files for placeholders. Real `.env` files are
 | `JWT_SECRET` | access-token signing key (at least 32 bytes) |
 | `FRONTEND_ORIGIN` | allowed CORS origin |
 | `PORT` | API port (default 3000) |
-| `SUPERADMIN_USERNAME`, `SUPERADMIN_PASSWORD` | first Super Admin, created by the seed |
+| `SUPERADMIN_ACCOUNT_NUMBER`, `SUPERADMIN_PASSWORD` | first Super Admin (sign-in name and password), created by the seed. Renamed from `SUPERADMIN_USERNAME`: rename it in an existing `backend/.env` |
 | `SEED_PLACEHOLDER_TRUCKS` | `true` adds one placeholder engine per seeded station |
 | `LOGIN_RATE_LIMIT` | login attempts per IP per minute (default 10) |
 | `COOKIE_SECURE` | optional override of the refresh cookie `Secure` flag |

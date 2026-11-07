@@ -64,8 +64,11 @@ erDiagram
   }
   User {
     String id PK
-    String username UK
-    String fullName
+    String accountNumber UK
+    Rank rank "nullable"
+    String firstName
+    String middleName "nullable"
+    String lastName
     String passwordHash
     Role role
     OfficeLevel officeLevel

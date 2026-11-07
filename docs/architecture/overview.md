@@ -34,7 +34,7 @@ flowchart LR
 | Layer | Technology (version range from `package.json`) |
 |---|---|
 | Frontend | React `^19.1.10`, React Router `^7.18.5`, Vite `^6.0.1`, Tailwind CSS `^4.3.5`, shadcn/ui (Radix `radix-ui ^1.8.1`, `cmdk`, `lucide-react`, `sonner`), `@vis.gl/react-google-maps ^1.4.2` |
-| Backend | NestJS `^12.0.1` (ESM), `@nestjs/authentication ^0.1.5`, `@nestjs/authorization ^0.1.3`, `@nestjs/throttler ^6.7.1`, `@nestjs/swagger ^12.1.1`, `@nestjs/config`, class-validator / class-transformer, cookie-parser |
+| Backend | NestJS `^12.0.1` (ESM), `@nestjs/authentication ^0.1.5`, `@nestjs/authorization ^0.1.3`, `@nestjs/throttler ^6.7.1`, `@nestjs/swagger ^12.1.1`, `@nestjs/config`, Zod / class-transformer, cookie-parser |
 | Data | PostgreSQL (16 in `docker-compose.yml`), Prisma `^7.10.1` with `@prisma/adapter-pg` |
 | Tests | Vitest `^4.1.2` + supertest (backend), `node --test` (frontend) |
 | Lint | oxlint (backend), ESLint 9 flat config (frontend) |
@@ -58,7 +58,7 @@ sequenceDiagram
   G1->>G2: request.user = AuthUser (with areaCityIds, dispatchCityId)
   G2->>G2: @Can(AccessPolicy, ability) → before() + ability
   G2->>C: allowed
-  C->>N: ValidationPipe (DTO whitelist + transform)
+  C->>N: StandardSchemaValidationPipe (Zod)
   C->>S: call with AuthUser
   S->>P: queries / transaction
   S-->>C: result
@@ -66,7 +66,7 @@ sequenceDiagram
   Note over B: on 401 the client calls POST /api/auth/refresh once, then retries
 ```
 
-The global pipeline is configured in `backend/src/app.setup.ts`: global prefix `api`, `cookie-parser`, a global `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`, and CORS for `FRONTEND_ORIGIN` with credentials. Guard order (authentication before authorization) comes from the import order in `backend/src/app.module.ts`.
+The global pipeline is configured in `backend/src/app.setup.ts`: global prefix `api`, `cookie-parser`, a global `StandardSchemaValidationPipe` (Zod schemas), and CORS for `FRONTEND_ORIGIN` with credentials. Guard order (authentication before authorization) comes from the import order in `backend/src/app.module.ts`.
 
 ## Main components and how they interact
 

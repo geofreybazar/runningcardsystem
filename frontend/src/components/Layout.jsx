@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { displayName } from "@/lib/person.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
 
 const ALL = ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"];
@@ -93,10 +94,10 @@ function UserMenu() {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton size='lg' className='data-[state=open]:bg-sidebar-accent'>
           <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-semibold'>
-            {initials(user.fullName)}
+            {initials(`${user.firstName} ${user.lastName}`)}
           </div>
           <div className='grid flex-1 text-left leading-tight'>
-            <span className='truncate text-sm font-medium'>{user.fullName}</span>
+            <span className='truncate text-sm font-medium'>{displayName(user)}</span>
             <span className='truncate text-xs text-muted-foreground'>{ROLE_LABELS[user.role]}</span>
           </div>
           <ChevronsUpDown className='ml-auto size-4' />
@@ -104,8 +105,8 @@ function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent side={isMobile ? "bottom" : "right"} align='end' className='w-56'>
         <DropdownMenuLabel className='font-normal'>
-          <div className='text-sm font-medium'>{user.fullName}</div>
-          <div className='text-xs text-muted-foreground'>@{user.username}</div>
+          <div className='text-sm font-medium'>{displayName(user)}</div>
+          <div className='text-xs text-muted-foreground'>Account no. {user.accountNumber}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

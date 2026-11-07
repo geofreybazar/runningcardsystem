@@ -4,7 +4,7 @@ import { Can } from '@nestjs/authorization';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto } from './users.dto.js';
+import { createUserSchema, updateUserSchema, type CreateUserDto, type UpdateUserDto } from './users.dto.js';
 
 @Controller('users')
 @Can(AccessPolicy, 'manageUsers')
@@ -17,12 +17,12 @@ export class UsersController {
   }
 
   @Post()
-  create(@CurrentUser() actor: AuthUser, @Body() dto: CreateUserDto) {
+  create(@CurrentUser() actor: AuthUser, @Body({ schema: createUserSchema }) dto: CreateUserDto) {
     return this.users.create(actor, dto);
   }
 
   @Patch(':id')
-  update(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
+  update(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: updateUserSchema }) dto: UpdateUserDto) {
     return this.users.update(actor, id, dto);
   }
 

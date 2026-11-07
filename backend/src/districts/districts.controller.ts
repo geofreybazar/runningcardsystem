@@ -2,16 +2,14 @@ import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Put } fr
 import { CurrentUser } from '@nestjs/authentication';
 import { Can } from '@nestjs/authorization';
 import { AuthorizationService } from '@nestjs/authorization';
-import { IsLatitude, IsLongitude } from 'class-validator';
+import { z } from 'zod';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { lat, lng } from '../stations/stations.dto.js';
 
-class LocationDto {
-  @IsLatitude() lat: number;
-  @IsLongitude() lng: number;
-}
+const locationSchema = z.strictObject({ lat, lng });
 
 @Controller()
 @Can(AccessPolicy, 'operate')
@@ -45,7 +43,7 @@ export class DistrictsController {
    * correcting an existing pin is an Operations job for that district.
    */
   @Put('barangays/:id/location')
-  async setLocation(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body() { lat, lng }: LocationDto) {
+  async setLocation(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body({ schema: locationSchema }) { lat, lng }: z.infer<typeof locationSchema>) {
     const barangay = await this.prisma.barangay.findUnique({ where: { id }, });
     if (!barangay) throw new NotFoundException('Barangay not found');
     if (barangay.lat !== null) {

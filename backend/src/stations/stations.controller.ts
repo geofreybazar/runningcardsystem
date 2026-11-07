@@ -4,7 +4,18 @@ import { Can } from '@nestjs/authorization';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { StationsService } from './stations.service.js';
-import { CreateStationDto, CreateTruckDto, StationQuery, UpdateStationDto, UpdateTruckDto } from './stations.dto.js';
+import {
+  createStationSchema,
+  createTruckSchema,
+  stationQuerySchema,
+  updateStationSchema,
+  updateTruckSchema,
+  type CreateStationDto,
+  type CreateTruckDto,
+  type StationQuery,
+  type UpdateStationDto,
+  type UpdateTruckDto,
+} from './stations.dto.js';
 
 @Controller()
 export class StationsController {
@@ -12,31 +23,31 @@ export class StationsController {
 
   @Get('stations')
   @Can(AccessPolicy, 'operate')
-  list(@Query() query: StationQuery) {
+  list(@Query({ schema: stationQuerySchema }) query: StationQuery) {
     return this.stations.list(query.districtId, query.cityId);
   }
 
   @Post('stations')
   @Can(AccessPolicy, 'editStations')
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateStationDto) {
+  create(@CurrentUser() user: AuthUser, @Body({ schema: createStationSchema }) dto: CreateStationDto) {
     return this.stations.create(user, dto);
   }
 
   @Patch('stations/:id')
   @Can(AccessPolicy, 'editStations')
-  update(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdateStationDto) {
+  update(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body({ schema: updateStationSchema }) dto: UpdateStationDto) {
     return this.stations.update(user, id, dto);
   }
 
   @Post('stations/:id/trucks')
   @Can(AccessPolicy, 'editStations')
-  addTruck(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body() dto: CreateTruckDto) {
+  addTruck(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body({ schema: createTruckSchema }) dto: CreateTruckDto) {
     return this.stations.addTruck(user, id, dto);
   }
 
   @Patch('trucks/:id')
   @Can(AccessPolicy, 'editStations')
-  updateTruck(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTruckDto) {
+  updateTruck(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body({ schema: updateTruckSchema }) dto: UpdateTruckDto) {
     return this.stations.updateTruck(user, id, dto);
   }
 

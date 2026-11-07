@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PERSON_SELECT } from '../auth/auth-user.js';
 
 @Injectable()
 export class AuditService {
@@ -17,7 +18,7 @@ export class AuditService {
       orderBy: { createdAt: 'desc' },
       take,
       skip,
-      include: { user: { select: { username: true, fullName: true } } },
+      include: { user: { select: PERSON_SELECT } },
     });
   }
 }

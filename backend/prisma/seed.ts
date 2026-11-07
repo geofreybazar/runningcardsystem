@@ -111,13 +111,15 @@ async function main() {
 
   await prisma.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1, alarmLevels: ALARM_LEVELS } });
 
-  const username = process.env.SUPERADMIN_USERNAME;
+  // Stored uppercase like every account number. Super Admin has no rank.
+  const accountNumber = process.env.SUPERADMIN_ACCOUNT_NUMBER?.trim().toUpperCase();
   const password = process.env.SUPERADMIN_PASSWORD;
-  if (username && password && !(await prisma.user.findUnique({ where: { username } }))) {
+  if (accountNumber && password && !(await prisma.user.findUnique({ where: { accountNumber } }))) {
     await prisma.user.create({
       data: {
-        username,
-        fullName: 'Super Admin',
+        accountNumber,
+        firstName: 'Super',
+        lastName: 'Admin',
         role: 'SUPER_ADMIN',
         passwordHash: await new PasswordHasher().hash(password),
         mustChangePassword: true,

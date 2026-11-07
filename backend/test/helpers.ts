@@ -18,9 +18,9 @@ export const refreshCookie = (res: request.Response) =>
   ([] as string[]).concat(res.headers['set-cookie'] ?? []).find((c) => c.startsWith('rcs_rt='))?.split(';')[0];
 
 /** Logs in and, if the account still has a temporary password, changes it. Returns a bearer header. */
-export async function signIn(app: INestApplication, username: string, password: string, newPassword = 'Changed-pass-1') {
+export async function signIn(app: INestApplication, accountNumber: string, password: string, newPassword = 'Changed-pass-1') {
   const http = request(app.getHttpServer());
-  const login = await http.post('/api/auth/login').send({ username, password }).expect(200);
+  const login = await http.post('/api/auth/login').send({ accountNumber, password }).expect(200);
   let token: string = login.body.accessToken;
   if (login.body.user.mustChangePassword) {
     const changed = await http
@@ -39,9 +39,19 @@ export const superAdminAuth = (app: INestApplication) =>
 
 export type OfficeInput = { officeLevel?: 'REGIONAL' | 'DISTRICT' | 'CITY'; districtId?: number; cityId?: number };
 
-export async function makeUser(app: INestApplication, admin: Record<string, string>, username: string, role: string, office: OfficeInput = {}) {
-  const res = await request(app.getHttpServer()).post('/api/users').set(admin).send({ username, fullName: username, role, ...office }).expect(201);
-  return signIn(app, username, res.body.temporaryPassword);
+/** A valid create-user body; `extra` overrides fields (rank is ignored for SUPER_ADMIN). */
+export const person = (accountNumber: string, role: string, extra: Record<string, unknown> = {}) => ({
+  rank: 'FO1',
+  firstName: 'Test',
+  lastName: accountNumber,
+  accountNumber,
+  role,
+  ...extra,
+});
+
+export async function makeUser(app: INestApplication, admin: Record<string, string>, accountNumber: string, role: string, office: OfficeInput = {}) {
+  const res = await request(app.getHttpServer()).post('/api/users').set(admin).send(person(accountNumber, role, office)).expect(201);
+  return signIn(app, accountNumber, res.body.temporaryPassword);
 }
 
 /** City id by name, e.g. cityId(app, auth, 'Caloocan'). */

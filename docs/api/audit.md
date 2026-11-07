@@ -10,7 +10,7 @@ Controller `AuditController` (`backend/src/audit/audit.controller.ts`), service 
 ```json
 [{ "id": 1, "userId": "uuid", "action": "CREATE", "entity": "User", "entityId": "uuid",
    "changes": { … } | null, "createdAt": "…",
-   "user": { "username": "…", "fullName": "…" } }]
+   "user": { "accountNumber": "…", "rank": "…", "firstName": "…", "middleName": "…", "lastName": "…" } }]
 ```
 
 What is logged: see [modules/audit](../modules/audit.md). `changes` may include request bodies; it never contains passwords (no password fields are logged by the callers).

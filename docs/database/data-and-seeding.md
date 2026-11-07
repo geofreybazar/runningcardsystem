@@ -22,7 +22,7 @@ Run with `npx prisma db seed` (configured as `tsx prisma/seed.ts` in `prisma.con
 | Station city backfill | Every station with `cityId = null` gets the city from `locateCity()` and that city's `districtId`; stations outside every boundary are printed as a warning | only fills nulls |
 | Incident city backfill | Every incident with `cityId = null` gets its city if located | only fills nulls |
 | Settings | Upsert row id 1 with 10 alarm levels | no change to an existing row |
-| Super Admin | Creates `SUPERADMIN_USERNAME` with `SUPERADMIN_PASSWORD` (hashed), `role = SUPER_ADMIN`, `mustChangePassword = true`, if both variables are set and the username does not exist | skipped when it exists |
+| Super Admin | Creates account number `SUPERADMIN_ACCOUNT_NUMBER` (uppercased, name "Super Admin", no rank) with `SUPERADMIN_PASSWORD` (hashed), `role = SUPER_ADMIN`, `mustChangePassword = true`, if both variables are set and the account number does not exist | skipped when it exists |
 
 Seeded alarm levels, in order: 1st Alarm, 2nd Alarm, 3rd Alarm, 4th Alarm, 5th Alarm, Task Force Alpha, Task Force Bravo, Task Force Charlie, Task Force Delta, General Alarm.
 

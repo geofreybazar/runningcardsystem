@@ -64,7 +64,7 @@ npm install
 npm run dev                   # http://localhost:5173, /api is proxied to the backend
 ```
 
-Sign in with `SUPERADMIN_USERNAME` / `SUPERADMIN_PASSWORD` from `backend/.env`.
+Sign in with `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD` from `backend/.env`.
 
 `SEED_PLACEHOLDER_TRUCKS=true` gives every seeded station one placeholder engine so the running card works right away. Set it to `false` before seeding a real database. With no trucks, stations never appear on the card.
 

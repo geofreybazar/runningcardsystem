@@ -9,7 +9,7 @@ import { useAuth } from "@/auth/AuthContext.jsx";
 
 function LoginPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,7 +19,7 @@ function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      await login(username.trim(), password);
+      await login(accountNumber.trim(), password);
     } catch (err) {
       setError(err.message);
       setBusy(false);
@@ -35,8 +35,8 @@ function LoginPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <Field label='Username'>
-          <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete='username' autoFocus required />
+        <Field label='Account number'>
+          <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} autoComplete='username' autoCapitalize='characters' spellCheck={false} placeholder='e.g. B13084' autoFocus required />
         </Field>
         <Field label='Password'>
           <Input type='password' value={password} onChange={(e) => setPassword(e.target.value)} autoComplete='current-password' required />

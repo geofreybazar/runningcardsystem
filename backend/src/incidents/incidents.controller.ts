@@ -4,7 +4,14 @@ import { Can } from '@nestjs/authorization';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
 import { IncidentsService } from './incidents.service.js';
-import { CreateIncidentDto, IncidentQuery, RaiseAlarmDto } from './incidents.dto.js';
+import {
+  createIncidentSchema,
+  incidentQuerySchema,
+  raiseAlarmSchema,
+  type CreateIncidentDto,
+  type IncidentQuery,
+  type RaiseAlarmDto,
+} from './incidents.dto.js';
 
 @Controller('incidents')
 @Can(AccessPolicy, 'operate')
@@ -12,7 +19,7 @@ export class IncidentsController {
   constructor(private readonly incidents: IncidentsService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @Query() query: IncidentQuery) {
+  list(@CurrentUser() user: AuthUser, @Query({ schema: incidentQuerySchema }) query: IncidentQuery) {
     return this.incidents.list(user, query.status, query.take);
   }
 
@@ -23,7 +30,7 @@ export class IncidentsController {
 
   @Can(AccessPolicy, 'dispatch')
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateIncidentDto) {
+  create(@CurrentUser() user: AuthUser, @Body({ schema: createIncidentSchema }) dto: CreateIncidentDto) {
     return this.incidents.create(user, dto);
   }
 
@@ -36,7 +43,7 @@ export class IncidentsController {
   @Can(AccessPolicy, 'dispatch')
   @Post(':id/raise')
   @HttpCode(200)
-  raise(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RaiseAlarmDto) {
+  raise(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: raiseAlarmSchema }) dto: RaiseAlarmDto) {
     return this.incidents.raise(user, id, dto.truckPicks);
   }
 

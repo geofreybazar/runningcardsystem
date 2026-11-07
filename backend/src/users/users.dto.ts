@@ -1,25 +1,44 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
-import { OfficeLevel, Role } from '../generated/prisma/enums.js';
+import { z } from 'zod';
+import { OfficeLevel, Rank, Role } from '../generated/prisma/enums.js';
 
-export class CreateUserDto {
-  @IsString() @MinLength(3) @MaxLength(50) @Matches(/^[a-zA-Z0-9._-]+$/, { message: 'username may only contain letters, numbers, . _ -' })
-  username: string;
+/** BFP account number, e.g. B13084. Uppercased first, so b13084 is accepted and stored as B13084. */
+export const accountNumber = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{1,3}\d{4,8}$/, 'Account number must be 1-3 letters followed by 4-8 digits, e.g. B13084');
 
-  @IsString() @MinLength(1) @MaxLength(120) fullName: string;
+const name = z.string().trim().min(1, 'is required').max(60);
+const middleName = z.string().trim().max(60).transform((s) => s || null).nullable().optional();
+/** Required for every role except SUPER_ADMIN; checked in UsersService because it depends on the final role. */
+const rank = z.enum(Rank).nullable().optional();
+/** Defaults to REGIONAL. DISTRICT needs districtId; CITY needs cityId (the district follows from the city). */
+const office = {
+  officeLevel: z.enum(OfficeLevel).optional(),
+  districtId: z.int().nullable().optional(),
+  cityId: z.int().nullable().optional(),
+};
 
-  @IsEnum(Role) role: Role;
+export const createUserSchema = z.strictObject({
+  rank,
+  firstName: name,
+  middleName,
+  lastName: name,
+  accountNumber,
+  role: z.enum(Role),
+  ...office,
+});
 
-  /** Defaults to REGIONAL. DISTRICT needs districtId; CITY needs cityId (the district follows from the city). */
-  @IsOptional() @IsEnum(OfficeLevel) officeLevel?: OfficeLevel;
-  @IsOptional() @IsInt() districtId?: number | null;
-  @IsOptional() @IsInt() cityId?: number | null;
-}
+export const updateUserSchema = z.strictObject({
+  rank,
+  firstName: name.optional(),
+  middleName,
+  lastName: name.optional(),
+  accountNumber: accountNumber.optional(),
+  role: z.enum(Role).optional(),
+  ...office,
+  isActive: z.boolean().optional(),
+});
 
-export class UpdateUserDto {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(120) fullName?: string;
-  @IsOptional() @IsEnum(Role) role?: Role;
-  @IsOptional() @IsEnum(OfficeLevel) officeLevel?: OfficeLevel;
-  @IsOptional() @IsInt() districtId?: number | null;
-  @IsOptional() @IsInt() cityId?: number | null;
-  @IsOptional() @IsBoolean() isActive?: boolean;
-}
+export type CreateUserDto = z.infer<typeof createUserSchema>;
+export type UpdateUserDto = z.infer<typeof updateUserSchema>;

@@ -17,11 +17,12 @@ import ConfirmDialog from "@/components/ConfirmDialog.jsx";
 import { api } from "@/api/client.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
 import { OFFICE_LABELS, OFFICE_LEVELS, officeName } from "@/auth/permissions.js";
+import { RANKS, displayName } from "@/lib/person.js";
 
 // Mirrors the backend rule: Admin (regional IT) manages every account except Super Admin.
 const manageableRoles = (role) => Object.keys(ROLE_LABELS).filter((r) => role === "SUPER_ADMIN" || r !== "SUPER_ADMIN");
 
-const EMPTY = { username: "", fullName: "", role: "RADIO_OPERATOR", officeLevel: "CITY", districtId: "", cityId: "" };
+const EMPTY = { rank: "", firstName: "", middleName: "", lastName: "", accountNumber: "", role: "RADIO_OPERATOR", officeLevel: "CITY", districtId: "", cityId: "" };
 
 /** Role → office level → district → city, keeping only combinations the role allows. */
 function normalizeOffice(form, districts) {
@@ -67,7 +68,7 @@ function UsersPage() {
   const [districts, setDistricts] = useState([]);
   const [form, setForm] = useState(null);
   const [formError, setFormError] = useState("");
-  const [password, setPassword] = useState(null); // { username, temporaryPassword }
+  const [password, setPassword] = useState(null); // { user, temporaryPassword }
   const [confirmRemove, setConfirmRemove] = useState(null);
   const roles = manageableRoles(me.role);
 
@@ -90,19 +91,25 @@ function UsersPage() {
   const save = async () => {
     setFormError("");
     const body = {
-      fullName: form.fullName.trim(),
+      rank: form.role === "SUPER_ADMIN" ? null : form.rank || null,
+      firstName: form.firstName.trim(),
+      middleName: form.middleName?.trim() || null,
+      lastName: form.lastName.trim(),
       role: form.role,
       officeLevel: form.officeLevel,
       districtId: form.officeLevel === "DISTRICT" ? form.districtId || null : null,
       cityId: form.officeLevel === "CITY" ? form.cityId || null : null,
     };
     try {
+      const accountNumber = form.accountNumber.trim().toUpperCase();
       if (form.id) {
+        // Sent only when changed: older accounts (e.g. the seeded Super Admin) may not match the format.
+        if (accountNumber !== form.originalAccountNumber) body.accountNumber = accountNumber;
         await api(`/users/${form.id}`, { method: "PATCH", body });
         toast.success("User updated");
       } else {
-        const res = await api("/users", { method: "POST", body: { ...body, username: form.username.trim() } });
-        setPassword({ username: res.user.username, temporaryPassword: res.temporaryPassword });
+        const res = await api("/users", { method: "POST", body: { ...body, accountNumber } });
+        setPassword({ user: res.user, temporaryPassword: res.temporaryPassword });
       }
       setForm(null);
       await load();
@@ -114,13 +121,13 @@ function UsersPage() {
   const resetPassword = (u) =>
     run(async () => {
       const res = await api(`/users/${u.id}/reset-password`, { method: "POST" });
-      setPassword({ username: u.username, temporaryPassword: res.temporaryPassword });
+      setPassword({ user: u, temporaryPassword: res.temporaryPassword });
     });
 
-  const setActive = (u, isActive) => run(() => api(`/users/${u.id}`, { method: "PATCH", body: { isActive } }), `${u.username} ${isActive ? "enabled" : "disabled"}`);
+  const setActive = (u, isActive) => run(() => api(`/users/${u.id}`, { method: "PATCH", body: { isActive } }), `${displayName(u)} ${isActive ? "enabled" : "disabled"}`);
   const edit = (u) => {
     setFormError("");
-    setForm({ ...u, districtId: u.districtId ?? "", cityId: u.cityId ?? "" });
+    setForm({ ...u, rank: u.rank ?? "", middleName: u.middleName ?? "", originalAccountNumber: u.accountNumber, districtId: u.districtId ?? "", cityId: u.cityId ?? "" });
   };
   const editable = (u) => roles.includes(u.role) && u.id !== me.id;
 
@@ -145,9 +152,9 @@ function UsersPage() {
           <Card key={u.id} className='gap-2 px-4 py-3'>
             <div className='flex items-start justify-between gap-2'>
               <div className='min-w-0'>
-                <div className='truncate font-medium'>{u.fullName}</div>
+                <div className='truncate font-medium'>{displayName(u)}</div>
                 <div className='text-xs text-muted-foreground'>
-                  @{u.username} · {ROLE_LABELS[u.role]} · {officeName(u)}
+                  {u.accountNumber} · {ROLE_LABELS[u.role]} · {officeName(u)}
                 </div>
               </div>
               <Switch checked={u.isActive} disabled={!editable(u)} onCheckedChange={(v) => setActive(u, v)} aria-label='Active' />
@@ -163,7 +170,7 @@ function UsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Username</TableHead>
+              <TableHead>Account no.</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Office</TableHead>
               <TableHead>Active</TableHead>
@@ -173,9 +180,9 @@ function UsersPage() {
           <TableBody>
             {users.map((u) => (
               <TableRow key={u.id}>
-                <TableCell className='font-medium'>{u.fullName}</TableCell>
+                <TableCell className='font-medium'>{displayName(u)}</TableCell>
                 <TableCell>
-                  <span className='text-muted-foreground'>@{u.username}</span>
+                  <span className='font-mono text-muted-foreground'>{u.accountNumber}</span>
                   {u.mustChangePassword && (
                     <Badge variant='outline' className='ml-2'>
                       Temporary password
@@ -195,23 +202,42 @@ function UsersPage() {
       </Card>
 
       <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
-        <DialogContent className='sm:max-w-md'>
+        <DialogContent className='max-h-[90dvh] overflow-y-auto sm:max-w-xl'>
           <DialogHeader>
             <DialogTitle>{form?.id ? "Edit user" : "Add user"}</DialogTitle>
             {!form?.id && <DialogDescription>A temporary password is generated; they choose their own at first sign-in.</DialogDescription>}
           </DialogHeader>
           {form && (
-            <div className='grid gap-4'>
+            // One column on phones, two from sm up; full-width rows use sm:col-span-2.
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
               {formError && (
-                <Alert variant='destructive'>
+                <Alert variant='destructive' className='sm:col-span-2'>
                   <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               )}
-              <Field label='Username' hint={form.id ? undefined : "Letters, numbers, . _ -"}>
-                <Input value={form.username} disabled={!!form.id} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+              {form.role !== "SUPER_ADMIN" && (
+                <Field label='Rank' className='sm:col-span-2'>
+                  <SimpleSelect value={form.rank} placeholder='Select rank…' onChange={(rank) => setForm({ ...form, rank })} options={RANKS.map((r) => ({ value: r, label: r }))} />
+                </Field>
+              )}
+              <Field label='First name'>
+                <Input value={form.firstName} autoComplete='off' onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
               </Field>
-              <Field label='Full name'>
-                <Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+              <Field label='Middle name' hint='Optional'>
+                <Input value={form.middleName} autoComplete='off' onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
+              </Field>
+              <Field label='Last name'>
+                <Input value={form.lastName} autoComplete='off' onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+              </Field>
+              <Field label='Account number' hint='Their sign-in name, e.g. B13084'>
+                <Input
+                  value={form.accountNumber}
+                  autoComplete='off'
+                  autoCapitalize='characters'
+                  spellCheck={false}
+                  className='font-mono uppercase'
+                  onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                />
               </Field>
               <Field label='Role'>
                 <SimpleSelect
@@ -229,7 +255,7 @@ function UsersPage() {
                 />
               </Field>
               {form.officeLevel !== "REGIONAL" && (
-                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                <div className='grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2'>
                   <Field label='Fire district'>
                     <SimpleSelect
                       value={form.districtId}
@@ -249,7 +275,7 @@ function UsersPage() {
                   )}
                 </div>
               )}
-              {dispatchNote(form, districts) && <p className='text-xs text-muted-foreground'>{dispatchNote(form, districts)}</p>}
+              {dispatchNote(form, districts) && <p className='text-xs text-muted-foreground sm:col-span-2'>{dispatchNote(form, districts)}</p>}
             </div>
           )}
           <DialogFooter>
@@ -266,9 +292,13 @@ function UsersPage() {
           <DialogHeader>
             <DialogTitle>Temporary password</DialogTitle>
             <DialogDescription>
-              Give this to <b>{password?.username}</b>. It is shown only once; they must change it when they sign in.
+              Give this to <b>{displayName(password?.user)}</b>. It is shown only once; they must change it when they sign in.
             </DialogDescription>
           </DialogHeader>
+          <div className='grid gap-1 text-sm'>
+            <span className='text-muted-foreground'>Account number (sign-in name)</span>
+            <span className='font-mono text-lg font-semibold'>{password?.user.accountNumber}</span>
+          </div>
           <div className='rounded-lg border bg-muted p-4 text-center font-mono text-lg tracking-wider select-all'>{password?.temporaryPassword}</div>
           <DialogFooter>
             <Button
@@ -285,13 +315,13 @@ function UsersPage() {
       <ConfirmDialog
         open={!!confirmRemove}
         onOpenChange={(o) => !o && setConfirmRemove(null)}
-        title={`Remove ${confirmRemove?.username}?`}
+        title={`Remove ${displayName(confirmRemove)}?`}
         description='They will be signed out and can no longer sign in. Their name stays on past incidents.'
         confirmLabel='Remove'
         destructive
         onConfirm={() => {
           const u = confirmRemove;
-          run(() => api(`/users/${u.id}`, { method: "DELETE" }), `${u.username} removed`);
+          run(() => api(`/users/${u.id}`, { method: "DELETE" }), `${displayName(u)} removed`);
         }}
       />
     </Page>

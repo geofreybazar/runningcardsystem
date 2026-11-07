@@ -1,11 +1,15 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { z } from 'zod';
 
-export class LoginDto {
-  @IsString() @MinLength(1) @MaxLength(100) username: string;
-  @IsString() @MinLength(1) @MaxLength(200) password: string;
-}
+/** No format check here: the seeded Super Admin's account number may not follow the personnel format. */
+export const loginSchema = z.strictObject({
+  accountNumber: z.string().trim().toUpperCase().min(1).max(100),
+  password: z.string().min(1).max(200),
+});
 
-export class ChangePasswordDto {
-  @IsString() @MaxLength(200) currentPassword: string;
-  @IsString() @MinLength(8) @MaxLength(200) newPassword: string;
-}
+export const changePasswordSchema = z.strictObject({
+  currentPassword: z.string().max(200),
+  newPassword: z.string().min(8).max(200),
+});
+
+export type LoginDto = z.infer<typeof loginSchema>;
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
