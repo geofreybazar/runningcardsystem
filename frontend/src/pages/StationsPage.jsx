@@ -18,7 +18,13 @@ import { cn } from "@/lib/utils";
 import { api } from "@/api/client.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { canEditCity, districtName } from "@/auth/permissions.js";
-import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
+
+// Ambulance and Rescue are no longer offered; an existing truck of that type keeps showing it until edited.
+const truckTypeOptions = (current) =>
+  Object.keys(TRUCK_TYPES)
+    .filter((t) => NEW_TRUCK_TYPES.includes(t) || t === current)
+    .map((t) => ({ value: t, label: TRUCK_TYPES[t] }));
+import { NEW_TRUCK_TYPES, OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/labels.js";
 
 const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
 
@@ -381,6 +387,7 @@ function StationsPage() {
               </div>
               <div className='h-72 overflow-hidden rounded-lg border md:h-full md:min-h-80'>
                 <MapComponent
+                  kind='station'
                   position={stationForm.lat ? { lat: stationForm.lat, lng: stationForm.lng } : null}
                   onChange={(p) => setStationForm((f) => ({ ...f, lat: p.lat, lng: p.lng }))}
                 />
@@ -413,7 +420,7 @@ function StationsPage() {
               </Field>
               <div className='grid grid-cols-2 gap-4'>
                 <Field label='Type'>
-                  <SimpleSelect value={truckForm.type} onChange={(type) => setTruckForm({ ...truckForm, type })} options={toOptions(TRUCK_TYPES)} />
+                  <SimpleSelect value={truckForm.type} onChange={(type) => setTruckForm({ ...truckForm, type })} options={truckTypeOptions(truckForm.type)} />
                 </Field>
                 <Field label='Owner'>
                   <SimpleSelect value={truckForm.ownership} onChange={(ownership) => setTruckForm({ ...truckForm, ownership })} options={toOptions(OWNERSHIP)} />

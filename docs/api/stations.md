@@ -33,12 +33,12 @@ Write routes need the `editStations` ability (SUPER_ADMIN, OPERATIONS) **and** `
 - **Audit:** `DEACTIVATE` or `UPDATE`, `changes` = body.
 
 ## POST /api/stations/:id/trucks
-- **Body:** `callSign` (1–80), `type` (`TruckType`), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityLiters?` (int ≥ 0).
+- **Body:** `callSign` (1–80), `type` (`ENGINE`, `TANKER`, `AERIAL_LADDER` or `OTHER`; `AMBULANCE` and `RESCUE` are rejected with 400: they are not fire trucks), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityLiters?` (int ≥ 0).
 - **201:** Truck (status `AVAILABLE`). **Errors:** 400, 403, 404.
 - **Audit:** `CREATE Truck`.
 
 ## PATCH /api/trucks/:id
-- **Body (optional):** `callSign`, `plateNumber`, `type`, `waterCapacityLiters`, `ownership`, `status` (`TruckStatus`).
+- **Body (optional):** `callSign`, `plateNumber`, `type` (same four values), `waterCapacityLiters`, `ownership`, `status` (`TruckStatus`).
 - Any status may be set by hand, including `RESPONDING` (see [gaps](../security/gaps.md)).
 - **200:** Truck. **Errors:** 400, 403, 404 `Truck not found` (also for retired trucks).
 - **Audit:** `STATUS` when the body has only `status`, else `UPDATE`.

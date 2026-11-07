@@ -7,6 +7,9 @@ export const TRUCK_TYPES = {
   OTHER: "Other",
 };
 
+/** Types a truck can be given; Ambulance and Rescue stay above only to label older records. Mirrors stations.dto.ts. */
+export const NEW_TRUCK_TYPES = ["ENGINE", "TANKER", "AERIAL_LADDER", "OTHER"];
+
 export const OWNERSHIP = { BFP: "BFP", LGU: "LGU", VOLUNTEER: "Volunteer" };
 
 export const TRUCK_STATUS = {

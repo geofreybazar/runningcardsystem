@@ -22,10 +22,15 @@ const stationFields = {
 export const createStationSchema = z.strictObject(stationFields);
 export const updateStationSchema = z.strictObject({ ...stationFields, isActive: z.boolean() }).partial();
 
+/** Ambulance and Rescue units are not fire trucks: they can't be added or set any more (the enum keeps them for old records). */
+const truckType = z.enum(['ENGINE', 'TANKER', 'AERIAL_LADDER', 'OTHER'] satisfies TruckType[], {
+  error: 'type must be Engine, Tanker, Aerial ladder or Other',
+});
+
 const truckFields = {
   callSign: z.string().min(1).max(80),
   plateNumber: z.string().max(20).nullable().optional(),
-  type: z.enum(TruckType),
+  type: truckType,
   waterCapacityLiters: z.int().min(0).nullable().optional(),
   ownership: z.enum(TruckOwnership),
 };

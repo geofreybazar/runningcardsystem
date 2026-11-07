@@ -79,6 +79,8 @@ Routes are generated from `NAV` in `src/components/Layout.jsx`, filtered by `use
 - **Alarm scale** (`alarmTone` in `src/lib/alarm.js`, `AlarmBadge` in `src/components/Alarm.jsx`): BFP red for 1st–5th Alarm, charcoal for task forces, black with a gold ring for the general alarm. Used on running cards, incident badges, the incident alarm strip, the time log and notifications.
 - **Typography:** Inter for text; Barlow Condensed (`font-condensed`) for call signs, alarm levels and figures.
 - **Incident page:** alarm strip with live elapsed time (`Elapsed`), map with the fire and one pin per responding station (district colour), units with their city, and a time log of dispatch / raises / close.
+- **Map pins** (`MapComponent.jsx`): the fire is a red pin with a gold flame; stations are pins in their district colour with a fire-truck icon (`FireTruckIcon`, drawn in Lucide's style since Lucide has none). The station form's pin is a station (`kind="station"`).
+- **Truck types offered:** Engine / Pumper, Water Tanker, Aerial Ladder, Other (`NEW_TRUCK_TYPES` in `labels.js`, mirrored by `stations.dto.ts`); Ambulance/Rescue labels stay for older records.
 - **Night mode:** user menu toggle; `dark` class on `<html>`, remembered in `localStorage` (`rcs-theme`), defaults to the system setting (`src/lib/theme.js`). The Google map follows it.
 - **Live updates:** `NotificationsProvider` exposes `last`, `version`, `openIncidents` (sidebar bubble on Incidents), `viewIncident(id)`; the incident page and incidents list reload on live events. Urgent dispatches are also announced through an `aria-live="assertive"` region.
 - **Home page** is the first page the role may open: Running Card for Radio Operators and Super Admin, Incidents for others.

@@ -49,6 +49,13 @@ describe('stations and trucks', () => {
       .expect(201);
     expect(truck.body.status).toBe('AVAILABLE');
     await http.patch(`/api/trucks/${truck.body.id}`).set(ops2).send({ status: 'OUT_OF_SERVICE' }).expect(200);
+
+    // Ambulance and Rescue units can't be added or set any more; fire truck types still can.
+    for (const type of ['AMBULANCE', 'RESCUE']) {
+      await http.post(`/api/stations/${created.body.id}/trucks`).set(ops2).send({ callSign: `X ${type}`, type, ownership: 'BFP' }).expect(400);
+      await http.patch(`/api/trucks/${truck.body.id}`).set(ops2).send({ type }).expect(400);
+    }
+    for (const type of ['TANKER', 'AERIAL_LADDER', 'OTHER']) await http.patch(`/api/trucks/${truck.body.id}`).set(ops2).send({ type }).expect(200);
     await http.delete(`/api/trucks/${truck.body.id}`).set(ops2).expect(204);
     const after = (await http.get(`/api/stations?cityId=${malabon}`).set(ops2)).body.find((s: { id: number }) => s.id === created.body.id);
     expect(after.trucks).toHaveLength(0);

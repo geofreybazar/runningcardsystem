@@ -11,7 +11,7 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 | `Role` | `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `RADIO_OPERATOR` | `User.role` |
 | `OfficeLevel` | `REGIONAL`, `DISTRICT`, `CITY` | `User.officeLevel` |
 | `Rank` | `FO1`, `FO2`, `FO3`, `SFO1`, `SFO2`, `SFO3`, `SFO4`, `FINSP`, `FSINSP`, `FCINSP`, `FSUPT`, `FSSUPT`, `FCSUPT` (lowest → highest) | `User.rank` |
-| `TruckType` | `ENGINE`, `TANKER`, `AERIAL_LADDER`, `RESCUE`, `AMBULANCE`, `OTHER` | `Truck.type` |
+| `TruckType` | `ENGINE`, `TANKER`, `AERIAL_LADDER`, `RESCUE`, `AMBULANCE`, `OTHER` | `Truck.type`. `RESCUE` and `AMBULANCE` remain only for older records: the API no longer accepts them for new or edited trucks |
 | `TruckOwnership` | `BFP`, `LGU`, `VOLUNTEER` | `Truck.ownership` |
 | `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE` | `Truck.status` |
 | `IncidentStatus` | `OPEN`, `CLOSED` | `Incident.status` |
