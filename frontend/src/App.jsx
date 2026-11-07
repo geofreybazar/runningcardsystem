@@ -16,11 +16,13 @@ import IncidentDetailPage from "./pages/IncidentDetailPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import AuditLogPage from "./pages/AuditLogPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import StatisticsPage from "./pages/StatisticsPage.jsx";
 
 const PAGES = {
   "/": <Home />,
   "/incidents": <IncidentsPage />,
   "/notifications": <NotificationsPage />,
+  "/statistics": <StatisticsPage />,
   "/stations": <StationsPage />,
   "/users": <UsersPage />,
   "/audit-log": <AuditLogPage />,

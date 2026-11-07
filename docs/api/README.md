@@ -1,6 +1,6 @@
 # API conventions
 
-REST/JSON API served by the NestJS backend: 33 routes in 9 controllers, plus the Swagger UI in development.
+REST/JSON API served by the NestJS backend: 35 routes in 10 controllers, plus the Swagger UI in development.
 
 ## Base URL and transport
 

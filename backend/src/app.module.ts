@@ -15,6 +15,7 @@ import { RunningCardModule } from './running-card/running-card.module.js';
 import { IncidentsModule } from './incidents/incidents.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { StatisticsModule } from './statistics/statistics.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     IncidentsModule,
     SettingsModule,
     NotificationsModule,
+    StatisticsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

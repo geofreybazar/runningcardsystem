@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Bell, ChevronsUpDown, Flame, KeyRound, LogOut, Moon, ScrollText, Settings, Siren, Sun, Truck, Users } from "lucide-react";
+import { Bell, ChartColumn, ChevronsUpDown, Flame, KeyRound, LogOut, Moon, ScrollText, Settings, Siren, Sun, Truck, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -41,6 +41,7 @@ export const NAV = [
   { to: "/", label: "Running Card", icon: Flame, group: "Dispatch", roles: ["SUPER_ADMIN", "RADIO_OPERATOR"] },
   { to: "/incidents", label: "Incidents", icon: Siren, group: "Dispatch", roles: ALL },
   { to: "/notifications", label: "Notifications", icon: Bell, group: "Dispatch", roles: ALL },
+  { to: "/statistics", label: "Statistics", icon: ChartColumn, group: "Dispatch", roles: ALL },
   { to: "/stations", label: "Stations & Trucks", icon: Truck, group: "Resources", roles: ALL },
   { to: "/users", label: "Users", icon: Users, group: "Administration", roles: ["SUPER_ADMIN", "ADMIN"] },
   { to: "/audit-log", label: "Audit log", icon: ScrollText, group: "Administration", roles: ["SUPER_ADMIN", "ADMIN"] },

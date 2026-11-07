@@ -47,19 +47,35 @@ export function refreshSession() {
   return refreshing;
 }
 
-export async function api(path, options) {
-  let res = await send(path, options);
-  if (res.status === 401 && !path.startsWith("/auth/")) {
-    try {
-      await refreshSession();
-    } catch {
-      setAccessToken(null);
-      onSignedOut();
-      throw new ApiError(401, { message: "Your session has ended. Please sign in again." });
-    }
-    res = await send(path, options);
+/** send(), retried once with a fresh access token after a 401; signs out when the session can't be refreshed. */
+async function sendSignedIn(path, options) {
+  const res = await send(path, options);
+  if (res.status !== 401 || path.startsWith("/auth/")) return res;
+  try {
+    await refreshSession();
+  } catch {
+    setAccessToken(null);
+    onSignedOut();
+    throw new ApiError(401, { message: "Your session has ended. Please sign in again." });
   }
-  return parse(res);
+  return send(path, options);
+}
+
+export async function api(path, options) {
+  return parse(await sendSignedIn(path, options));
+}
+
+/** The file name from a Content-Disposition header, or the fallback. */
+export const filenameFrom = (header, fallback = "download") => /filename="([^"]+)"/.exec(header ?? "")?.[1] ?? fallback;
+
+/** Downloads a file (e.g. a CSV export) with the bearer token, under the name the server gives it. */
+export async function download(path) {
+  const res = await sendSignedIn(path);
+  if (!res.ok) await parse(res); // throws ApiError with the server's message
+  const url = URL.createObjectURL(await res.blob());
+  const link = Object.assign(document.createElement("a"), { href: url, download: filenameFrom(res.headers.get("Content-Disposition")) });
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Splits Server-Sent Events text into complete events; returns them and the unfinished rest. */
@@ -79,15 +95,7 @@ export function parseSse(buffer) {
  * can't send the bearer token. Resolves when the server ends the stream; the caller reconnects.
  */
 export async function stream(path, onEvent, signal) {
-  let res = await send(path, { signal });
-  if (res.status === 401) {
-    await refreshSession().catch(() => {
-      setAccessToken(null);
-      onSignedOut();
-      throw new ApiError(401, null);
-    });
-    res = await send(path, { signal });
-  }
+  const res = await sendSignedIn(path, { signal });
   if (!res.ok) throw new ApiError(res.status, null);
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";

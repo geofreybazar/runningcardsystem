@@ -48,6 +48,23 @@ function timeline(i: DetailIncident) {
   return steps;
 }
 
+/**
+ * Incidents an account may see: offices see incidents in their cities, ones their stations responded to, and ones
+ * that notified them (e.g. their station was on the running card). Regional accounts see all.
+ * Shared with the statistics, so both follow the same rule.
+ */
+export function incidentVisibility(user: AuthUser) {
+  const area = user.areaCityIds;
+  if (area === null) return {};
+  return {
+    OR: [
+      { cityId: { in: area } },
+      { units: { some: { station: { cityId: { in: area } } } } },
+      { notifications: { some: { cityIds: { hasSome: area } } } },
+    ],
+  };
+}
+
 /** "E-12 (Gagalangin Fire Sub-station)" for each truck, for the audit log. */
 const trucksOf = (units: { station: { name: string }; truck: { callSign: string } }[]) => units.map((u) => `${u.truck.callSign} (${u.station.name})`);
 
@@ -62,24 +79,12 @@ export class IncidentsService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Offices see incidents in their cities, ones their stations responded to or were on the card for (notified). Regional accounts see all. */
-  private visibleTo(user: AuthUser) {
-    const area = user.areaCityIds;
-    if (area === null) return {};
-    return {
-      OR: [
-        { cityId: { in: area } },
-        { units: { some: { station: { cityId: { in: area } } } } },
-        { notifications: { some: { cityIds: { hasSome: area } } } },
-      ],
-    };
-  }
 
   /** Operations see incidents their district responded to; everyone else sees all. */
   async list(user: AuthUser, status?: 'OPEN' | 'CLOSED', take = 100) {
     const levels = await this.alarmLevels();
     const incidents = await this.prisma.incident.findMany({
-      where: { status, ...this.visibleTo(user) },
+      where: { status, ...incidentVisibility(user) },
       orderBy: { createdAt: 'desc' },
       take: Math.min(take, 500),
       include: {
@@ -93,7 +98,7 @@ export class IncidentsService {
   }
 
   async get(user: AuthUser, id: string) {
-    const incident = await this.prisma.incident.findFirst({ where: { id, ...this.visibleTo(user) }, include: DETAIL_INCLUDE });
+    const incident = await this.prisma.incident.findFirst({ where: { id, ...incidentVisibility(user) }, include: DETAIL_INCLUDE });
     if (!incident) {
       if (await this.prisma.incident.count({ where: { id } })) throw new ForbiddenException('This incident is outside your area');
       throw new NotFoundException('Incident not found');
