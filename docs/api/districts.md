@@ -18,6 +18,6 @@ Controller `DistrictsController` (`backend/src/districts/districts.controller.ts
 - **Body:** `{ "lat": latitude, "lng": longitude }` (`IsLatitude`/`IsLongitude`).
 - **Rules:**
   - Barangay has no pin yet: any `operate` user may set it. Not audited.
-  - Barangay already has a pin: requires `editCity` on the barangay's city (Operations covering that city, or Super Admin). Audited as `UPDATE Barangay` with `{ from, to }`.
+  - Barangay already has a pin: requires `editCity` on the barangay's city (the Operations office running that city, or Super Admin; not FD II-IV). Audited as `UPDATE Barangay` with `{ from, to }`.
 - **200:** `{ "id", "name", "lat", "lng" }`.
 - **Errors:** 400 validation; 403 overwrite not allowed; 404 `Barangay not found`.

@@ -20,6 +20,8 @@ export interface AuthUser {
   areaCityIds: number[] | null;
   /** City whose fires this account dispatches; null = cannot dispatch (Super Admin dispatches anywhere). */
   dispatchCityId: number | null;
+  /** The one city this office runs (city office, or FD1/FD5); null for FD II-IV and Regional offices. */
+  officeCityId: number | null;
 }
 
 export const AUTH_USER_SELECT = {

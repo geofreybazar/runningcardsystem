@@ -17,7 +17,7 @@ export const canDispatchAnywhere = (user) => user.role === "SUPER_ADMIN" || user
 
 /** May edit stations, trucks and barangay pins in this city. */
 export const canEditCity = (user, cityId) =>
-  user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && cityId != null && !!user.areaCityIds?.includes(cityId));
+  user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && cityId != null && user.officeCityId === cityId);
 
 const ROMAN = ["", "I", "II", "III", "IV", "V"];
 // FD1 and FD5 are named after their single city.

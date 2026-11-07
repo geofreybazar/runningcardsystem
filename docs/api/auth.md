@@ -11,7 +11,8 @@ Controller `AuthController` (`backend/src/auth/auth.controller.ts`), service `Au
   "role": "RADIO_OPERATOR", "officeLevel": "CITY", "districtId": 2, "cityId": 3,
   "mustChangePassword": false,
   "areaCityIds": [3],          // null = all of NCR
-  "dispatchCityId": 3          // null = cannot dispatch
+  "dispatchCityId": 3,         // null = cannot dispatch
+  "officeCityId": 3            // the one city this office runs (city office, FD1/FD5); null = FD II-IV / Regional
 }
 ```
 

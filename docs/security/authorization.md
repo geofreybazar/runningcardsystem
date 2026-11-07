@@ -22,8 +22,8 @@ Allowed office levels per role (`OFFICE_LEVELS`): SUPER_ADMIN and ADMIN → REGI
 |---|---|
 | `operate` | any signed-in user |
 | `viewRunningCard` | SUPER_ADMIN, RADIO_OPERATOR (any office) |
-| `editStations` | SUPER_ADMIN, OPERATIONS (route gate) |
-| `editCity(cityId)` | SUPER_ADMIN; OPERATIONS whose `areaCityIds` include `cityId` (record check) |
+| `editStations` | SUPER_ADMIN; OPERATIONS whose office runs a city (`officeCityId`: a city office, or the FD1/FD5 district office). Fire District II-IV and Regional Operations get 403 (route gate) |
+| `editCity(cityId)` | SUPER_ADMIN; OPERATIONS whose `officeCityId === cityId` (record check) |
 | `dispatch` | SUPER_ADMIN; RADIO_OPERATOR with a non-null `dispatchCityId` (route gate) |
 | `dispatchIn(cityId)` | SUPER_ADMIN; RADIO_OPERATOR whose `dispatchCityId === cityId` (record check) |
 | `manageUsers` | SUPER_ADMIN, ADMIN |
@@ -42,8 +42,8 @@ Additional checks outside the policy:
 | Read districts, barangays, stations, settings | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Preview running card | ✓ | — | — | ✓ | ✓ |
 | Set first barangay pin | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Overwrite barangay pin | ✓ | — | own area | — | — |
-| Create/edit stations, trucks, truck status | ✓ | — | own area | — | — |
+| Overwrite barangay pin | ✓ | — | own city (city office, FD1/FD5); FD II-IV: — | — | — |
+| Create/edit stations, trucks, truck status | ✓ | — | own city (city office, FD1/FD5); FD II-IV: view only | — | — |
 | List/view incidents | all | all | own area + responded/notified | own area + responded/notified | district area + responded/notified / all (regional) |
 | Dispatch, raise, close | any city | — | — | own city only | — |
 | Next-alarm preview | any | — | — | own city only | — |
@@ -52,6 +52,8 @@ Additional checks outside the policy:
 | Change settings | ✓ | — | — | — | — |
 
 "Responded" means at least one unit's station is in the office's area; "notified" means a notification named a city in the area (e.g. its station was on the running card).
+
+`officeCityId` (`area.ts`) is the one city an office runs: a city office's city, or the single city of FD1 (Manila) / FD5 (Quezon City). It decides who dispatches (Radio Operators) and who maintains stations, trucks and barangay pins (Operations). Fire District II-IV and Regional offices run no city: they view only.
 
 Manila (FD1) and Quezon City (FD5) offices exist only at district level; migration `20261108100000_single_city_district_offices` moved any city-level accounts there (their area and dispatch city are unchanged).
 

@@ -2,7 +2,7 @@
 
 Controller `StationsController` (`backend/src/stations/stations.controller.ts`), service `StationsService` (`stations.service.ts`), DTOs in `stations.dto.ts`.
 
-Write routes need the `editStations` ability (SUPER_ADMIN, OPERATIONS) **and** `editCity` on the station's city (Operations whose `areaCityIds` contain it, or Super Admin). Record-check failures → 403.
+Write routes need the `editStations` ability (SUPER_ADMIN, or OPERATIONS of an office that runs a city: a city office or FD1/FD5) **and** `editCity` on the station's city (that office's own city, or Super Admin). Fire District II-IV and Regional Operations only view. Record-check failures → 403.
 
 **Station object** (`STATION_INCLUDE`): all `Station` columns plus
 

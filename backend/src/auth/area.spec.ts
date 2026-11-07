@@ -1,4 +1,4 @@
-import { areaCityIds, dispatchCityId, type Office } from './area.js';
+import { areaCityIds, dispatchCityId, officeCityId, type Office } from './area.js';
 
 const manila = [{ id: 1, name: 'Manila', districtId: 1 }];
 const fd2 = [
@@ -23,6 +23,14 @@ describe('office areas', () => {
   it('regional radio watches everything and dispatches nothing', () => {
     expect(dispatchCityId(office({}), [])).toBeNull();
     expect(areaCityIds(office({}), [])).toBeNull();
+  });
+
+  it('the city an office runs: city offices and FD1/FD5, not FD II-IV or Regional', () => {
+    const ops = (o: Partial<Office>) => office({ role: 'OPERATIONS', ...o });
+    expect(officeCityId(ops({ officeLevel: 'CITY', districtId: 2, cityId: 3 }), fd2)).toBe(3);
+    expect(officeCityId(ops({ officeLevel: 'DISTRICT', districtId: 1 }), manila)).toBe(1);
+    expect(officeCityId(ops({ officeLevel: 'DISTRICT', districtId: 2 }), fd2)).toBeNull();
+    expect(officeCityId(ops({}), [])).toBeNull();
   });
 
   it('only radio operators dispatch', () => {

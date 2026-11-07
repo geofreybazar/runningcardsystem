@@ -9,7 +9,8 @@ describe('running card and barangay pins', () => {
   let http: ReturnType<typeof request>;
   let superAdmin: Record<string, string>;
   let radio: Record<string, string>;
-  let ops2: Record<string, string>;
+  let ops2: Record<string, string>; // Fire District 2 Operations: view only
+  let opsCaloocan: Record<string, string>;
 
   beforeAll(async () => {
     app = await createApp();
@@ -17,6 +18,8 @@ describe('running card and barangay pins', () => {
     superAdmin = await superAdminAuth(app);
     radio = await makeUser(app, superAdmin, 'R3001', 'RADIO_OPERATOR');
     ops2 = await makeUser(app, superAdmin, 'R3002', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 });
+    const caloocanId = (await http.get('/api/districts').set(radio)).body.flatMap((d: { cities: { id: number; name: string }[] }) => d.cities).find((c: { name: string }) => c.name === 'Caloocan').id;
+    opsCaloocan = await makeUser(app, superAdmin, 'R3004', 'OPERATIONS', { officeLevel: 'CITY', cityId: caloocanId });
   });
   afterAll(() => app.close());
 
@@ -55,7 +58,7 @@ describe('running card and barangay pins', () => {
     await http.get('/api/running-card').query(QUIAPO).set(ops2).expect(403); // only radio operators and super admin use the card
   });
 
-  it('lets anyone set a first barangay pin, but only Operations of that district correct it', async () => {
+  it('lets anyone set a first barangay pin, but only the Operations office running that city correct it', async () => {
     const districts = (await http.get('/api/districts').set(radio)).body;
     const caloocan = districts.find((d: { code: number }) => d.code === 2).cities.find((c: { name: string }) => c.name === 'Caloocan');
     const manila = districts.find((d: { code: number }) => d.code === 1).cities[0];
@@ -64,10 +67,11 @@ describe('running card and barangay pins', () => {
 
     await http.put(`/api/barangays/${bCaloocan.id}/location`).set(radio).send({ lat: 14.65, lng: 120.97 }).expect(200);
     await http.put(`/api/barangays/${bCaloocan.id}/location`).set(radio).send({ lat: 14.66, lng: 120.97 }).expect(403);
-    await http.put(`/api/barangays/${bCaloocan.id}/location`).set(ops2).send({ lat: 14.66, lng: 120.97 }).expect(200);
+    await http.put(`/api/barangays/${bCaloocan.id}/location`).set(ops2).send({ lat: 14.66, lng: 120.97 }).expect(403); // FD II only views
+    await http.put(`/api/barangays/${bCaloocan.id}/location`).set(opsCaloocan).send({ lat: 14.66, lng: 120.97 }).expect(200);
 
     await http.put(`/api/barangays/${bManila.id}/location`).set(radio).send({ lat: 14.6, lng: 120.98 }).expect(200);
-    await http.put(`/api/barangays/${bManila.id}/location`).set(ops2).send({ lat: 14.61, lng: 120.98 }).expect(403);
+    await http.put(`/api/barangays/${bManila.id}/location`).set(opsCaloocan).send({ lat: 14.61, lng: 120.98 }).expect(403);
   });
 });
 

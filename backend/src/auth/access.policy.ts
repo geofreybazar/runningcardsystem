@@ -5,7 +5,8 @@ const is = (user: AuthUser | null, ...roles: AuthUser['role'][]) => !!user && ro
 
 /**
  * Who may do what. Area rules come from the user's office (see area.ts):
- * Operations edit stations in their area; Radio Operators dispatch only for their own city; Super Admin does anything.
+ * Operations maintain stations only in the one city their office runs; Radio Operators dispatch only for their own city;
+ * Super Admin does anything.
  */
 @Policy()
 export class AccessPolicy implements PolicyBefore<AuthUser> {
@@ -24,14 +25,15 @@ export class AccessPolicy implements PolicyBefore<AuthUser> {
     return is(user, 'SUPER_ADMIN', 'RADIO_OPERATOR');
   }
 
+  /** Route gate: Operations of a city office or of FD1/FD5. Fire District II-IV and Regional Operations only view. */
   editStations(user: AuthUser | null) {
-    return is(user, 'SUPER_ADMIN', 'OPERATIONS');
+    return is(user, 'SUPER_ADMIN') || (is(user, 'OPERATIONS') && user!.officeCityId !== null);
   }
 
-  /** Operations edit only stations, trucks and barangay pins in cities their office covers. */
+  /** Stations, trucks and barangay pin corrections in this city: only the Operations office that runs it. */
   editCity(user: AuthUser | null, cityId: number | null) {
     if (is(user, 'SUPER_ADMIN')) return true;
-    return is(user, 'OPERATIONS') && cityId !== null && !!user!.areaCityIds?.includes(cityId);
+    return is(user, 'OPERATIONS') && cityId !== null && user!.officeCityId === cityId;
   }
 
   /** Route gate for dispatch actions; the city is checked with dispatchIn. */

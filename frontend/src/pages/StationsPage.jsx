@@ -166,7 +166,7 @@ function StationsPage() {
   return (
     <Page
       title='Stations & Trucks'
-      description={canAddHere ? undefined : "View only. Operations offices edit stations in their own city or district."}
+      description={canAddHere ? undefined : "View only. Stations and trucks are maintained by each city's Operations office (Manila and Quezon City: their Fire District office)."}
       actions={
         <>
           <SimpleSelect
