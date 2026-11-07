@@ -81,7 +81,7 @@ npm test             # coordinate parsing
 
 ## Docker
 
-> Untested. The backend image is expected to fail at its seed step; see [docs/development/deployment.md](docs/development/deployment.md).
+> Tested on 2026-11-07 (Docker on WSL 2); details and LAN/HTTPS notes in [docs/development/deployment.md](docs/development/deployment.md).
 
 ```bash
 export VITE_GOOGLE_API=your-key   # or put it in a .env next to docker-compose.yml

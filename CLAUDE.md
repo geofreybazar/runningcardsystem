@@ -49,5 +49,5 @@ Frontend (`cd frontend`): `npm run dev` (proxies `/api` to `API_URL`, default `l
 - E2E tests drop the schema of the `TEST_DATABASE_URL` database (the user approved this). Never point it at a real database. Prisma blocks `migrate reset` for AI agents: ask the user first.
 - Never commit `.env` files or keys. The Google key is a browser key and must stay referrer-restricted.
 - `SEED_PLACEHOLDER_TRUCKS=true` is for demos and tests only.
-- Docker files are untested; see [docs/development/deployment.md](docs/development/deployment.md) for a known backend image defect.
+- Docker stack tested 2026-11-07 (see [docs/development/deployment.md](docs/development/deployment.md)); re-test after changing the Dockerfiles, the seed's imports or nginx.
 - Open security items: [docs/security/gaps.md](docs/security/gaps.md).
