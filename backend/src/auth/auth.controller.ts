@@ -22,8 +22,8 @@ export class AuthController {
   @HttpCode(200)
   // Per client IP (see TRUST_PROXY); generous because stations may share a carrier-NAT IP. Per-account pauses: LoginAttempts.
   @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 30), ttl: 60_000 } })
-  async login(@Body({ schema: loginSchema }) body: LoginDto, @Res({ passthrough: true }) res: Response) {
-    return this.respond(res, await this.auth.login(body.accountNumber, body.password));
+  async login(@Body({ schema: loginSchema }) body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.respond(res, await this.auth.login(body.accountNumber, body.password, req.ip));
   }
 
   @Post('refresh')

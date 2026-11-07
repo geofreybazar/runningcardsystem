@@ -1,6 +1,6 @@
 # Database schema
 
-Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`, `20261108090000_incident_views`, `20261108100000_single_city_district_offices`, `20261108120000_notification_seen_ids`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
+Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/prisma/migrations/` (`20261106152339_init`, `20261106163316_offices`, `20261107120000_user_rank_account_number`, `20261107140000_notifications`, `20261108090000_incident_views`, `20261108100000_single_city_district_offices`, `20261108120000_notification_seen_ids`, `20261108140000_audit_sign_ins`). PostgreSQL; Prisma 7 client generated to `backend/src/generated/prisma` (ESM).
 
 14 models, 8 enums. See the [ER diagram](erd.md).
 
@@ -170,10 +170,11 @@ Index: `(status, createdAt)`, `(cityId)`. Has many `IncidentUnit`.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | Int | PK |
-| `userId` | String | FK → `User.id` (RESTRICT) |
+| `userId` | String? | FK → `User.id` (SET NULL). Null only for a failed sign-in with an unknown account number |
 | `action` | String | free text; values used in code: `CREATE`, `UPDATE`, `DELETE`, `DISABLE`, `RESET_PASSWORD`, `DEACTIVATE`, `STATUS` |
 | `entity` | String | values used: `User`, `Station`, `Truck`, `Barangay`, `Settings` |
 | `entityId` | String | id as text |
+| `ip` | String? | client address, for sign-in attempts |
 | `changes` | Json? | |
 | `createdAt` | DateTime | default `now()` |
 

@@ -63,11 +63,15 @@ export class UsersService {
     await this.assertAccountNumberFree(dto.accountNumber);
     const password = tempPassword();
     const name = { firstName: dto.firstName, middleName: dto.middleName ?? null, lastName: dto.lastName };
-    const user = await this.prisma.user.create({
-      data: { accountNumber: dto.accountNumber, rank, ...name, role: dto.role, ...office, passwordHash: await this.hasher.hash(password), mustChangePassword: true },
-      select: PUBLIC_FIELDS,
+    const passwordHash = await this.hasher.hash(password);
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { accountNumber: dto.accountNumber, rank, ...name, role: dto.role, ...office, passwordHash, mustChangePassword: true },
+        select: PUBLIC_FIELDS,
+      });
+      await this.audit.log(actor.id, 'CREATE', 'User', created.id, { accountNumber: created.accountNumber, rank, ...name, role: created.role, ...office }, { db: tx });
+      return created;
     });
-    await this.audit.log(actor.id, 'CREATE', 'User', user.id, { accountNumber: user.accountNumber, rank, ...name, role: user.role, ...office });
     return { user, temporaryPassword: password };
   }
 
@@ -90,22 +94,25 @@ export class UsersService {
     // Rank is checked when the edit touches rank or role, so legacy accounts without one can still be disabled.
     const rank = 'rank' in dto || 'role' in dto ? rankFor(role, 'rank' in dto ? dto.rank : target.rank) : undefined;
     if (dto.accountNumber && dto.accountNumber !== target.accountNumber) await this.assertAccountNumberFree(dto.accountNumber);
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: {
-        accountNumber: dto.accountNumber,
-        rank,
-        firstName: dto.firstName,
-        middleName: dto.middleName,
-        lastName: dto.lastName,
-        role,
-        ...office,
-        isActive: dto.isActive,
-      },
-      select: PUBLIC_FIELDS,
+    const user = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id },
+        data: {
+          accountNumber: dto.accountNumber,
+          rank,
+          firstName: dto.firstName,
+          middleName: dto.middleName,
+          lastName: dto.lastName,
+          role,
+          ...office,
+          isActive: dto.isActive,
+        },
+        select: PUBLIC_FIELDS,
+      });
+      await this.audit.log(actor.id, dto.isActive === false ? 'DISABLE' : 'UPDATE', 'User', id, dto, { db: tx });
+      return updated;
     });
     if (dto.isActive === false) await this.tokens.revokeAll(id);
-    await this.audit.log(actor.id, dto.isActive === false ? 'DISABLE' : 'UPDATE', 'User', id, dto);
     return user;
   }
 
@@ -113,12 +120,12 @@ export class UsersService {
     const target = await this.find(id);
     this.assertCanManage(actor, target.role);
     const password = tempPassword();
-    await this.prisma.user.update({
-      where: { id },
-      data: { passwordHash: await this.hasher.hash(password), mustChangePassword: true },
+    const passwordHash = await this.hasher.hash(password);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { passwordHash, mustChangePassword: true } });
+      await this.audit.log(actor.id, 'RESET_PASSWORD', 'User', id, undefined, { db: tx });
     });
     await this.tokens.revokeAll(id);
-    await this.audit.log(actor.id, 'RESET_PASSWORD', 'User', id);
     return { temporaryPassword: password };
   }
 
@@ -127,13 +134,15 @@ export class UsersService {
     const target = await this.find(id);
     this.assertCanManage(actor, target.role);
     if (id === actor.id) throw new BadRequestException('You cannot remove your own account');
-    await this.prisma.user.update({
-      where: { id },
-      // Free the account number for reuse; '#' can't appear in a valid one, so the renamed value never clashes.
-      data: { deletedAt: new Date(), isActive: false, accountNumber: `${target.accountNumber}#deleted-${Date.now()}` },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id },
+        // Free the account number for reuse; '#' can't appear in a valid one, so the renamed value never clashes.
+        data: { deletedAt: new Date(), isActive: false, accountNumber: `${target.accountNumber}#deleted-${Date.now()}` },
+      });
+      await this.audit.log(actor.id, 'DELETE', 'User', id, { accountNumber: target.accountNumber }, { db: tx });
     });
     await this.tokens.revokeAll(id);
-    await this.audit.log(actor.id, 'DELETE', 'User', id, { accountNumber: target.accountNumber });
   }
 
   private async find(id: string) {

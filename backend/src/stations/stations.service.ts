@@ -33,20 +33,22 @@ export class StationsService {
   async create(user: AuthUser, dto: CreateStationDto) {
     const city = await this.city(dto.cityId);
     await this.authz.authorize(AccessPolicy, 'editCity', user, city.id);
-    const station = await this.prisma.station.create({
-      data: {
-        name: dto.name,
-        lat: dto.lat,
-        lng: dto.lng,
-        districtId: city.districtId,
-        cityId: city.id,
-        address: dto.address,
-        contactNumber: dto.contactNumber,
-      },
-      include: STATION_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const station = await tx.station.create({
+        data: {
+          name: dto.name,
+          lat: dto.lat,
+          lng: dto.lng,
+          districtId: city.districtId,
+          cityId: city.id,
+          address: dto.address,
+          contactNumber: dto.contactNumber,
+        },
+        include: STATION_INCLUDE,
+      });
+      await this.audit.log(user.id, 'CREATE', 'Station', station.id, { name: station.name, districtId: station.districtId }, { db: tx });
+      return station;
     });
-    await this.audit.log(user.id, 'CREATE', 'Station', station.id, { name: station.name, districtId: station.districtId });
-    return station;
   }
 
   async update(user: AuthUser, id: number, dto: UpdateStationDto) {
@@ -55,64 +57,72 @@ export class StationsService {
     // Moving a station to another city needs rights there too.
     const city = dto.cityId === undefined || dto.cityId === station.cityId ? null : await this.city(dto.cityId);
     if (city) await this.authz.authorize(AccessPolicy, 'editCity', user, city.id);
-    const updated = await this.prisma.station.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        lat: dto.lat,
-        lng: dto.lng,
-        ...(city && { cityId: city.id, districtId: city.districtId }),
-        address: dto.address,
-        contactNumber: dto.contactNumber,
-        isActive: dto.isActive,
-      },
-      include: STATION_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.station.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          lat: dto.lat,
+          lng: dto.lng,
+          ...(city && { cityId: city.id, districtId: city.districtId }),
+          address: dto.address,
+          contactNumber: dto.contactNumber,
+          isActive: dto.isActive,
+        },
+        include: STATION_INCLUDE,
+      });
+      await this.audit.log(user.id, dto.isActive === false ? 'DEACTIVATE' : 'UPDATE', 'Station', id, dto, { db: tx });
+      return updated;
     });
-    await this.audit.log(user.id, dto.isActive === false ? 'DEACTIVATE' : 'UPDATE', 'Station', id, dto);
-    return updated;
   }
 
   async addTruck(user: AuthUser, stationId: number, dto: CreateTruckDto) {
     const station = await this.findStation(stationId);
     await this.authz.authorize(AccessPolicy, 'editCity', user, station.cityId);
-    const truck = await this.prisma.truck.create({
-      data: {
-        stationId,
-        callSign: dto.callSign,
-        plateNumber: dto.plateNumber,
-        type: dto.type,
-        waterCapacityLiters: dto.waterCapacityLiters,
-        ownership: dto.ownership,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const truck = await tx.truck.create({
+        data: {
+          stationId,
+          callSign: dto.callSign,
+          plateNumber: dto.plateNumber,
+          type: dto.type,
+          waterCapacityLiters: dto.waterCapacityLiters,
+          ownership: dto.ownership,
+        },
+      });
+      await this.audit.log(user.id, 'CREATE', 'Truck', truck.id, { callSign: truck.callSign, stationId }, { db: tx });
+      return truck;
     });
-    await this.audit.log(user.id, 'CREATE', 'Truck', truck.id, { callSign: truck.callSign, stationId });
-    return truck;
   }
 
   async updateTruck(user: AuthUser, id: number, dto: UpdateTruckDto) {
     const truck = await this.findTruck(id);
     await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
-    const updated = await this.prisma.truck.update({
-      where: { id },
-      data: {
-        callSign: dto.callSign,
-        plateNumber: dto.plateNumber,
-        type: dto.type,
-        waterCapacityLiters: dto.waterCapacityLiters,
-        ownership: dto.ownership,
-        status: dto.status,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.truck.update({
+        where: { id },
+        data: {
+          callSign: dto.callSign,
+          plateNumber: dto.plateNumber,
+          type: dto.type,
+          waterCapacityLiters: dto.waterCapacityLiters,
+          ownership: dto.ownership,
+          status: dto.status,
+        },
+      });
+      await this.audit.log(user.id, dto.status && Object.keys(dto).length === 1 ? 'STATUS' : 'UPDATE', 'Truck', id, dto, { db: tx });
+      return updated;
     });
-    await this.audit.log(user.id, dto.status && Object.keys(dto).length === 1 ? 'STATUS' : 'UPDATE', 'Truck', id, dto);
-    return updated;
   }
 
   /** Retire a truck; it stays in incident history. */
   async removeTruck(user: AuthUser, id: number) {
     const truck = await this.findTruck(id);
     await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
-    await this.prisma.truck.update({ where: { id }, data: { isActive: false } });
-    await this.audit.log(user.id, 'DELETE', 'Truck', id, { callSign: truck.callSign });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.truck.update({ where: { id }, data: { isActive: false } });
+      await this.audit.log(user.id, 'DELETE', 'Truck', id, { callSign: truck.callSign }, { db: tx });
+    });
   }
 
   private async findStation(id: number) {

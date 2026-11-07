@@ -8,9 +8,9 @@ import Page from "@/components/Page.jsx";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
 import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
+import { ACTION_LABELS, AUDIT_ENTITIES, WARNING_ACTIONS, auditDetails } from "@/lib/audit.js";
 
 const PAGE = 100;
-const ENTITIES = ["User", "Station", "Truck", "Barangay", "Settings"];
 const when = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 function AuditLogPage() {
@@ -34,13 +34,13 @@ function AuditLogPage() {
   return (
     <Page
       title='Audit log'
-      description='Who changed accounts, stations, trucks, barangay pins and settings.'
+      description='Sign-ins, dispatches, and every change to accounts, stations, trucks, barangay pins and settings.'
       actions={
         <SimpleSelect
           value={entity}
           onChange={setEntity}
           className='w-44 bg-card'
-          options={[{ value: "ALL", label: "Everything" }, ...ENTITIES.map((e) => ({ value: e, label: e }))]}
+          options={[{ value: "ALL", label: "Everything" }, ...Object.entries(AUDIT_ENTITIES).map(([value, label]) => ({ value, label }))]}
         />
       }
     >
@@ -60,16 +60,16 @@ function AuditLogPage() {
               {rows.map((r) => (
                 <TableRow key={r.id} className='align-top'>
                   <TableCell className='whitespace-nowrap text-muted-foreground'>{when(r.createdAt)}</TableCell>
-                  <TableCell className='whitespace-nowrap'>{displayName(r.user)}</TableCell>
+                  <TableCell className='whitespace-nowrap'>
+                    {r.user ? displayName(r.user) : <span className='text-muted-foreground'>Unknown account</span>}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant='outline'>{r.action}</Badge>
+                    <Badge variant={WARNING_ACTIONS.has(r.action) ? "destructive" : "outline"}>{ACTION_LABELS[r.action] ?? r.action}</Badge>
                   </TableCell>
                   <TableCell className='whitespace-nowrap'>
-                    {r.entity} <span className='text-muted-foreground'>#{r.entityId.slice(0, 8)}</span>
+                    {AUDIT_ENTITIES[r.entity] ?? r.entity} <span className='text-muted-foreground'>#{r.entityId.slice(0, 8)}</span>
                   </TableCell>
-                  <TableCell className='max-w-md font-mono text-xs break-all whitespace-normal text-muted-foreground'>
-                    {r.changes ? JSON.stringify(r.changes) : ""}
-                  </TableCell>
+                  <TableCell className='max-w-md text-xs break-words whitespace-normal text-muted-foreground'>{auditDetails(r)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

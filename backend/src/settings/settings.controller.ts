@@ -33,11 +33,13 @@ export class SettingsController {
       throw new BadRequestException('An open incident is at an alarm level you are removing. Close it first.');
     }
     const before = await this.get();
-    const saved = await this.prisma.settings.update({
-      where: { id: 1 },
-      data: { stationsPerAlarm: dto.stationsPerAlarm, maxDistanceKm: dto.maxDistanceKm, alarmLevels },
+    return this.prisma.$transaction(async (tx) => {
+      const saved = await tx.settings.update({
+        where: { id: 1 },
+        data: { stationsPerAlarm: dto.stationsPerAlarm, maxDistanceKm: dto.maxDistanceKm, alarmLevels },
+      });
+      await this.audit.log(user.id, 'UPDATE', 'Settings', 1, { before, after: saved }, { db: tx });
+      return saved;
     });
-    await this.audit.log(user.id, 'UPDATE', 'Settings', 1, { before, after: saved });
-    return saved;
   }
 }

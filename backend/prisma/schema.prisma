@@ -248,12 +248,15 @@ model IncidentUnit {
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  action    String // CREATE | UPDATE | DELETE | DISABLE | ...
-  entity    String // User | Station | Truck | Settings | Barangay
+  /// Null for a failed sign-in with an unknown account number.
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // CREATE | UPDATE | DELETE | DISABLE | DISPATCH | RAISE_ALARM | CLOSE | SIGN_IN | SIGN_IN_FAILED | ...
+  entity    String // User | Station | Truck | Settings | Barangay | Incident | Session
   entityId  String
   changes   Json?
+  /// Client address, recorded for sign-in attempts.
+  ip        String?
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])

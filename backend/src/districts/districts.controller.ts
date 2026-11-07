@@ -46,10 +46,14 @@ export class DistrictsController {
   async setLocation(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Body({ schema: locationSchema }) { lat, lng }: z.infer<typeof locationSchema>) {
     const barangay = await this.prisma.barangay.findUnique({ where: { id }, });
     if (!barangay) throw new NotFoundException('Barangay not found');
-    if (barangay.lat !== null) {
-      await this.authz.authorize(AccessPolicy, 'editCity', user, barangay.cityId);
-      await this.audit.log(user.id, 'UPDATE', 'Barangay', id, { from: { lat: barangay.lat, lng: barangay.lng }, to: { lat, lng } });
-    }
-    return this.prisma.barangay.update({ where: { id }, data: { lat, lng }, select: { id: true, name: true, lat: true, lng: true } });
+    const first = barangay.lat === null;
+    if (!first) await this.authz.authorize(AccessPolicy, 'editCity', user, barangay.cityId);
+    return this.prisma.$transaction(async (tx) => {
+      const saved = await tx.barangay.update({ where: { id }, data: { lat, lng }, select: { id: true, name: true, lat: true, lng: true } });
+      // The first pin comes from geocoding when a barangay is first picked; later ones are corrections.
+      const changes = first ? { name: barangay.name, to: { lat, lng } } : { name: barangay.name, from: { lat: barangay.lat, lng: barangay.lng }, to: { lat, lng } };
+      await this.audit.log(user.id, first ? 'SET_PIN' : 'UPDATE', 'Barangay', id, changes, { db: tx });
+      return saved;
+    });
   }
 }

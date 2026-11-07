@@ -7,6 +7,7 @@ import { RunningCardService } from '../running-card/running-card.service.js';
 import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
 import type { CreateIncidentDto, TruckPicks } from './incidents.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['stations'][number];
@@ -47,6 +48,9 @@ function timeline(i: DetailIncident) {
   return steps;
 }
 
+/** "E-12 (Gagalangin Fire Sub-station)" for each truck, for the audit log. */
+const trucksOf = (units: { station: { name: string }; truck: { callSign: string } }[]) => units.map((u) => `${u.truck.callSign} (${u.station.name})`);
+
 @Injectable()
 export class IncidentsService {
   constructor(
@@ -55,6 +59,7 @@ export class IncidentsService {
     private readonly cities: CityDirectory,
     private readonly authz: AuthorizationService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   /** Offices see incidents in their cities, ones their stations responded to or were on the card for (notified). Regional accounts see all. */
@@ -120,6 +125,8 @@ export class IncidentsService {
       });
       const sent = await this.dispatch(tx, incident.id, card[0].alarmLevel, card[0].stations, dto.truckPicks);
       if (sent.length === 0) throw new ConflictException('Every truck on the 1st Alarm became unavailable. Refresh the running card.');
+      const trucks = trucksOf(sent);
+      await this.audit.log(user.id, 'DISPATCH', 'Incident', incident.id, { locationLabel: dto.locationLabel, city: city.name, alarmLevel: card[0].alarmLevel, trucks }, { db: tx });
       return [incident.id, await this.notifications.record(tx, incident.id, 'DISPATCHED', card[0].alarmLevel, user.id, sent)] as const;
     });
     await this.notifications.publish(notified);
@@ -156,6 +163,7 @@ export class IncidentsService {
       if (count === 0) throw new ConflictException('The incident changed meanwhile. Reload and try again.');
       const sent = await this.dispatch(tx, id, next.alarmLevel, next.stations, truckPicks);
       if (sent.length === 0) throw new ConflictException('Those trucks became unavailable. Reload and try again.');
+      await this.audit.log(user.id, 'RAISE_ALARM', 'Incident', id, { alarmLevel: next.alarmLevel, trucks: trucksOf(sent) }, { db: tx });
       return this.notifications.record(tx, id, 'ALARM_RAISED', next.alarmLevel, user.id, sent);
     });
     await this.notifications.publish(notified);
@@ -173,6 +181,7 @@ export class IncidentsService {
       await tx.incidentUnit.updateMany({ where: { incidentId: id, releasedAt: null }, data: { releasedAt: new Date() } });
       await tx.incident.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date(), closedById: user.id } });
       // Each city hears which of its trucks were released.
+      await this.audit.log(user.id, 'CLOSE', 'Incident', id, { alarmLevel: levels[incident.alarmIndex], released: trucksOf(active) }, { db: tx });
       return this.notifications.record(tx, id, 'INCIDENT_CLOSED', levels[incident.alarmIndex], user.id, active);
     });
     await this.notifications.publish(notified);
