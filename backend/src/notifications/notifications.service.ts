@@ -65,13 +65,18 @@ export class NotificationsService {
     return this.prisma.notification.findMany({ where: { id: { in: ids } }, include: INCLUDE, orderBy: { id: 'asc' } });
   }
 
-  async list(user: AuthUser, take = 50) {
+  /** Newest first; a page shorter than `take` is the last one. */
+  async list(user: AuthUser, take = 20, before?: number) {
     const [rows, isUnread] = await Promise.all([
-      this.prisma.notification.findMany({ where: visibleTo(user), include: INCLUDE, orderBy: { createdAt: 'desc' }, take }),
+      this.prisma.notification.findMany({
+        where: { ...visibleTo(user), ...(before && { id: { lt: before } }) },
+        include: INCLUDE,
+        orderBy: { id: 'desc' },
+        take,
+      }),
       this.unreadTest(user),
     ]);
-    // Unread first, newest first within each group.
-    return rows.map((n) => ({ ...this.forUser(user, n), unread: isUnread(n) })).sort((a, b) => Number(b.unread) - Number(a.unread));
+    return rows.map((n) => ({ ...this.forUser(user, n), unread: isUnread(n) }));
   }
 
   async unreadCount(user: AuthUser) {
