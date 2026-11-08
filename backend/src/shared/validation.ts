@@ -10,8 +10,10 @@ export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'RADIO_OPERATOR'] as
 export const OFFICE_LEVELS = ['REGIONAL', 'DISTRICT', 'CITY'] as const;
 /** Types a truck can be given. AMBULANCE and RESCUE stay in the database enum only for older records. */
 export const TRUCK_TYPES = ['ENGINE', 'TANKER', 'AERIAL_LADDER', 'OTHER'] as const;
-export const TRUCK_OWNERSHIPS = ['BFP', 'LGU', 'VOLUNTEER'] as const;
+export const TRUCK_OWNERSHIPS = ['BFP', 'LGU'] as const;
+/** Statuses a station editor may set. DEPLOYED (special deployments) is set and cleared only by the deployment. */
 export const TRUCK_STATUSES = ['AVAILABLE', 'RESPONDING', 'OUT_OF_SERVICE'] as const;
+export const DEPLOYMENT_STATUSES = ['ACTIVE', 'ENDED'] as const;
 
 const text = (max: number) => z.string().trim().min(1, 'Required').max(max, `At most ${max} characters`);
 const optionalText = (max: number) => z.string().max(max, `At most ${max} characters`).nullable().optional();
@@ -85,6 +87,34 @@ const truckFields = {
 
 export const createTruckSchema = z.strictObject(truckFields);
 export const updateTruckSchema = z.strictObject({ ...truckFields, status: z.enum(TRUCK_STATUSES) }).partial();
+
+// --- Special deployments ------------------------------------------------------------------------------------------
+
+const deploymentFields = {
+  name: text(120),
+  locationLabel: text(250),
+  lat,
+  lng,
+  // ISO date-time strings, not z.date(): Swagger turns these schemas into JSON Schema, which has no Date type.
+  startsAt: z.iso.datetime({ offset: true, error: 'Choose the start' }),
+  /** Planned end, for information; trucks return only when released or the deployment is ended. */
+  endsAt: z.iso.datetime({ offset: true, error: 'Not a valid date' }).nullable().optional(),
+  notes: optionalText(2000),
+};
+
+type DeploymentDates = { startsAt?: string; endsAt?: string | null };
+const endsAfterStart = <T extends z.ZodType<DeploymentDates>>(schema: T) =>
+  schema.refine((d) => !d.startsAt || !d.endsAt || new Date(d.endsAt) >= new Date(d.startsAt), { path: ['endsAt'], message: 'Ends before it starts' });
+
+/** Create: the details; trucks are added with assignTrucksSchema (also allowed here). */
+export const createDeploymentSchema = endsAfterStart(z.strictObject({ ...deploymentFields, truckIds: z.array(z.int()).max(300).default([]) }));
+/** Partial edits; DeploymentsService checks the dates against the stored ones. */
+export const updateDeploymentSchema = z.strictObject(deploymentFields).partial();
+/** Where one deployed truck stands, e.g. "Quiapo Church" (the post form uses it too). */
+export const truckPostSchema = z.strictObject({ postLabel: text(250), lat, lng });
+export const assignTrucksSchema = z.strictObject({ truckIds: z.array(z.int()).min(1, 'Pick at least one truck').max(300) });
+/** The New / Edit deployment form. */
+export const deploymentFormSchema = endsAfterStart(z.object(deploymentFields));
 
 // --- Settings and passwords ---------------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CityDirectory } from '../geo/city-directory.service.js';
 import { AuthorizationService } from '@nestjs/authorization';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -10,8 +10,18 @@ import type { CreateStationDto, CreateTruckDto, UpdateStationDto, UpdateTruckDto
 const STATION_INCLUDE = {
   district: { select: { id: true, code: true, name: true, color: true } },
   city: { select: { id: true, name: true } },
-  trucks: { where: { isActive: true }, orderBy: { id: 'asc' } },
+  trucks: {
+    where: { isActive: true },
+    orderBy: { id: 'asc' },
+    // The special deployment a DEPLOYED truck is on.
+    include: { deploymentUnits: { where: { releasedAt: null }, select: { deployment: { select: { id: true, name: true } } }, take: 1 } },
+  },
 } as const;
+
+/** A truck on a special deployment is managed by the deployment until Regional Operations releases it. */
+function assertNotDeployed(truck: { status: string }) {
+  if (truck.status === 'DEPLOYED') throw new ConflictException('On special deployment: Regional Operations releases it');
+}
 
 @Injectable()
 export class StationsService {
@@ -98,7 +108,13 @@ export class StationsService {
   async updateTruck(user: AuthUser, id: number, dto: UpdateTruckDto) {
     const truck = await this.findTruck(id);
     await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
+    if (dto.status) assertNotDeployed(truck);
     return this.prisma.$transaction(async (tx) => {
+      // Status changes are conditional, so a truck claimed by a deployment meanwhile keeps DEPLOYED.
+      if (dto.status) {
+        const { count } = await tx.truck.updateMany({ where: { id, status: { not: 'DEPLOYED' } }, data: { status: dto.status } });
+        if (count === 0) assertNotDeployed({ status: 'DEPLOYED' });
+      }
       const updated = await tx.truck.update({
         where: { id },
         data: {
@@ -107,7 +123,6 @@ export class StationsService {
           type: dto.type,
           waterCapacityLiters: dto.waterCapacityLiters,
           ownership: dto.ownership,
-          status: dto.status,
         },
       });
       await this.audit.log(user.id, dto.status && Object.keys(dto).length === 1 ? 'STATUS' : 'UPDATE', 'Truck', id, dto, { db: tx });
@@ -119,6 +134,7 @@ export class StationsService {
   async removeTruck(user: AuthUser, id: number) {
     const truck = await this.findTruck(id);
     await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
+    assertNotDeployed(truck);
     await this.prisma.$transaction(async (tx) => {
       await tx.truck.update({ where: { id }, data: { isActive: false } });
       await this.audit.log(user.id, 'DELETE', 'Truck', id, { callSign: truck.callSign }, { db: tx });

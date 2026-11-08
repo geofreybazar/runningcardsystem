@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Field from "@/components/common/Field.jsx";
+import SubmitButton from "@/components/common/SubmitButton.jsx";
 import SimpleSelect from "@/components/common/SimpleSelect.jsx";
 import MapComponent from "@/components/common/MapComponent.jsx";
 import useAuth from "@/hooks/auth/useAuth.js";
@@ -17,8 +18,9 @@ import { createStationSchema } from "@shared/validation";
 /** Add (initial without id) or edit a station, placed on the map. `initial` null = closed; onSaved gets the saved station. */
 function StationFormDialog({ initial, district, editableCities, onClose, onSaved }) {
   const { user } = useAuth();
-  const { mutateAsync: addStation } = useAddStation();
-  const { mutateAsync: editStation } = useEditStation();
+  const { mutateAsync: addStation, isPending: adding } = useAddStation();
+  const { mutateAsync: editStation, isPending: editing } = useEditStation();
+  const saving = adding || editing; // includes reloading the list after
   const [form, setForm] = useState(initial);
   const [formError, setFormError] = useState("");
   const [tried, setTried] = useState(false); // after the first Save attempt, errors follow the form as it is edited
@@ -48,7 +50,7 @@ function StationFormDialog({ initial, district, editableCities, onClose, onSaved
   };
 
   return (
-    <Dialog open={!!initial} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!initial} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className='max-h-[95svh] overflow-y-auto sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>{form?.id ? "Edit station" : `Add station to ${district?.name}`}</DialogTitle>
@@ -93,10 +95,12 @@ function StationFormDialog({ initial, district, editableCities, onClose, onSaved
           </div>
         )}
         <DialogFooter>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='outline' onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={save}>Save</Button>
+          <SubmitButton onClick={save} saving={saving}>
+            Save
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

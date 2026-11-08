@@ -2,7 +2,7 @@
 export const OFFICE_LEVELS = {
   SUPER_ADMIN: ["REGIONAL"],
   ADMIN: ["REGIONAL"],
-  OPERATIONS: ["DISTRICT", "CITY"],
+  OPERATIONS: ["DISTRICT", "CITY", "REGIONAL"], // Regional Operations runs special deployments (last: new Operations users default to a district)
   RADIO_OPERATOR: ["REGIONAL", "DISTRICT", "CITY"],
 };
 

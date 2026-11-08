@@ -12,10 +12,11 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 | `OfficeLevel` | `REGIONAL`, `DISTRICT`, `CITY` | `User.officeLevel` |
 | `Rank` | `FO1`, `FO2`, `FO3`, `SFO1`, `SFO2`, `SFO3`, `SFO4`, `FINSP`, `FSINSP`, `FCINSP`, `FSUPT`, `FSSUPT`, `FCSUPT` (lowest → highest) | `User.rank` |
 | `TruckType` | `ENGINE`, `TANKER`, `AERIAL_LADDER`, `RESCUE`, `AMBULANCE`, `OTHER` | `Truck.type`. `RESCUE` and `AMBULANCE` remain only for older records: the API no longer accepts them for new or edited trucks |
-| `TruckOwnership` | `BFP`, `LGU`, `VOLUNTEER` | `Truck.ownership` |
-| `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE` | `Truck.status` |
+| `TruckOwnership` | `BFP`, `LGU` | `Truck.ownership`. `VOLUNTEER` was removed on 2026-11-08; existing Volunteer trucks were changed to `BFP` by migration `20261108120000_truck_posts_no_volunteer` |
+| `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE`, `DEPLOYED` | `Truck.status`. `DEPLOYED` = on a special deployment; set and cleared only by the deployment |
 | `IncidentStatus` | `OPEN`, `CLOSED` | `Incident.status` |
-| `NotificationType` | `DISPATCHED`, `ALARM_RAISED`, `INCIDENT_CLOSED` | `Notification.type` |
+| `NotificationType` | `DISPATCHED`, `ALARM_RAISED`, `INCIDENT_CLOSED`, `DEPLOYMENT_ASSIGNED`, `DEPLOYMENT_RELEASED` | `Notification.type` |
+| `DeploymentStatus` | `ACTIVE`, `ENDED` | `SpecialDeployment.status` |
 
 ## Models
 
@@ -182,19 +183,49 @@ Indexes: `(entity, entityId)`, `(createdAt)`.
 
 
 ### Notification
-One per incident step (dispatch, raise alarm, close). See [notifications API](../api/notifications.md).
+One per incident step (dispatch, raise alarm, close) or special-deployment step (trucks assigned, released). See [notifications API](../api/notifications.md).
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | Int | PK, autoincrement |
-| `incidentId` | String | FK → `Incident.id` |
+| `incidentId` | String? | FK → `Incident.id`; null for deployment notifications |
+| `deploymentId` | String? | FK → `SpecialDeployment.id`; exactly one of the two is set (enforced in code) |
 | `cityIds` | Int[] | involved cities: the fire's city, cities with a truck on the incident, cities with a station on its running card. GIN index |
 | `type` | NotificationType | |
-| `alarmLevel` | String | the level dispatched/raised to, or the incident's level at close |
+| `alarmLevel` | String? | the level dispatched/raised to, or the incident's level at close; null for deployments |
 | `units` | Json | trucks moved in this step: `[{ station, callSign, cityId, city }]`; may be empty |
 | `actorId` | String | FK → `User.id` (relation `NotificationActor`): who dispatched/raised/closed |
 | `createdAt` | DateTime | default `now()`, indexed |
 
+
+### SpecialDeployment
+A planned event (ASEAN, SONA) the Regional office sends trucks to. See [deployments module](../modules/deployments.md).
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | String | PK, uuid |
+| `name`, `locationLabel` | String | e.g. "SONA 2026", "Batasang Pambansa" |
+| `lat`, `lng` | Float | where the trucks stand |
+| `startsAt` | DateTime | planned start |
+| `endsAt` | DateTime? | planned end, for information only (no timer) |
+| `notes` | String? | |
+| `status` | DeploymentStatus | default `ACTIVE`, indexed |
+| `createdById` / `endedById` | String / String? | FK → `User.id` |
+| `endedAt` | DateTime? | |
+| `deletedAt` | DateTime? | soft delete: hidden from the app; audit log and notifications keep it |
+| `createdAt`, `updatedAt` | DateTime | |
+
+### DeploymentUnit
+One truck on a deployment; kept after release as history.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Int | PK, autoincrement |
+| `deploymentId` | String | FK → `SpecialDeployment.id`, indexed |
+| `stationId`, `truckId` | Int | FK → `Station.id`, `Truck.id`; index `(truckId, releasedAt)` |
+| `assignedAt`, `assignedById` | DateTime, String | who assigned it |
+| `releasedAt`, `releasedById` | DateTime?, String? | null while the truck is still there |
+| `postLabel`, `postLat`, `postLng` | String?, Float?, Float? | where this truck stands within the event; null = at the deployment's location |
 
 ### IncidentView
 An account looked at an incident; its notifications up to id `seenId` count as read.

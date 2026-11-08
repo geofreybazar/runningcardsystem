@@ -2,15 +2,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import IconAction from "@/components/common/IconAction.jsx";
-import SimpleSelect from "@/components/common/SimpleSelect.jsx";
-import TruckStatusBadge from "@/components/common/TruckStatusBadge.jsx";
-import useChangeTruckStatus from "@/hooks/stations/useChangeTruckStatus.js";
 import useRemoveTruck from "@/hooks/stations/useRemoveTruck.js";
-import { OWNERSHIP, TRUCK_STATUS, TRUCK_TYPES, toOptions } from "@/constants/truck.js";
+import { OWNERSHIP, TRUCK_TYPES } from "@/constants/truck.js";
+import TruckStatusControl from "./TruckStatusControl.jsx";
 
-/** A station's trucks: cards on phones, a table on wider screens. Editors change status, edit and remove. */
+/** A station's trucks: cards on phones, a table on wider screens. Editors change status, edit and remove (not while deployed). */
 function TruckList({ trucks, editable, onEditTruck }) {
-  const { mutate: changeStatus } = useChangeTruckStatus();
   const { mutate: removeTruck } = useRemoveTruck();
 
   return trucks.length === 0 ? (
@@ -36,23 +33,16 @@ function TruckList({ trucks, editable, onEditTruck }) {
                   <IconAction label='Edit' onClick={() => onEditTruck(t)}>
                     <Pencil />
                   </IconAction>
-                  <IconAction label='Remove' destructive onClick={() => removeTruck(t.id)}>
-                    <Trash2 />
-                  </IconAction>
+                  {t.status !== "DEPLOYED" && (
+                    <IconAction label='Remove' destructive onClick={() => removeTruck(t.id)}>
+                      <Trash2 />
+                    </IconAction>
+                  )}
                 </div>
               )}
             </div>
             <div className='mt-2'>
-              {editable ? (
-                <SimpleSelect
-                  value={t.status}
-                  onChange={(status) => changeStatus({ truck: t, status })}
-                  className='h-8 w-full'
-                  options={toOptions(TRUCK_STATUS)}
-                />
-              ) : (
-                <TruckStatusBadge status={t.status} />
-              )}
+              <TruckStatusControl truck={t} editable={editable} className='h-8 w-full' />
             </div>
           </div>
         ))}
@@ -82,25 +72,18 @@ function TruckList({ trucks, editable, onEditTruck }) {
                 <TableCell className='text-right tabular-nums'>{t.waterCapacityLiters ?? "—"}</TableCell>
                 <TableCell>{OWNERSHIP[t.ownership]}</TableCell>
                 <TableCell>
-                  {editable ? (
-                    <SimpleSelect
-                      value={t.status}
-                      onChange={(status) => changeStatus({ truck: t, status })}
-                      className='h-8 w-40'
-                      options={toOptions(TRUCK_STATUS)}
-                    />
-                  ) : (
-                    <TruckStatusBadge status={t.status} />
-                  )}
+                  <TruckStatusControl truck={t} editable={editable} className='h-8 w-40' />
                 </TableCell>
                 {editable && (
                   <TableCell className='text-right whitespace-nowrap'>
                     <IconAction label='Edit' onClick={() => onEditTruck(t)}>
                       <Pencil />
                     </IconAction>
-                    <IconAction label='Remove' destructive onClick={() => removeTruck(t.id)}>
-                      <Trash2 />
-                    </IconAction>
+                    {t.status !== "DEPLOYED" && (
+                      <IconAction label='Remove' destructive onClick={() => removeTruck(t.id)}>
+                        <Trash2 />
+                      </IconAction>
+                    )}
                   </TableCell>
                 )}
               </TableRow>

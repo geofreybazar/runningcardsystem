@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import Field from "@/components/common/Field.jsx";
+import SubmitButton from "@/components/common/SubmitButton.jsx";
 import useGetSettings from "@/hooks/settings/useGetSettings.js";
 import { formErrors } from "@/utils/validation.js";
 import { settingsSchema } from "@shared/validation";
@@ -13,7 +13,7 @@ import { toBody, toForm } from "@/utils/settingsForm.js";
 
 /** The running card rules form; shows the saved values until the first edit. */
 function SettingsForm() {
-  const { mutateAsync: editSettings } = useEditSettings();
+  const { mutateAsync: editSettings, isPending: saving } = useEditSettings();
   const settings = useGetSettings();
   const [edits, setEdits] = useState(null); // null until the first change: the form shows the saved settings
   const form = edits ?? (settings.data && toForm(settings.data));
@@ -59,9 +59,9 @@ function SettingsForm() {
           <Field label='Alarm levels, in order' hint='One per line. Each level gets the next group of nearest stations.' error={errors?.alarmLevels}>
             <Textarea rows={10} className='font-mono text-sm' value={form.alarmLevels} onChange={(e) => setEdits({ ...form, alarmLevels: e.target.value })} />
           </Field>
-          <Button type='submit' className='w-fit'>
+          <SubmitButton type='submit' className='w-fit' saving={saving}>
             Save rules
-          </Button>
+          </SubmitButton>
         </form>
       )}
     </>

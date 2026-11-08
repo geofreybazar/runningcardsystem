@@ -28,7 +28,7 @@ const DETAIL_INCLUDE = {
 } as const;
 
 type DetailIncident = { units: { alarmLevel: string; dispatchedAt: Date }[]; closedAt: Date | null; closedBy: object | null; createdBy: object } & {
-  notifications: { type: string; alarmLevel: string; units: unknown; createdAt: Date; actor: object }[];
+  notifications: { type: string; alarmLevel: string | null; units: unknown; createdAt: Date; actor: object }[]; // incident steps always set alarmLevel
 };
 
 /**

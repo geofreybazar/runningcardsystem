@@ -14,6 +14,8 @@ import SettingsPage from "@/pages/SettingsPage.jsx";
 import AuditLogPage from "@/pages/AuditLogPage.jsx";
 import NotificationsPage from "@/pages/NotificationsPage.jsx";
 import StatisticsPage from "@/pages/StatisticsPage.jsx";
+import DeploymentsPage from "@/pages/DeploymentsPage.jsx";
+import DeploymentDetailPage from "@/pages/DeploymentDetailPage.jsx";
 
 const PAGES = {
   "/": <HomePage />,
@@ -24,6 +26,7 @@ const PAGES = {
   "/users": <UsersPage />,
   "/audit-log": <AuditLogPage />,
   "/settings": <SettingsPage />,
+  "/deployments": <DeploymentsPage />,
 };
 
 function ChangePasswordRoute() {
@@ -51,6 +54,7 @@ function Router() {
           <Route key={n.to} path={n.to} element={PAGES[n.to]} />
         ))}
         <Route path='/incidents/:id' element={<IncidentDetailPage />} />
+        <Route path='/deployments/:id' element={<DeploymentDetailPage />} />
       </Route>
       <Route path='/change-password' element={<ChangePasswordRoute />} />
       {/* Home is the first page the role may see (the running card for dispatchers, else incidents). */}

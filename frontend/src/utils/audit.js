@@ -10,6 +10,10 @@ export function auditDetails({ action, entity, changes: c, ip }) {
   if (action === "DISPATCH") return `${c.alarmLevel} for ${c.locationLabel} (${c.city}): ${list(c.trucks)}`;
   if (action === "RAISE_ALARM") return `${c.alarmLevel}: ${list(c.trucks)}`;
   if (action === "CLOSE") return `Closed at ${c.alarmLevel}; released ${list(c.released)}`;
+  if (entity === "Deployment" && (action === "ASSIGN" || action === "RELEASE")) return list(c.trucks);
+  if (entity === "Deployment" && action === "END") return `Released ${list(c.released)}`;
+  if (entity === "Deployment" && action === "SET_POST") return `${c.truck} at ${c.post}`;
+  if (entity === "Deployment" && action === "DELETE") return `${c.name}; released ${list(c.released)}`;
   if (entity === "Barangay" && c?.to) return `${c.name ?? "Barangay"}: ${c.from ? `${point(c.from)} → ` : ""}${point(c.to)}`;
   return c ? JSON.stringify(c) : "";
 }

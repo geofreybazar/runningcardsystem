@@ -45,6 +45,11 @@ export class AccessPolicy implements PolicyBefore<AuthUser> {
     return is(user, 'SUPER_ADMIN') || (is(user, 'RADIO_OPERATOR') && cityId !== null && user!.dispatchCityId === cityId);
   }
 
+  /** Special deployments (ASEAN, SONA, …): the Regional Operations office, which can send trucks from any city. */
+  manageDeployments(user: AuthUser | null) {
+    return is(user, 'SUPER_ADMIN') || (is(user, 'OPERATIONS') && user!.officeLevel === 'REGIONAL');
+  }
+
   manageUsers(user: AuthUser | null) {
     return is(user, 'SUPER_ADMIN', 'ADMIN');
   }

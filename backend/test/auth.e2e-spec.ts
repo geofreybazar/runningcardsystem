@@ -56,7 +56,7 @@ describe('auth and user management', () => {
 
   it('enforces who can manage which accounts', async () => {
     const admin = await http.post('/api/users').set(superAdmin).send(person('A1002', 'ADMIN')).expect(201);
-    await http.post('/api/users').set(superAdmin).send(person('A1003', 'OPERATIONS')).expect(400); // Operations can't be regional
+    await http.post('/api/users').set(superAdmin).send(person('A1003', 'ADMIN', { officeLevel: 'DISTRICT', districtId: 2 })).expect(400); // Admin is regional only (Operations may now be regional)
     await http.post('/api/users').set(superAdmin).send(person('A1003', 'OPERATIONS', { officeLevel: 'DISTRICT' })).expect(400); // needs district
     await http.post('/api/users').set(superAdmin).send(person('A1004', 'ADMIN', { officeLevel: 'CITY', cityId: 1 })).expect(400); // admins are regional
     const ops = await http.post('/api/users').set(superAdmin).send(person('A1003', 'OPERATIONS', { officeLevel: 'DISTRICT', districtId: 2 })).expect(201);

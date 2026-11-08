@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Field from "@/components/common/Field.jsx";
+import SubmitButton from "@/components/common/SubmitButton.jsx";
 import SimpleSelect from "@/components/common/SimpleSelect.jsx";
 import useAuth from "@/hooks/auth/useAuth.js";
 import useGetDistricts from "@/hooks/districts/useGetDistricts.js";
@@ -20,8 +21,9 @@ import { RANKS, userFormSchema } from "@shared/validation";
 function UserFormDialog({ initial, onClose, onCreated }) {
   const { user: me } = useAuth();
   const { data: districts = [] } = useGetDistricts();
-  const { mutateAsync: addUser } = useAddUser();
-  const { mutateAsync: editUser } = useEditUser();
+  const { mutateAsync: addUser, isPending: adding } = useAddUser();
+  const { mutateAsync: editUser, isPending: editing } = useEditUser();
+  const saving = adding || editing; // includes reloading the list after
   const roles = manageableRoles(me.role);
 
   const [form, setForm] = useState(initial);
@@ -53,7 +55,7 @@ function UserFormDialog({ initial, onClose, onCreated }) {
   };
 
   return (
-    <Dialog open={!!initial} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!initial} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className='max-h-[90dvh] overflow-y-auto sm:max-w-xl'>
         <DialogHeader>
           <DialogTitle>{form?.id ? "Edit user" : "Add user"}</DialogTitle>
@@ -136,10 +138,12 @@ function UserFormDialog({ initial, onClose, onCreated }) {
           </div>
         )}
         <DialogFooter>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='outline' onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={save}>Save</Button>
+          <SubmitButton onClick={save} saving={saving}>
+            Save
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

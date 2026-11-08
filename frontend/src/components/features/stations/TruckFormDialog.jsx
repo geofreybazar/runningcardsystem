@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Field from "@/components/common/Field.jsx";
+import SubmitButton from "@/components/common/SubmitButton.jsx";
 import SimpleSelect from "@/components/common/SimpleSelect.jsx";
 import useAddTruck from "@/hooks/stations/useAddTruck.js";
 import useEditTruck from "@/hooks/stations/useEditTruck.js";
@@ -14,8 +15,9 @@ import { createTruckSchema } from "@shared/validation";
 
 /** Add a truck to `stationId` (initial without id) or edit one. `initial` null = closed. */
 function TruckFormDialog({ initial, stationId, onClose }) {
-  const { mutateAsync: addTruck } = useAddTruck();
-  const { mutateAsync: editTruck } = useEditTruck();
+  const { mutateAsync: addTruck, isPending: adding } = useAddTruck();
+  const { mutateAsync: editTruck, isPending: editing } = useEditTruck();
+  const saving = adding || editing; // includes reloading the list after
   const [form, setForm] = useState(initial);
   const [formError, setFormError] = useState("");
   const [tried, setTried] = useState(false); // after the first Save attempt, errors follow the form as it is edited
@@ -45,7 +47,7 @@ function TruckFormDialog({ initial, stationId, onClose }) {
   };
 
   return (
-    <Dialog open={!!initial} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!initial} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>{form?.id ? "Edit truck" : "Add truck"}</DialogTitle>
@@ -77,10 +79,12 @@ function TruckFormDialog({ initial, stationId, onClose }) {
           </div>
         )}
         <DialogFooter>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='outline' onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={save}>Save</Button>
+          <SubmitButton onClick={save} saving={saving}>
+            Save
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

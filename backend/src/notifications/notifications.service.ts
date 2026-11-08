@@ -11,6 +11,7 @@ type NoteUnit = { station: string; callSign: string; cityId: number | null; city
 
 const INCLUDE = {
   incident: { select: { locationLabel: true, status: true, city: { select: { id: true, name: true } } } },
+  deployment: { select: { name: true, locationLabel: true, status: true } },
   actor: { select: PERSON_SELECT },
 } as const;
 
@@ -53,6 +54,18 @@ export class NotificationsService {
     );
     const units: NoteUnit[] = stepUnits.map((u) => ({ station: u.station.name, callSign: u.truck.callSign, cityId: u.station.cityId, city: u.station.city?.name ?? null }));
     const { id } = await tx.notification.create({ data: { incidentId, cityIds, type, alarmLevel, actorId, units }, select: { id: true } });
+    return [id];
+  }
+
+  /**
+   * Inside the deployment transaction: one notification for trucks assigned to or released from a special deployment,
+   * addressed to the cities those trucks belong to (the Regional office sees every notification anyway).
+   */
+  async recordDeployment(tx: Tx, deploymentId: string, type: 'DEPLOYMENT_ASSIGNED' | 'DEPLOYMENT_RELEASED', actorId: string, stepUnits: StepUnit[]) {
+    if (stepUnits.length === 0) return [];
+    const units: NoteUnit[] = stepUnits.map((u) => ({ station: u.station.name, callSign: u.truck.callSign, cityId: u.station.cityId, city: u.station.city?.name ?? null }));
+    const cityIds = [...new Set(units.map((u) => u.cityId))].filter((c) => c !== null);
+    const { id } = await tx.notification.create({ data: { deploymentId, cityIds, type, actorId, units }, select: { id: true } });
     return [id];
   }
 
@@ -114,6 +127,6 @@ export class NotificationsService {
       select: { notificationsSeenId: true, incidentViews: { select: { incidentId: true, seenId: true } } },
     });
     const viewed = new Map(incidentViews.map((v) => [v.incidentId, v.seenId]));
-    return (n: { id: number; incidentId: string }) => n.id > notificationsSeenId && n.id > (viewed.get(n.incidentId) ?? 0);
+    return (n: { id: number; incidentId: string | null }) => n.id > notificationsSeenId && n.id > ((n.incidentId && viewed.get(n.incidentId)) || 0);
   }
 }

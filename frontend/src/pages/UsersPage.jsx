@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Page from "@/components/common/Page.jsx";
@@ -8,6 +8,7 @@ import MobileView from "@/components/features/users/table/MobileView.jsx";
 import DesktopView from "@/components/features/users/table/DesktopView.jsx";
 import UserFormDialog from "@/components/features/users/UserFormDialog.jsx";
 import TemporaryPasswordDialog from "@/components/features/users/TemporaryPasswordDialog.jsx";
+import UserFilters from "@/components/features/users/UserFilters.jsx";
 import useAuth from "@/hooks/auth/useAuth.js";
 import useGetUsers from "@/hooks/users/useGetUsers.js";
 import useChangeUserStatus from "@/hooks/users/useChangeUserStatus.js";
@@ -15,6 +16,7 @@ import useResetPassword from "@/hooks/users/useResetPassword.js";
 import useRemoveUser from "@/hooks/users/useRemoveUser.js";
 import { displayName } from "@/utils/person.js";
 import { EMPTY_USER, manageableRoles, userToForm } from "@/utils/userForm.js";
+import { NO_FILTERS, filterUsers } from "@/utils/userFilters.js";
 
 function UsersPage() {
   const { user: me } = useAuth();
@@ -26,11 +28,13 @@ function UsersPage() {
   const [form, setForm] = useState(null); // the user being added or edited
   const [password, setPassword] = useState(null); // { user, temporaryPassword }
   const [confirmRemove, setConfirmRemove] = useState(null);
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const shown = useMemo(() => filterUsers(users, filters), [users, filters]);
 
   const roles = manageableRoles(me.role);
   const editable = (u) => roles.includes(u.role) && u.id !== me.id;
   const views = {
-    users,
+    users: shown,
     editable,
     onEdit: (u) => setForm(userToForm(u)),
     onReset: (u) =>
@@ -52,8 +56,11 @@ function UsersPage() {
         </Button>
       }
     >
+      <UserFilters filters={filters} onChange={setFilters} shown={shown.length} total={users.length} />
       {isPending ? (
         <ListSkeleton />
+      ) : shown.length === 0 ? (
+        <p className='py-10 text-center text-sm text-muted-foreground'>No users match these filters.</p>
       ) : (
         <>
           <MobileView {...views} />

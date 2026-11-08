@@ -14,7 +14,7 @@ BFP-NCR Running Card System: for a fire location in Metro Manila it lists the ne
 ## Directory map
 
 ```
-backend/src/<module>/      auth, users, districts, stations, running-card, incidents, settings, audit, geo, prisma
+backend/src/<module>/      auth, users, districts, stations, running-card, incidents, deployments, settings, audit, geo, prisma
 backend/prisma/            schema.prisma, migrations/, seed.ts, seed-data/ (stations.json, ncr-city-boundaries.json)
 backend/test/              e2e specs + global-setup (wipes the _test DB)
 frontend/src/              pages/ (thin), components/{app,layout,common,features/<feature>,ui=shadcn}, hooks/<domain>/, service/, constants/, utils/
@@ -37,6 +37,7 @@ CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e 
 - **City of a point** comes from bundled barangay outlines (`CityDirectory.cityAt`), not from Google. The cache is per process; restart after re-seeding.
 - **Tokens:** 15-min access JWT in memory on the client; rotating 7-day refresh token only in the httpOnly `rcs_rt` cookie (path `/api/auth`). The user is reloaded every request, so disabling an account takes effect immediately.
 - **Running card** is computed per request from live truck status. Dispatch claims trucks with conditional updates in a transaction (one truck per station, never double-booked).
+- **Special deployments** (ASEAN, SONA): Regional Operations sets trucks to `DEPLOYED`, which the running card and dispatch skip (they take `AVAILABLE` only). Only the deployment sets and clears `DEPLOYED`.
 - **Soft deletes** for users, stations and trucks; incident history keeps references.
 
 ## Conventions

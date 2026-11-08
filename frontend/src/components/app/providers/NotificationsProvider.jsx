@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import incidentService from "@/service/incident.service.js";
 import notificationService from "@/service/notification.service.js";
+import { NOTIFICATION_TITLES } from "@/constants/notifications.js";
+import { notificationLink, notificationPlace, trucksMoved } from "@/utils/notification.js";
 import { queryClient } from "@/service/queryClient.js";
 
 
@@ -37,16 +39,17 @@ function NotificationsProvider({ children }) {
   const refreshOpen = useCallback(() => incidentService.getIncidents("OPEN").then((l) => setOpenIncidents(l.length), () => {}), []);
   const refreshUnread = useCallback(() => notificationService.getUnreadCount().then((r) => setUnread(r.count), () => {}), []);
 
-  /** Brief: what happened and where; the details are on the incident page. */
+  /** Brief: what happened and where; the details are on the incident or deployment page. */
   const alert = useCallback(
     (n) => {
       const closed = n.type === "INCIDENT_CLOSED";
-      const message = closed ? `Closed: ${n.incident.locationLabel}` : `${n.alarmLevel}: ${n.incident.locationLabel}`;
-      const count = n.units.length;
-      const description = count ? `${count} of your truck${count > 1 ? "s" : ""} ${closed ? "released" : "sent"}` : undefined;
-      const options = { description, action: { label: "View", onClick: () => navigate(`/incidents/${n.incidentId}`) } };
-      // Our trucks sent out: sound and a longer red toast. Everything else: a normal toast.
-      if (count && !closed) {
+      const what = n.deploymentId ? NOTIFICATION_TITLES[n.type] : closed ? "Closed" : n.alarmLevel;
+      const message = `${what}: ${notificationPlace(n)}`;
+      const description = trucksMoved(n);
+      const options = { description, action: { label: "View", onClick: () => navigate(notificationLink(n)) } };
+      // Our trucks sent to a fire: sound and a longer red toast. Everything else (closes, planned deployments): a normal toast.
+      const toFire = n.type === "DISPATCHED" || n.type === "ALARM_RAISED";
+      if (n.units.length && toFire) {
         beep();
         toast.error(message, { ...options, duration: 30_000 });
         setAnnouncement(`${message}. ${description}`); // sonner only announces politely; dispatches interrupt
@@ -69,9 +72,10 @@ function NotificationsProvider({ children }) {
               if (type !== "notification") return;
               setLast(n);
               refreshOpen();
-              // Any dispatch, raise or close in my area: incident lists, that incident and truck statuses reload.
-              for (const queryKey of [["incidents"], ["incident", n.incidentId], ["stations"]]) queryClient.invalidateQueries({ queryKey });
-              if (viewing.current === n.incidentId) {
+              // Any dispatch, raise, close or deployment in my area: those lists, that page and truck statuses reload.
+              const keys = n.deploymentId ? [["deployments"], ["deployment", n.deploymentId]] : [["incidents"], ["incident", n.incidentId]];
+              for (const queryKey of [...keys, ["stations"]]) queryClient.invalidateQueries({ queryKey });
+              if (n.incidentId && viewing.current === n.incidentId) {
                 notificationService.markSeen(n.incidentId).catch(() => {});
               } else {
                 setUnread((c) => c + 1);

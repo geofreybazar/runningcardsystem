@@ -12,7 +12,7 @@ Every `User` has a `role` and an office (`officeLevel` + `districtId`/`cityId`).
 | DISTRICT | all cities of the district | the district's city **if the district has exactly one** (FD1 Manila, FD5 Quezon City), else `null` |
 | CITY | `[cityId]` | `cityId` |
 
-Allowed office levels per role (`OFFICE_LEVELS`): SUPER_ADMIN and ADMIN → REGIONAL; OPERATIONS → DISTRICT or CITY; RADIO_OPERATOR → REGIONAL, DISTRICT or CITY.
+Allowed office levels per role (`OFFICE_LEVELS`): SUPER_ADMIN and ADMIN → REGIONAL; OPERATIONS → REGIONAL, DISTRICT or CITY (Regional Operations manages special deployments); RADIO_OPERATOR → REGIONAL, DISTRICT or CITY.
 
 ## Abilities (`backend/src/auth/access.policy.ts`)
 
@@ -26,6 +26,7 @@ Allowed office levels per role (`OFFICE_LEVELS`): SUPER_ADMIN and ADMIN → REGI
 | `editCity(cityId)` | SUPER_ADMIN; OPERATIONS whose `officeCityId === cityId` (record check) |
 | `dispatch` | SUPER_ADMIN; RADIO_OPERATOR with a non-null `dispatchCityId` (route gate) |
 | `dispatchIn(cityId)` | SUPER_ADMIN; RADIO_OPERATOR whose `dispatchCityId === cityId` (record check) |
+| `manageDeployments` | SUPER_ADMIN, or OPERATIONS with `officeLevel = REGIONAL` (special deployments) |
 | `manageUsers` | SUPER_ADMIN, ADMIN |
 | `viewAuditLog` | SUPER_ADMIN, ADMIN |
 | `manageSettings` | SUPER_ADMIN |

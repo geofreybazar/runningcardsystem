@@ -7,6 +7,7 @@ export const AUDIT_ENTITIES = {
   Truck: "Trucks",
   Barangay: "Barangay pins",
   Settings: "Settings",
+  Deployment: "Special deployments",
 };
 
 export const ACTION_LABELS = {
@@ -19,6 +20,10 @@ export const ACTION_LABELS = {
   RAISE_ALARM: "Raised alarm",
   CLOSE: "Closed incident",
   SET_PIN: "Pinned barangay",
+  ASSIGN: "Deployed trucks",
+  RELEASE: "Released trucks",
+  END: "Ended deployment",
+  SET_POST: "Set truck post",
 };
 
 /** Actions an administrator should notice. */

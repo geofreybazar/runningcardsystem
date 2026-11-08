@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEditCity, districtName, officeName } from "./permissions.js";
+import { canEditCity, canManageDeployments, districtName, officeName } from "./permissions.js";
 
 test("officeName uses BFP office names", () => {
   assert.equal(officeName({ officeLevel: "CITY", city: { name: "Caloocan" }, district: { code: 2 } }), "Caloocan City Fire Station");
@@ -20,4 +20,11 @@ test("canEditCity: only the office running the city", () => {
   assert.equal(canEditCity(ops(null), 3), false); // Fire District II-IV: view only
   assert.equal(canEditCity({ role: "SUPER_ADMIN" }, 3), true);
   assert.equal(canEditCity({ role: "RADIO_OPERATOR", officeCityId: 3 }, 3), false);
+});
+
+test("only Regional Operations and Super Admin manage special deployments", () => {
+  assert.equal(canManageDeployments({ role: "OPERATIONS", officeLevel: "REGIONAL" }), true);
+  assert.equal(canManageDeployments({ role: "SUPER_ADMIN", officeLevel: "REGIONAL" }), true);
+  assert.equal(canManageDeployments({ role: "OPERATIONS", officeLevel: "CITY" }), false);
+  assert.equal(canManageDeployments({ role: "RADIO_OPERATOR", officeLevel: "REGIONAL" }), false);
 });

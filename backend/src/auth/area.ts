@@ -12,7 +12,7 @@ export interface Office {
 export const OFFICE_LEVELS: Record<Role, OfficeLevel[]> = {
   SUPER_ADMIN: ['REGIONAL'],
   ADMIN: ['REGIONAL'],
-  OPERATIONS: ['DISTRICT', 'CITY'],
+  OPERATIONS: ['REGIONAL', 'DISTRICT', 'CITY'], // Regional Operations runs special deployments
   RADIO_OPERATOR: ['REGIONAL', 'DISTRICT', 'CITY'],
 };
 

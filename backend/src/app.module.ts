@@ -16,6 +16,7 @@ import { IncidentsModule } from './incidents/incidents.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { StatisticsModule } from './statistics/statistics.module.js';
+import { DeploymentsModule } from './deployments/deployments.module.js';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { StatisticsModule } from './statistics/statistics.module.js';
     SettingsModule,
     NotificationsModule,
     StatisticsModule,
+    DeploymentsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

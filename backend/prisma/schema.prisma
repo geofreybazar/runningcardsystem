@@ -27,13 +27,14 @@ enum TruckType {
 enum TruckOwnership {
   BFP
   LGU
-  VOLUNTEER
 }
 
 enum TruckStatus {
   AVAILABLE
   RESPONDING
   OUT_OF_SERVICE
+  /// On a special deployment (ASEAN, SONA, …): never on a running card. Set and cleared only by the deployment.
+  DEPLOYED
 }
 
 /// Where an account sits in BFP NCR: the Regional office, a Fire District office, or a City office.
@@ -64,6 +65,13 @@ enum NotificationType {
   DISPATCHED
   ALARM_RAISED
   INCIDENT_CLOSED
+  DEPLOYMENT_ASSIGNED
+  DEPLOYMENT_RELEASED
+}
+
+enum DeploymentStatus {
+  ACTIVE
+  ENDED
 }
 
 enum IncidentStatus {
@@ -109,69 +117,75 @@ model Barangay {
 }
 
 model Station {
-  id            Int            @id @default(autoincrement())
-  name          String
-  lat           Float
-  lng           Float
-  districtId    Int
-  district      FireDistrict   @relation(fields: [districtId], references: [id])
-  cityId        Int?
-  city          City?          @relation(fields: [cityId], references: [id])
-  address       String?
-  contactNumber String?
-  isActive      Boolean        @default(true)
-  trucks        Truck[]
-  incidentUnits IncidentUnit[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              Int              @id @default(autoincrement())
+  name            String
+  lat             Float
+  lng             Float
+  districtId      Int
+  district        FireDistrict     @relation(fields: [districtId], references: [id])
+  cityId          Int?
+  city            City?            @relation(fields: [cityId], references: [id])
+  address         String?
+  contactNumber   String?
+  isActive        Boolean          @default(true)
+  trucks          Truck[]
+  incidentUnits   IncidentUnit[]
+  deploymentUnits DeploymentUnit[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([districtId])
 }
 
 model Truck {
-  id                  Int            @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   stationId           Int
-  station             Station        @relation(fields: [stationId], references: [id])
+  station             Station          @relation(fields: [stationId], references: [id])
   callSign            String
   plateNumber         String?
-  type                TruckType      @default(ENGINE)
+  type                TruckType        @default(ENGINE)
   waterCapacityLiters Int?
-  ownership           TruckOwnership @default(BFP)
-  status              TruckStatus    @default(AVAILABLE)
-  isActive            Boolean        @default(true)
+  ownership           TruckOwnership   @default(BFP)
+  status              TruckStatus      @default(AVAILABLE)
+  isActive            Boolean          @default(true)
   incidentUnits       IncidentUnit[]
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  deploymentUnits     DeploymentUnit[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@index([stationId])
 }
 
 model User {
-  id                  String         @id @default(uuid())
+  id                  String              @id @default(uuid())
   /// BFP personnel account number (e.g. B13084), stored uppercase; it is the sign-in name.
-  accountNumber       String         @unique
+  accountNumber       String              @unique
   rank                Rank? // required by the API for every role except SUPER_ADMIN
   firstName           String
   middleName          String?
   lastName            String
   passwordHash        String
   role                Role
-  officeLevel         OfficeLevel    @default(REGIONAL)
+  officeLevel         OfficeLevel         @default(REGIONAL)
   districtId          Int? // DISTRICT offices, and CITY offices (derived from the city)
   cityId              Int? // CITY offices
-  city                City?          @relation(fields: [cityId], references: [id])
-  district            FireDistrict?  @relation(fields: [districtId], references: [id])
-  isActive            Boolean        @default(true)
-  mustChangePassword  Boolean        @default(true)
+  city                City?               @relation(fields: [cityId], references: [id])
+  district            FireDistrict?       @relation(fields: [districtId], references: [id])
+  isActive            Boolean             @default(true)
+  mustChangePassword  Boolean             @default(true)
   deletedAt           DateTime? // soft delete keeps names on incident history
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  incidentsCreated    Incident[]     @relation("IncidentCreatedBy")
-  incidentsClosed     Incident[]     @relation("IncidentClosedBy")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  incidentsCreated    Incident[]          @relation("IncidentCreatedBy")
+  incidentsClosed     Incident[]          @relation("IncidentClosedBy")
+  deploymentsCreated  SpecialDeployment[] @relation("DeploymentCreatedBy")
+  deploymentsEnded    SpecialDeployment[] @relation("DeploymentEndedBy")
+  deploymentAssigned  DeploymentUnit[]    @relation("DeploymentAssignedBy")
+  deploymentReleased  DeploymentUnit[]    @relation("DeploymentReleasedBy")
   auditLogs           AuditLog[]
-  notificationsActed  Notification[] @relation("NotificationActor")
+  notificationsActed  Notification[]      @relation("NotificationActor")
   /// Notifications with a higher id are unread for this account (ids, not times: immune to clock steps).
-  notificationsSeenId Int            @default(0)
+  notificationsSeenId Int                 @default(0)
   incidentViews       IncidentView[]
 }
 
@@ -265,18 +279,22 @@ model AuditLog {
 
 /// One per incident step (dispatch, raise, close), sent to every involved city and its district office, and to the Regional office.
 model Notification {
-  id         Int              @id @default(autoincrement())
-  incidentId String
-  incident   Incident         @relation(fields: [incidentId], references: [id])
+  id           Int                @id @default(autoincrement())
+  /// Exactly one of incidentId / deploymentId is set.
+  incidentId   String?
+  incident     Incident?          @relation(fields: [incidentId], references: [id])
+  deploymentId String?
+  deployment   SpecialDeployment? @relation(fields: [deploymentId], references: [id])
   /// Involved cities: the fire's city, cities with a truck on the incident, and cities with a station on its running card.
-  cityIds    Int[]
-  type       NotificationType
-  alarmLevel String
+  cityIds      Int[]
+  type         NotificationType
+  /// The incident's alarm level; null for deployment notifications.
+  alarmLevel   String?
   /// Trucks moved in this step: [{ station, callSign, cityId, city }] (sent, or released on close).
-  units      Json
-  actorId    String
-  actor      User             @relation("NotificationActor", fields: [actorId], references: [id])
-  createdAt  DateTime         @default(now())
+  units        Json
+  actorId      String
+  actor        User               @relation("NotificationActor", fields: [actorId], references: [id])
+  createdAt    DateTime           @default(now())
 
   @@index([cityIds], type: Gin)
   @@index([createdAt])
@@ -291,4 +309,55 @@ model IncidentView {
   seenId     Int
 
   @@id([userId, incidentId])
+}
+
+/// A planned event (ASEAN summit, SONA, …) the Regional office sends trucks to. While assigned, a truck is DEPLOYED.
+model SpecialDeployment {
+  id            String           @id @default(uuid())
+  name          String
+  locationLabel String
+  lat           Float
+  lng           Float
+  /// Planned dates, for information: trucks return only when released or when the deployment is ended.
+  startsAt      DateTime
+  endsAt        DateTime?
+  notes         String?
+  status        DeploymentStatus @default(ACTIVE)
+  createdById   String
+  createdBy     User             @relation("DeploymentCreatedBy", fields: [createdById], references: [id])
+  endedAt       DateTime?
+  endedById     String?
+  endedBy       User?            @relation("DeploymentEndedBy", fields: [endedById], references: [id])
+  units         DeploymentUnit[]
+  notifications Notification[]
+  /// Soft delete: hidden from the app; the audit log and notifications keep it.
+  deletedAt     DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status])
+}
+
+/// One truck on a special deployment; kept after release as history.
+model DeploymentUnit {
+  id           Int               @id @default(autoincrement())
+  deploymentId String
+  deployment   SpecialDeployment @relation(fields: [deploymentId], references: [id])
+  stationId    Int
+  station      Station           @relation(fields: [stationId], references: [id])
+  truckId      Int
+  truck        Truck             @relation(fields: [truckId], references: [id])
+  assignedAt   DateTime          @default(now())
+  assignedById String
+  assignedBy   User              @relation("DeploymentAssignedBy", fields: [assignedById], references: [id])
+  releasedAt   DateTime?
+  releasedById String?
+  releasedBy   User?             @relation("DeploymentReleasedBy", fields: [releasedById], references: [id])
+  /// Where this truck stands, e.g. "Quiapo Church"; null = at the deployment's location.
+  postLabel    String?
+  postLat      Float?
+  postLng      Float?
+
+  @@index([deploymentId])
+  @@index([truckId, releasedAt])
 }

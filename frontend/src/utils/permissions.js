@@ -10,6 +10,9 @@ export const canDispatchAnywhere = (user) => user.role === "SUPER_ADMIN" || user
 export const canEditCity = (user, cityId) =>
   user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && cityId != null && user.officeCityId === cityId);
 
+/** Special deployments (ASEAN, SONA, …): the Regional Operations office, and Super Admin. */
+export const canManageDeployments = (user) => user.role === "SUPER_ADMIN" || (user.role === "OPERATIONS" && user.officeLevel === "REGIONAL");
+
 const ROMAN = ["", "I", "II", "III", "IV", "V"];
 // FD1 and FD5 are named after their single city.
 const DISTRICT_NAMES = { 1: "Manila Fire District", 5: "Quezon City Fire District" };
