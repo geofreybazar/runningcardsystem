@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Download, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ import SimpleSelect from "@/components/SimpleSelect.jsx";
 import { BarList, ChartCard, Columns, HeatGrid, StatTile } from "@/components/charts/Charts.jsx";
 import IncidentDotsMap from "@/components/charts/IncidentDotsMap.jsx";
 import { api, download } from "@/api/client.js";
+import { useDistricts } from "@/api/query.js";
 import { districtName } from "@/auth/permissions.js";
 import { WEEKDAYS, bucketLabel, formatMinutes, presetRange } from "@/lib/stats.js";
 
@@ -40,20 +42,14 @@ function StatisticsPage() {
   const cityId = params.get("cityId") ?? "";
   const query = new URLSearchParams({ from, to, ...(districtId && { districtId }), ...(cityId && { cityId }) }).toString();
 
-  const [districts, setDistricts] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: districts = [] } = useDistricts();
+  // The previous filter's charts stay (dimmed) while the new ones load.
+  const { data: stats, isPlaceholderData: loading } = useQuery({
+    queryKey: ["statistics", query],
+    queryFn: () => api(`/statistics?${query}`),
+    placeholderData: keepPreviousData,
+  });
   const [downloading, setDownloading] = useState(false);
-
-  useEffect(() => {
-    api("/districts").then(setDistricts, () => {});
-  }, []);
-  useEffect(() => {
-    setLoading(true);
-    api(`/statistics?${query}`)
-      .then(setStats, (e) => toast.error(e.message))
-      .finally(() => setLoading(false));
-  }, [query]);
 
   const set = (patch) => {
     const next = new URLSearchParams(params);

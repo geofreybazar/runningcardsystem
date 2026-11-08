@@ -45,7 +45,12 @@ Routes are generated from `NAV` in `src/components/Layout.jsx`, filtered by `use
 
 ## State management
 
-- **No global store.** Session state is React context (`AuthContext`). Pages keep their own `useState` and load data in `useEffect` through `api()`.
+- **Server data goes through TanStack Query** (`@tanstack/react-query`, client in `src/api/query.js`); `queryFn` always calls `api()`. Session state is React context (`AuthContext`); local UI state stays in `useState`. Forms stay plain `useState` + `formErrors()` with the shared Zod schemas (no form library: the forms are small).
+  - Keys: `["incidents", status]`, `["incident", id]` (+ `"next-alarm"`), `["users"]`, `["districts"]` (`useDistricts`, never stale), `["stations", districtId]`, `["audit", entity]` (infinite), `["settings"]` (`useSettings`; also gives alarm badge colours), `["statistics", query]`, `["running-card", lat, lng]` (`staleTime: 0`), `["barangays", cityId]`.
+  - Defaults: 30 s `staleTime`, one retry for network/5xx only, a failed load toasts once (`meta: { silent: true }` opts out).
+  - After a mutation, pages call `invalidateQueries`. A live notification invalidates `["incidents"]`, `["incident", id]` and `["stations"]`. The notification feed itself stays hand-merged so its unread dots survive refreshes.
+  - Signing out calls `queryClient.clear()` so the next account never sees cached data.
+  - While a list loads it shows `components/ListSkeleton.jsx`, never its empty state.
 - **Access token** lives in a module variable in `api/client.js`, never in `localStorage`. The refresh token is an httpOnly cookie the browser sends only to `/api/auth/*`.
 - **Session restore.** On mount, `AuthProvider` calls `refreshSession()`. Success sets `user`; failure leaves the user signed out. `ready` gates rendering.
 - **Persistence.** None, except that the generated shadcn `components/ui/sidebar.jsx` writes a `sidebar_state` cookie when the sidebar is toggled. Nothing in the app reads it back.

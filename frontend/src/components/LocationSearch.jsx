@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 import variables from "@/variables/variables.js";
 import { districtName } from "@/auth/permissions.js";
 import { api } from "@/api/client.js";
+import { useDistricts } from "@/api/query.js";
 
 const { parseCoordinates, NCR_BOUNDS } = variables;
 
@@ -180,30 +182,30 @@ function BarangayCombobox({ id, barangays, value, onChange, disabled }) {
 function LocationSearch({ onSelect }) {
   const geocoding = useMapsLibrary("geocoding");
   const [error, setError] = useState("");
-  const [districts, setDistricts] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: districts = [] } = useDistricts();
   const [districtId, setDistrictId] = useState("");
   const [cityId, setCityId] = useState("");
-  const [barangays, setBarangays] = useState([]);
+  const { data: barangays = [] } = useQuery({
+    queryKey: ["barangays", cityId],
+    queryFn: () => api(`/cities/${cityId}/barangays`),
+    enabled: !!cityId,
+  });
   const [barangay, setBarangay] = useState(null);
 
   // BFP structure: District → City → Barangay. FD1 (Manila) and FD5 (Quezon City) have one city, so it is picked for you.
-  useEffect(() => {
-    api("/districts").then(setDistricts).catch(() => {});
-  }, []);
   const district = districts.find((d) => d.id === districtId);
   const city = district?.cities.find((c) => c.id === cityId);
 
   const pickDistrict = (id) => {
     const d = districts.find((x) => x.id === id);
     setDistrictId(id);
-    setCityId(d?.cities.length === 1 ? d.cities[0].id : "");
+    pickCity(d?.cities.length === 1 ? d.cities[0].id : "");
   };
-
-  useEffect(() => {
+  const pickCity = (id) => {
+    setCityId(id);
     setBarangay(null);
-    setBarangays([]);
-    if (cityId) api(`/cities/${cityId}/barangays`).then(setBarangays).catch(() => {});
-  }, [cityId]);
+  };
 
   const pickBarangay = async (option) => {
     setBarangay(option);
@@ -225,7 +227,7 @@ function LocationSearch({ onSelect }) {
       setError("");
       onSelect(point, label, option.id);
       api(`/barangays/${option.id}/location`, { method: "PUT", body: point })
-        .then((saved) => setBarangays((list) => list.map((b) => (b.id === saved.id ? saved : b))))
+        .then((saved) => queryClient.setQueryData(["barangays", cityId], (list) => list?.map((b) => (b.id === saved.id ? saved : b))))
         .catch(() => {});
     } catch {
       setError(`Could not find ${label} on the map. Try the search box or drop the pin.`);
@@ -254,7 +256,7 @@ function LocationSearch({ onSelect }) {
         <Field label='City'>
           <SimpleSelect
             value={cityId}
-            onChange={setCityId}
+            onChange={pickCity}
             placeholder='City'
             className='w-full bg-card'
             disabled={!district || district.cities.length === 1}

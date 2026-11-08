@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ChevronLeft, CircleCheck, LoaderCircle, Siren, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
@@ -83,27 +84,25 @@ function IncidentMap({ lat, lng, markers }) {
 function IncidentDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const [incident, setIncident] = useState(null);
-  const [next, setNext] = useState(null);
-  const [truckPicks, setTruckPicks] = useState({});
+  const queryClient = useQueryClient();
+  const [picked, setPicked] = useState({ next: null, picks: {} });
   const [busy, setBusy] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
 
-  const load = useCallback(async () => {
-    const data = await api(`/incidents/${id}`);
-    setIncident(data);
-    setTruckPicks({});
-    setNext(data.status === "OPEN" && canDispatchIn(user, data.cityId) ? await api(`/incidents/${id}/next-alarm`) : null);
-  }, [id, user]);
+  // Live notifications invalidate ["incident", id], so a raise or close by another office shows here at once.
+  const { data: incident } = useQuery({ queryKey: ["incident", id], queryFn: () => api(`/incidents/${id}`) });
+  const canRaise = incident?.status === "OPEN" && canDispatchIn(user, incident.cityId);
+  const { data: next = null, isPending: nextPending } = useQuery({
+    queryKey: ["incident", id, "next-alarm"],
+    queryFn: () => api(`/incidents/${id}/next-alarm`),
+    enabled: canRaise,
+    staleTime: 0, // built from live truck status
+  });
+  // Picks belong to the card they were made on: a new card (after a raise, or a truck changing status) starts over.
+  const truckPicks = picked.next === next ? picked.picks : {};
 
-  const { last, viewIncident } = useNotifications();
+  const { viewIncident } = useNotifications();
   useEffect(() => viewIncident(id), [id, viewIncident]); // on screen = its notifications are read
-
-  // Another office raised or closed it (or the card changed): reload so every involved city sees it at once.
-  const lastForThis = last?.incidentId === id ? last.id : null;
-  useEffect(() => {
-    load().catch((e) => toast.error(e.message));
-  }, [load, lastForThis]);
 
   const act = async (path, body, success) => {
     setBusy(true);
@@ -113,7 +112,8 @@ function IncidentDetailPage() {
     } catch (e) {
       toast.error(e.message);
     } finally {
-      await load().catch(() => {});
+      await queryClient.invalidateQueries({ queryKey: ["incident", id] });
+      queryClient.invalidateQueries({ queryKey: ["incidents"] });
       setBusy(false);
     }
   };
@@ -243,11 +243,11 @@ function IncidentDetailPage() {
           <Card
             runningCard={next.stations.length ? [{ alarmLevel: next.alarmLevel, index: incident.alarmIndex + 1, stations: next.stations }] : []}
             truckPicks={truckPicks}
-            onPickTruck={(stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId }))}
+            onPickTruck={(stationId, truckId) => setPicked({ next, picks: { ...truckPicks, [stationId]: truckId } })}
           />
         </section>
       )}
-      {mine && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
+      {mine && !nextPending && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
 
       <ConfirmDialog
         open={confirmClose}

@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Page from "@/components/Page.jsx";
 import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
-import { useNotifications } from "@/components/Notifications.jsx";
+import ListSkeleton from "@/components/ListSkeleton.jsx";
 import { AlarmBadge as Alarm } from "@/components/Alarm.jsx";
 
 const fmt = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
@@ -17,18 +17,14 @@ const AlarmBadge = ({ incident }) => <Alarm level={incident.alarmLevel} index={i
 
 function IncidentsPage() {
   const [status, setStatus] = useState("OPEN");
-  const [incidents, setIncidents] = useState(null);
   const navigate = useNavigate();
-  const { version } = useNotifications(); // any dispatch, raise or close in my area reloads the list
-
-  useEffect(() => {
-    api(`/incidents?status=${status}`)
-      .then(setIncidents)
-      .catch((e) => toast.error(e.message));
-  }, [status, version]);
+  // Live notifications invalidate ["incidents"], so any dispatch, raise or close in my area reloads the list.
+  const { data: incidents, isPending } = useQuery({ queryKey: ["incidents", status], queryFn: () => api(`/incidents?status=${status}`) });
 
   const open = (i) => navigate(`/incidents/${i.id}`);
-  const empty = incidents?.length === 0 && (
+  const placeholder = isPending ? (
+    <ListSkeleton className='p-3' />
+  ) : incidents?.length === 0 && (
     <p className='py-10 text-center text-sm text-muted-foreground'>No {status.toLowerCase()} incidents.</p>
   );
 
@@ -46,7 +42,7 @@ function IncidentsPage() {
     >
       {/* Phones: tappable cards. Wider screens: a table. */}
       <div className='grid gap-2 md:hidden'>
-        {empty}
+        {placeholder}
         {incidents?.map((i) => (
           <Card key={i.id} className='cursor-pointer gap-1 px-4 py-3' onClick={() => open(i)}>
             <div className='flex items-center justify-between gap-2'>
@@ -66,7 +62,7 @@ function IncidentsPage() {
       </div>
 
       <Card className='hidden py-0 md:block'>
-        {empty || (
+        {placeholder || (
           <Table>
             <TableHeader>
               <TableRow>

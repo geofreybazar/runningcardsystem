@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,7 +15,9 @@ import Page from "@/components/Page.jsx";
 import Field from "@/components/Field.jsx";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
 import ConfirmDialog from "@/components/ConfirmDialog.jsx";
+import ListSkeleton from "@/components/ListSkeleton.jsx";
 import { api } from "@/api/client.js";
+import { useDistricts } from "@/api/query.js";
 import { ROLE_LABELS, useAuth } from "@/auth/AuthContext.jsx";
 import { OFFICE_LABELS, OFFICE_LEVELS, districtName, officeName } from "@/auth/permissions.js";
 import { displayName } from "@/lib/person.js";
@@ -85,8 +88,9 @@ function userBody(form) {
 
 function UsersPage() {
   const { user: me } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [districts, setDistricts] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: users = [], isPending } = useQuery({ queryKey: ["users"], queryFn: () => api("/users") });
+  const { data: districts = [] } = useDistricts();
   const [form, setForm] = useState(null);
   const [formError, setFormError] = useState("");
   const [password, setPassword] = useState(null); // { user, temporaryPassword }
@@ -94,11 +98,7 @@ function UsersPage() {
   const [tried, setTried] = useState(false);
   const roles = manageableRoles(me.role);
 
-  const load = useCallback(() => api("/users").then(setUsers).catch((e) => toast.error(e.message)), []);
-  useEffect(() => {
-    load();
-    api("/districts").then(setDistricts).catch(() => {});
-  }, [load]);
+  const load = () => queryClient.invalidateQueries({ queryKey: ["users"] });
 
   const run = async (fn, success) => {
     try {
@@ -163,6 +163,7 @@ function UsersPage() {
         </Button>
       }
     >
+      {isPending && <ListSkeleton />}
       {/* Phones: cards. Wider screens: a table. */}
       <div className='grid gap-2 md:hidden'>
         {users.map((u) => (
@@ -183,7 +184,7 @@ function UsersPage() {
         ))}
       </div>
 
-      <Card className='hidden py-0 md:block'>
+      <Card className={isPending ? "hidden" : "hidden py-0 md:block"}>
         <Table>
           <TableHeader>
             <TableRow>

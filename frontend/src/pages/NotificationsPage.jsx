@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { BellOff, ChevronRight, CircleCheck, LoaderCircle, Siren, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Page from "@/components/Page.jsx";
+import ListSkeleton from "@/components/ListSkeleton.jsx";
 import { useNotifications } from "@/components/Notifications.jsx";
 import { AlarmBadge, useAlarmIndex } from "@/components/Alarm.jsx";
 import { NOTIFICATION_TITLES } from "@/lib/notifications.js";
@@ -36,7 +38,7 @@ const Empty = ({ children }) => (
 function NotificationsPage() {
   const { version, markSeen } = useNotifications();
   const alarmIndex = useAlarmIndex();
-  const [incidents, setIncidents] = useState(null);
+  const { data: incidents, isPending } = useQuery({ queryKey: ["incidents", "OPEN"], queryFn: () => api("/incidents?status=OPEN") });
   const [notes, setNotes] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -44,10 +46,10 @@ function NotificationsPage() {
   const sentinel = useRef(null);
 
   // First page on open; on each live notification, the newest page is merged in on top so the scroll position stays.
+  // shortcut: hand-merged rather than useInfiniteQuery, whose refetch would clear the unread dots kept until the next visit.
   useEffect(() => {
-    Promise.all([api("/incidents?status=OPEN"), api(`/notifications?take=${PAGE}`)])
-      .then(([i, page]) => {
-        setIncidents(i);
+    api(`/notifications?take=${PAGE}`)
+      .then((page) => {
         if (!loaded.current) {
           loaded.current = true;
           setHasMore(page.length === PAGE);
@@ -86,6 +88,7 @@ function NotificationsPage() {
     <Page title='Notifications' description='Incidents your area is involved in (fire, trucks sent, or on the running card), and every dispatch, alarm and close.'>
       <div className='grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]'>
         <Section title='Open incidents involving us'>
+          {isPending && <ListSkeleton rows={2} />}
           {incidents?.length === 0 && <Empty>No open incidents involve your area.</Empty>}
           {incidents?.map((i) => (
             <Link key={i.id} to={`/incidents/${i.id}`}>
@@ -106,6 +109,7 @@ function NotificationsPage() {
         </Section>
 
         <Section title='Notifications'>
+          {!notes && <ListSkeleton />}
           {notes?.length === 0 && <Empty>No notifications yet.</Empty>}
           {notes?.map((n) => {
             const Icon = ICONS[n.type];

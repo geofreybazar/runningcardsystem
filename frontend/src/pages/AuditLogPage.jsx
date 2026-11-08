@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Page from "@/components/Page.jsx";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
+import ListSkeleton from "@/components/ListSkeleton.jsx";
 import { displayName } from "@/lib/person.js";
 import { api } from "@/api/client.js";
 import { ACTION_LABELS, AUDIT_ENTITIES, WARNING_ACTIONS, auditDetails } from "@/lib/audit.js";
@@ -15,21 +17,14 @@ const when = (d) => new Date(d).toLocaleString([], { dateStyle: "medium", timeSt
 
 function AuditLogPage() {
   const [entity, setEntity] = useState("ALL");
-  const [rows, setRows] = useState([]);
-  const [more, setMore] = useState(false);
-
-  const fetchPage = (skip) =>
-    api(`/audit-logs?take=${PAGE}&skip=${skip}${entity !== "ALL" ? `&entity=${entity}` : ""}`)
-      .then((page) => {
-        setRows((r) => (skip ? [...r, ...page] : page));
-        setMore(page.length === PAGE);
-      })
-      .catch((e) => toast.error(e.message));
-
-  useEffect(() => {
-    fetchPage(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the filter changes
-  }, [entity]);
+  // Offset pages; the next one starts after every row loaded so far.
+  const { data, isPending, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["audit", entity],
+    queryFn: ({ pageParam }) => api(`/audit-logs?take=${PAGE}&skip=${pageParam}${entity !== "ALL" ? `&entity=${entity}` : ""}`),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.length === PAGE ? pages.length * PAGE : undefined),
+  });
+  const rows = data?.pages.flat() ?? [];
 
   return (
     <Page
@@ -44,7 +39,8 @@ function AuditLogPage() {
         />
       }
     >
-      <Card className='py-0'>
+      {isPending && <ListSkeleton rows={8} />}
+      <Card className={isPending ? "hidden" : "py-0"}>
         <div className='overflow-x-auto'>
           <Table>
             <TableHeader>
@@ -76,9 +72,9 @@ function AuditLogPage() {
           </Table>
         </div>
       </Card>
-      {more && (
-        <Button variant='outline' className='self-center' onClick={() => fetchPage(rows.length)}>
-          Load more
+      {hasNextPage && (
+        <Button variant='outline' className='self-center' onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+          {isFetchingNextPage && <LoaderCircle className='animate-spin' />} Load more
         </Button>
       )}
     </Page>

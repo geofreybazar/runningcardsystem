@@ -33,7 +33,7 @@ flowchart LR
 
 | Layer | Technology (version range from `package.json`) |
 |---|---|
-| Frontend | React `^19.1.10`, React Router `^7.18.5`, Vite `^6.0.1`, Tailwind CSS `^4.3.5`, shadcn/ui (Radix `radix-ui ^1.8.1`, `cmdk`, `lucide-react`, `sonner`), `@vis.gl/react-google-maps ^1.4.2` |
+| Frontend | React `^19.1.10`, React Router `^7.18.5`, Vite `^6.0.1`, Tailwind CSS `^4.3.5`, shadcn/ui (Radix `radix-ui ^1.8.1`, `cmdk`, `lucide-react`, `sonner`), `@vis.gl/react-google-maps ^1.4.2`, `@tanstack/react-query ^5` |
 | Backend | NestJS `^12.0.1` (ESM), `@nestjs/authentication ^0.1.5`, `@nestjs/authorization ^0.1.3`, `@nestjs/throttler ^6.7.1`, `@nestjs/swagger ^12.1.1`, `@nestjs/config`, Zod / class-transformer, cookie-parser |
 | Data | PostgreSQL (16 in `docker-compose.yml`), Prisma `^7.10.1` with `@prisma/adapter-pg` |
 | Tests | Vitest `^4.1.2` + supertest (backend), `node --test` (frontend) |

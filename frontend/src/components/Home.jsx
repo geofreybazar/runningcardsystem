@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Eye, LoaderCircle, MapPin, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,32 +20,24 @@ function Home() {
   const [label, setLabel] = useState("");
   const [barangayId, setBarangayId] = useState(null);
   const { user } = useAuth();
-  const [runningCard, setRunningCard] = useState(null);
-  const [city, setCity] = useState(null); // NCR city of the pin; its dispatchers own the incident
-  const [loading, setLoading] = useState(false);
-  const [truckPicks, setTruckPicks] = useState({}); // stationId -> truckId; default is the station's first available truck
+  const [picked, setPicked] = useState({ card: null, picks: {} }); // stationId -> truckId; default is the station's first available truck
   const [dispatchForm, setDispatchForm] = useState(null); // { locationLabel, notes }
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  // The card is built on the server from live truck status, so it is refetched for every new location.
-  useEffect(() => {
-    if (!location) return;
-    let stale = false;
-    setLoading(true);
-    api(`/running-card?lat=${location.lat}&lng=${location.lng}`)
-      .then(({ city, alarms }) => {
-        if (stale) return;
-        setRunningCard(alarms);
-        setCity(city);
-        setTruckPicks({});
-      })
-      .catch((e) => !stale && toast.error(e.message))
-      .finally(() => !stale && setLoading(false));
-    return () => {
-      stale = true;
-    };
-  }, [location]);
+  // The card is built on the server from live truck status, so it is always refetched; the last one stays (dimmed) while a new location loads.
+  const { data, isPending, isPlaceholderData } = useQuery({
+    queryKey: ["running-card", location?.lat, location?.lng],
+    queryFn: () => api(`/running-card?lat=${location.lat}&lng=${location.lng}`),
+    enabled: !!location,
+    staleTime: 0,
+    placeholderData: keepPreviousData,
+  });
+  const loading = isPlaceholderData || (!!location && isPending); // not for a background refresh: the card stays usable
+  const runningCard = data?.alarms ?? null;
+  const city = data?.city ?? null; // NCR city of the pin; its dispatchers own the incident
+  // Picks belong to the card they were made on: a new location or a changed truck status starts over.
+  const truckPicks = picked.card === runningCard ? picked.picks : {};
 
   const handleSelect = (point, text, pickedBarangayId = null) => {
     setLocation(point);
@@ -126,7 +119,7 @@ function Home() {
           <Card
             runningCard={runningCard}
             truckPicks={truckPicks}
-            onPickTruck={canDispatchIn(user, city?.id) ? (stationId, truckId) => setTruckPicks((p) => ({ ...p, [stationId]: truckId })) : undefined}
+            onPickTruck={canDispatchIn(user, city?.id) ? (stationId, truckId) => setPicked({ card: runningCard, picks: { ...truckPicks, [stationId]: truckId } }) : undefined}
           />
         </div>
       </section>

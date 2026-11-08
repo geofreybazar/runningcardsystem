@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, stream } from "@/api/client.js";
+import { queryClient } from "@/api/query.js";
 
 const Ctx = createContext({ unread: 0, openIncidents: 0, last: null, version: 0, markSeen: () => {}, viewIncident: () => () => {}, refreshOpen: () => {} });
 export const useNotifications = () => useContext(Ctx);
@@ -71,6 +72,8 @@ export function NotificationsProvider({ children }) {
               if (type !== "notification") return;
               setLast(n);
               refreshOpen();
+              // Any dispatch, raise or close in my area: incident lists, that incident and truck statuses reload.
+              for (const queryKey of [["incidents"], ["incident", n.incidentId], ["stations"]]) queryClient.invalidateQueries({ queryKey });
               if (viewing.current === n.incidentId) {
                 api("/notifications/seen", { method: "POST", body: { incidentId: n.incidentId } }).catch(() => {});
               } else {

@@ -1,22 +1,14 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { api } from "@/api/client.js";
+import { useSettings } from "@/api/query.js";
 import { alarmTone, formatElapsed } from "@/lib/alarm.js";
 import { applyTheme } from "@/lib/theme.js";
 import { cn } from "@/lib/utils";
 
-let levels = null; // Settings.alarmLevels, fetched once per page load
-let levelsPromise = null;
-
 /** Position of an alarm level name in the settings (for its colour), or null while loading. */
 export function useAlarmIndex() {
-  const [list, setList] = useState(levels);
-  useEffect(() => {
-    if (levels) return;
-    levelsPromise ??= api("/settings").then((s) => (levels = s.alarmLevels), () => (levelsPromise = null));
-    levelsPromise?.then((l) => l && setList(l));
-  }, []);
+  const { data } = useSettings({ meta: { silent: true } }); // badges just stay neutral if this fails
   return (name) => {
-    const i = list?.indexOf(name) ?? -1;
+    const i = data?.alarmLevels.indexOf(name) ?? -1;
     return i < 0 ? null : i;
   };
 }

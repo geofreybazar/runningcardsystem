@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, MapPin, Pencil, Phone, Plus, Search, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,10 +13,12 @@ import Page from "@/components/Page.jsx";
 import Field from "@/components/Field.jsx";
 import SimpleSelect from "@/components/SimpleSelect.jsx";
 import ConfirmDialog from "@/components/ConfirmDialog.jsx";
+import ListSkeleton from "@/components/ListSkeleton.jsx";
 import { TruckStatusBadge } from "@/components/StatusBadge.jsx";
 import MapComponent from "@/components/MapComponent.jsx";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client.js";
+import { useDistricts } from "@/api/query.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { canEditCity, districtName } from "@/auth/permissions.js";
 
@@ -66,9 +69,10 @@ function IconAction({ label, onClick, children, destructive }) {
 
 function StationsPage() {
   const { user } = useAuth();
-  const [districts, setDistricts] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: districts = [] } = useDistricts();
   const [districtId, setDistrictId] = useState(user.districtId ?? 1);
-  const [stations, setStations] = useState([]);
+  const { data: stations = [], isPending } = useQuery({ queryKey: ["stations", districtId], queryFn: () => api(`/stations?districtId=${districtId}`) });
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
   const [stationForm, setStationForm] = useState(null);
@@ -84,17 +88,11 @@ function StationsPage() {
   const editable = !!selected && canEditCity(user, selected.cityId); // the selected station
   const visible = useMemo(() => stations.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())), [stations, search]);
 
-  const load = useCallback(
-    () => api(`/stations?districtId=${districtId}`).then(setStations).catch((e) => toast.error(e.message)),
-    [districtId]
-  );
-  useEffect(() => {
-    api("/districts").then(setDistricts).catch((e) => toast.error(e.message));
-  }, []);
-  useEffect(() => {
+  const load = () => queryClient.invalidateQueries({ queryKey: ["stations"] });
+  const pickDistrict = (id) => {
+    setDistrictId(id);
     setSelectedId(null);
-    load();
-  }, [load]);
+  };
 
   const run = async (fn, success) => {
     try {
@@ -171,7 +169,7 @@ function StationsPage() {
         <>
           <SimpleSelect
             value={districtId}
-            onChange={setDistrictId}
+            onChange={pickDistrict}
             className='w-full bg-card sm:w-72'
             options={districts.map((d) => ({ value: d.id, label: districtName(d) }))}
           />
@@ -193,6 +191,7 @@ function StationsPage() {
               <Input className='pl-8' placeholder={`Search ${stations.length} stations`} value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           </div>
+          {isPending && <ListSkeleton className='p-3' />}
           <ul className='max-h-[65vh] divide-y overflow-auto'>
             {visible.map((s) => {
               const available = s.trucks.filter((t) => t.status === "AVAILABLE").length;
