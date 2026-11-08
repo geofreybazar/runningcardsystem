@@ -47,7 +47,7 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 1. **VPS:** Ubuntu 24.04 (Hostinger "Docker" OS template, or install Docker Engine and the compose plugin from docs.docker.com). Compose must be v2.24 or newer (`docker compose version`).
 2. **Firewall:** `ufw allow OpenSSH && ufw allow 80 && ufw allow 443/tcp && ufw allow 443/udp && ufw enable`. Also check Hostinger's own firewall in hPanel.
 3. **DNS:** an A record for the domain → the VPS IP. Wait until it resolves, or Caddy can't get the certificate.
-4. **Code:** `git clone https://github.com/geofreybazar/runningcardsystem.git && cd runningcardsystem`.
+4. **Code:** `git clone -b staging https://github.com/geofreybazar/runningcardsystem.git && cd runningcardsystem`. The VPS runs the `staging` branch while it is tested; `main` is still the older app on Vercel. After staging is merged into `main`, switch the VPS with `git checkout main`.
 5. **Secrets** (never committed):
    - `cp .env.example .env`, then set `DOMAIN`, `POSTGRES_PASSWORD` (`openssl rand -hex 24`) and `VITE_GOOGLE_API`.
    - `cp backend/.env.example backend/.env`, then set `JWT_SECRET` (`openssl rand -base64 48`), real `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD`, and `SEED_PLACEHOLDER_TRUCKS=false`. The override sets `DATABASE_URL`, `FRONTEND_ORIGIN` and `TRUST_PROXY`, and the image sets `NODE_ENV=production`.
@@ -55,7 +55,7 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 7. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
 8. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.
    - Restore (into an empty database): `gunzip -c backups/<file>.sql.gz | docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T db psql -U postgres runningcard`.
-9. **Updates:** `git pull`, then the same `up -d --build` command. Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
+9. **Updates:** `git pull` (on the branch the VPS runs), then the same `up -d --build` command. Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
 
 Notes:
 - Changing `POSTGRES_PASSWORD` after the first start has no effect on the existing database (Postgres reads it only on initialization); change it with `ALTER USER` as well.
