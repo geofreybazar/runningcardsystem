@@ -1,0 +1,39 @@
+# Production override for a single VPS: HTTPS via Caddy, secrets from .env (see .env.example).
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Needs Docker Compose v2.24+ (for !reset). Guide: docs/development/deployment.md#vps-hostinger
+services:
+  db:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    restart: unless-stopped
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/runningcard
+      FRONTEND_ORIGIN: https://${DOMAIN:?set DOMAIN in .env}
+      TRUST_PROXY: "2" # Caddy -> nginx -> API: the client IP is two hops back
+    restart: unless-stopped
+
+  frontend:
+    ports: !reset [] # only Caddy is reachable from outside
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - frontend
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificates: keep, or Let's Encrypt rate limits bite on rebuilds
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

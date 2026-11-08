@@ -52,4 +52,5 @@ CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e 
 - Never commit `.env` files or keys. The Google key is a browser key and must stay referrer-restricted.
 - `SEED_PLACEHOLDER_TRUCKS=true` is for demos and tests only.
 - Docker stack tested 2026-11-07 (see [docs/development/deployment.md](docs/development/deployment.md)); re-test after changing the Dockerfiles, the seed's imports or nginx.
+- VPS production = `docker-compose.yml` + `docker-compose.prod.yml` (Caddy HTTPS, secrets in root `.env`); tested locally 2026-11-08, re-test after changing it or `deploy/`.
 - Open security items: [docs/security/gaps.md](docs/security/gaps.md).
