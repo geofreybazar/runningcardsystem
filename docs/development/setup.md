@@ -74,6 +74,10 @@ Sign in with the seeded Super Admin; you will be asked to change the password.
 | frontend | `npm test` | `node --test` (pure helpers) |
 | frontend | `npx shadcn@latest add <component>` | add a shadcn/ui component into `src/components/ui/` |
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: frontend `lint`, `test`, `build`; backend `prisma generate`, `lint`, `test`, `build`, `test:e2e` against a throwaway `postgres:16` service (`runningcard_test`). No deploy step.
+
 ## Notes
 
 - Prisma blocks `prisma migrate reset` when it detects an AI agent unless the user consents explicitly.

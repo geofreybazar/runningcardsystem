@@ -28,6 +28,8 @@ Single test file: `npx vitest run src/geo/city-locator.spec.ts` or `npx vitest r
 
 Frontend (`cd frontend`): `npm run dev` (proxies `/api` to `API_URL`, default `localhost:3000`) · `npm run build` · `npm run lint` · `npm test`.
 
+CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e (throwaway Postgres) on push to `main` and PRs; keep it in step when scripts change.
+
 ## Key architecture decisions
 
 - **Deny-by-default authorization.** Every route needs `@Can(AccessPolicy, '<ability>')`, `@Can.Anyone()` or `@Public()`. Abilities live in `backend/src/auth/access.policy.ts`; record checks (`editCity`, `dispatchIn`) are done in services with `authz.authorize(...)`.

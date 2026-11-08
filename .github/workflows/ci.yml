@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# shortcut: both jobs always run (the frontend also imports backend/src/shared), add path filters if CI minutes matter.
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # same as the Dockerfiles
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16 # same as docker-compose.yml
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: runningcard_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Throwaway values for a database that exists only for this run; the e2e setup wipes it (name must end in _test).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runningcard_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runningcard_test
+      JWT_SECRET: ci-only-dummy-secret-not-used-anywhere-else-0123456789
+      FRONTEND_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate # Prisma 7 doesn't generate on install; src/generated/ is gitignored
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:e2e
