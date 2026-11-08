@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { claimTruck, releaseTrucks } from '../stations/truck-claims.js';
 import type { CreateDeploymentDto, TruckPostDto, UpdateDeploymentDto } from './deployments.dto.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
@@ -178,8 +179,7 @@ export class DeploymentsService {
     for (const truckId of ids) {
       const truck = await tx.truck.findFirst({ where: { id: truckId, isActive: true, station: { isActive: true } }, select: { callSign: true, status: true, stationId: true } });
       if (!truck) throw new NotFoundException(`Truck ${truckId} not found`);
-      const { count } = await tx.truck.updateMany({ where: { id: truckId, status: 'AVAILABLE', isActive: true }, data: { status: 'DEPLOYED' } });
-      if (count === 0) throw new ConflictException(`${truck.callSign} is not available (${truck.status.toLowerCase().replace(/_/g, ' ')})`);
+      if (!(await claimTruck(tx, truckId, 'DEPLOYED'))) throw new ConflictException(`${truck.callSign} is not available (${truck.status.toLowerCase().replace(/_/g, ' ')})`);
       assigned.push(
         await tx.deploymentUnit.create({
           data: { deploymentId, truckId, stationId: truck.stationId, assignedById: user.id },
@@ -193,7 +193,7 @@ export class DeploymentsService {
 
   private async releaseUnits(tx: Tx, user: AuthUser, units: { id: number; truckId: number }[]) {
     if (units.length === 0) return;
-    await tx.truck.updateMany({ where: { id: { in: units.map((u) => u.truckId) }, status: 'DEPLOYED' }, data: { status: 'AVAILABLE' } });
+    await releaseTrucks(tx, units.map((u) => u.truckId), 'DEPLOYED');
     await tx.deploymentUnit.updateMany({ where: { id: { in: units.map((u) => u.id) } }, data: { releasedAt: new Date(), releasedById: user.id } });
   }
 

@@ -8,6 +8,7 @@ import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
 import type { CreateIncidentDto, TruckPicks } from './incidents.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { claimTruck, releaseTrucks } from '../stations/truck-claims.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['stations'][number];
@@ -182,7 +183,7 @@ export class IncidentsService {
     const active = incident.units.filter((u) => !u.releasedAt);
     const levels = await this.alarmLevels();
     const notified = await this.prisma.$transaction(async (tx) => {
-      await tx.truck.updateMany({ where: { id: { in: active.map((u) => u.truckId) }, status: 'RESPONDING' }, data: { status: 'AVAILABLE' } });
+      await releaseTrucks(tx, active.map((u) => u.truckId), 'RESPONDING');
       await tx.incidentUnit.updateMany({ where: { incidentId: id, releasedAt: null }, data: { releasedAt: new Date() } });
       await tx.incident.update({ where: { id }, data: { status: 'CLOSED', closedAt: new Date(), closedById: user.id } });
       // Each city hears which of its trucks were released.
@@ -203,11 +204,7 @@ export class IncidentsService {
       const preferred = station.trucks.find((t) => t.id === picks[station.id]);
       const candidates = preferred ? [preferred, ...station.trucks.filter((t) => t !== preferred)] : station.trucks;
       for (const truck of candidates) {
-        const { count } = await tx.truck.updateMany({
-          where: { id: truck.id, status: 'AVAILABLE', isActive: true },
-          data: { status: 'RESPONDING' },
-        });
-        if (count === 1) {
+        if (await claimTruck(tx, truck.id, 'RESPONDING')) {
           sent.push(
             await tx.incidentUnit.create({
               data: { incidentId, stationId: station.id, truckId: truck.id, alarmLevel },
