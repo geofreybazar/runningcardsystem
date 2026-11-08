@@ -96,7 +96,7 @@ export class NotificationsService {
     const { notificationsSeenId } = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notificationsSeenId: true } });
     // shortcut: loads everything newer than the last "seen all" to drop per-incident views; fine while that stays small, else count in SQL.
     const [rows, isUnread] = await Promise.all([
-      this.prisma.notification.findMany({ where: { ...visibleTo(user), id: { gt: notificationsSeenId } }, select: { id: true, incidentId: true } }),
+      this.prisma.notification.findMany({ where: { ...visibleTo(user), id: { gt: notificationsSeenId } }, select: { id: true, incidentId: true, actorId: true } }),
       this.unreadTest(user),
     ]);
     return { count: rows.filter(isUnread).length };
@@ -120,13 +120,14 @@ export class NotificationsService {
     });
   }
 
-  /** Unread = a higher id than the last "seen all" and than the account's last view of that incident. */
+  /** Unread = someone else's step, with a higher id than the last "seen all" and than the account's last view of that incident. */
   private async unreadTest(user: AuthUser) {
     const { notificationsSeenId, incidentViews } = await this.prisma.user.findUniqueOrThrow({
       where: { id: user.id },
       select: { notificationsSeenId: true, incidentViews: { select: { incidentId: true, seenId: true } } },
     });
     const viewed = new Map(incidentViews.map((v) => [v.incidentId, v.seenId]));
-    return (n: { id: number; incidentId: string | null }) => n.id > notificationsSeenId && n.id > ((n.incidentId && viewed.get(n.incidentId)) || 0);
+    return (n: { id: number; incidentId: string | null; actorId: string }) =>
+      n.actorId !== user.id && n.id > notificationsSeenId && n.id > ((n.incidentId && viewed.get(n.incidentId)) || 0);
   }
 }

@@ -1,2 +1,5 @@
 src/generated/
 *.tsbuildinfo
+
+# Browser e2e build (test/browser-server.ts)
+dist-e2e/

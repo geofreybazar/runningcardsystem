@@ -42,3 +42,15 @@ Vitest with `vitest.config.e2e.ts`: `**/*.e2e-spec.ts`, `globalSetup: test/globa
 ## Clock steps (WSL 2)
 
 The WSL 2 clock can step back and forth by several seconds (seen: −5.8 s every ~30 s). Anything comparing wall-clock times can then flake. The app is hardened against this: access tokens get a 30 s clock tolerance, and notification "seen" marks use ids, not times. If time-based flakes appear, check the clock by sampling `date +%s.%N` against `/proc/uptime`. To stop the drift itself, run `sudo hwclock -s` or `wsl --update`.
+
+## Browser e2e (Playwright)
+
+`cd frontend && npm run test:e2e` clicks through the real UI in headless Chromium (`frontend/e2e/*.spec.js`, config `frontend/playwright.config.js`). Playwright starts two servers of its own and stops them afterwards:
+
+- **API on port 3100:** `backend/test/browser-server.ts` (`npm run e2e:browser-server`) **wipes, migrates and seeds the `TEST_DATABASE_URL` database** (same guard as the API e2e: the name must end in `_test`), builds into `backend/dist-e2e/`, and starts the app. A running `start:dev` (port 3000, `dist/`, dev database) is not touched.
+- **Web on port 5180:** Vite with `API_URL=http://localhost:3100`.
+
+Specs (one worker, the database is shared): sign-in with the forced first password change and sign-out; running card → dispatch → incident → close; adding a Regional Operations user and finding it with the Users filters; a special deployment (create, add a truck, set its post, "Deployed" on Stations, end, delete).
+
+Locations are entered as typed coordinates (no Google call), so the specs run without a Maps key. Map rendering and Google search are not covered. Don't run it at the same time as `npm run test:e2e` in the backend: both use the `_test` database. CI runs it as the `browser` job and uploads the Playwright report when it fails. First time locally: `npx playwright install chromium`.
+

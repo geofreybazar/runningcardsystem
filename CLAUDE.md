@@ -26,7 +26,7 @@ docs/                      architecture, database, api, security, development, m
 Backend (`cd backend`): `npm run start:dev` · `npm run build` · `npm run lint` · `npm test` (unit) · `npm run test:e2e` (wipes the DB in `TEST_DATABASE_URL`; refuses unless its name ends in `_test`) · `npx prisma migrate dev --name <x>` then `npx prisma generate` (Prisma 7 doesn't auto-generate) · `npx prisma db seed` (re-runnable).
 Single test file: `npx vitest run src/geo/city-locator.spec.ts` or `npx vitest run --config vitest.config.e2e.ts test/incidents.e2e-spec.ts`.
 
-Frontend (`cd frontend`): `npm run dev` (proxies `/api` to `API_URL`, default `localhost:3000`) · `npm run build` · `npm run lint` · `npm test`.
+Frontend (`cd frontend`): `npm run dev` (proxies `/api` to `API_URL`, default `localhost:3000`) · `npm run build` · `npm run lint` · `npm test` · `npm run test:e2e` (Playwright in a browser; starts its own API on 3100 and **wipes the `_test` DB**).
 
 CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e (throwaway Postgres) on push to `main` and PRs; keep it in step when scripts change.
 

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import incidentService from "@/service/incident.service.js";
 import notificationService from "@/service/notification.service.js";
+import useAuth from "@/hooks/auth/useAuth.js";
 import { NOTIFICATION_TITLES } from "@/constants/notifications.js";
 import { notificationLink, notificationPlace, trucksMoved } from "@/utils/notification.js";
 import { queryClient } from "@/service/queryClient.js";
@@ -30,6 +31,8 @@ function beep() {
 
 function NotificationsProvider({ children }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const me = user?.id;
   const [unread, setUnread] = useState(0);
   const [openIncidents, setOpenIncidents] = useState(0); // open incidents in my area, for the sidebar bubble
   const [last, setLast] = useState(null); // latest live notification, so open pages can reload
@@ -75,6 +78,8 @@ function NotificationsProvider({ children }) {
               // Any dispatch, raise, close or deployment in my area: those lists, that page and truck statuses reload.
               const keys = n.deploymentId ? [["deployments"], ["deployment", n.deploymentId]] : [["incidents"], ["incident", n.incidentId]];
               for (const queryKey of [...keys, ["stations"]]) queryClient.invalidateQueries({ queryKey });
+              // Your own dispatch / raise / deployment: the page already shows it, so no beep, toast or unread dot.
+              if (n.actorId === me) return;
               if (n.incidentId && viewing.current === n.incidentId) {
                 notificationService.markSeen(n.incidentId).catch(() => {});
               } else {
@@ -91,7 +96,7 @@ function NotificationsProvider({ children }) {
       }
     })();
     return () => abort.abort();
-  }, [alert, refreshOpen, refreshUnread]);
+  }, [alert, refreshOpen, refreshUnread, me]);
 
   const markSeen = useCallback(() => {
     setUnread(0);

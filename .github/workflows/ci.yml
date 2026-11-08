@@ -64,3 +64,47 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:e2e
+
+  # Clicks through the real UI (frontend/e2e, Playwright) against the API on a fresh test database.
+  browser:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: runningcard_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Throwaway values for a database that exists only for this run (wiped by the test server; name must end in _test).
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runningcard_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runningcard_test
+      JWT_SECRET: ci-only-dummy-secret-not-used-anywhere-else-0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npx prisma generate
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+

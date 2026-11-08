@@ -28,3 +28,7 @@ dist-ssr
 
 # Database dumps (deploy/backup.sh)
 backups/
+
+# Playwright
+test-results/
+playwright-report/

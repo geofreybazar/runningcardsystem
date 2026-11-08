@@ -47,6 +47,7 @@ describe('notifications to involved cities, their districts and the Regional off
     // One notification per step; each office sees only its own trucks in it.
     const manilaNotes = await notes(manilaRadio, created.id);
     expect(manilaNotes.map((n) => n.type).sort()).toEqual(['ALARM_RAISED', 'DISPATCHED']);
+    expect(manilaNotes.some((n) => n.unread)).toBe(false); // your own dispatch and raise are in your feed, not unread
     expect(signs(manilaNotes.find((n) => n.type === 'DISPATCHED')!)).toEqual(callSigns(units, manila, '1st Alarm'));
     for (const auth of [caloocanRadio, caloocanOps, fd2Radio]) {
       const raisedNote = (await notes(auth, created.id)).find((n) => n.type === 'ALARM_RAISED')!;
