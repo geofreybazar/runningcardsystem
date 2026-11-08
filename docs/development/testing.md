@@ -31,7 +31,7 @@ Vitest with `vitest.config.e2e.ts`: `**/*.e2e-spec.ts`, `globalSetup: test/globa
 
 ## Frontend tests (`npm test`)
 
-`node --test` runs `src/variables/variables.test.js` (`parseCoordinates`). There are no component or browser tests in the repository.
+`node --test` runs the `*.test.js` files next to the helpers in `src/utils/` and `src/service/` (`parseCoordinates`, permissions, alarm, stats, audit, validation, SSE parsing). There are no component or browser tests in the repository.
 
 ## Not covered
 

@@ -135,7 +135,7 @@ While `mustChangePassword` is true, `AccessPolicy.before()` denies every `@Can(.
 
 ## 7. Barangay pin
 
-Source: `backend/src/districts/districts.controller.ts`, `frontend/src/components/LocationSearch.jsx`.
+Source: `backend/src/districts/districts.controller.ts`, `frontend/src/components/features/runningCard/locationSearch/LocationSearch.jsx`.
 
 1. The user picks District → City → Barangay in the UI.
 2. If the barangay has `lat/lng`, the UI uses it.

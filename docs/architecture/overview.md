@@ -44,7 +44,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   autonumber
-  participant B as Browser (api/client.js)
+  participant B as Browser (service/client.js)
   participant N as Nest pipeline
   participant G1 as AuthenticationGuard
   participant G2 as AuthorizationGuard
@@ -72,8 +72,8 @@ The global pipeline is configured in `backend/src/app.setup.ts`: global prefix `
 
 | Component | Role | Talks to |
 |---|---|---|
-| `frontend/src/api/client.js` | fetch wrapper; in-memory access token; single shared refresh | `/api/*` |
-| `frontend/src/auth/AuthContext.jsx` | signed-in user state; restores the session on load | client.js |
+| `frontend/src/service/client.js` | fetch wrapper; in-memory access token; single shared refresh | `/api/*` |
+| `frontend/src/components/app/providers/AuthProvider.jsx` | signed-in user state (`useAuth`); restores the session on load | client.js |
 | `backend/src/auth` | sign-in, token rotation, `AccessPolicy`, user loading | users, geo, prisma |
 | `backend/src/geo` | `CityDirectory`: cities + point-in-city lookup | prisma |
 | `backend/src/running-card` | builds the card from live truck status | prisma |

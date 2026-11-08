@@ -80,4 +80,4 @@ sequenceDiagram
 
 ## Frontend handling
 
-`frontend/src/api/client.js` keeps the access token in a module variable, refreshes once on 401 (shared promise for concurrent calls), and restores the session on page load via `POST /api/auth/refresh`. See [frontend architecture](../architecture/frontend.md#api-client-behavior-srcapiclientjs).
+`frontend/src/service/client.js` keeps the access token in a module variable, refreshes once on 401 (shared promise for concurrent calls), and restores the session on page load via `POST /api/auth/refresh`. See [frontend architecture](../architecture/frontend.md#api-client-behavior-srcapiclientjs).

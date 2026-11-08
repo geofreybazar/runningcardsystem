@@ -104,7 +104,7 @@ Has many `IncidentUnit`.
 
 Relations: `incidentsCreated` / `incidentsClosed` (named relations `IncidentCreatedBy` / `IncidentClosedBy`), `auditLogs`.
 
-Display name (frontend `displayName()` in `src/lib/person.js`): rank, first name, middle initial, last name, e.g. `SFO2 Juan D. Dela Cruz`.
+Display name (frontend `displayName()` in `src/utils/person.js`): rank, first name, middle initial, last name, e.g. `SFO2 Juan D. Dela Cruz`.
 
 Migration `20261107120000_user_rank_account_number` renamed `username` → `accountNumber` (uppercased), and split `fullName`: last word → `lastName`, the rest → `firstName` (a one-word name leaves `lastName` empty). Existing users get `rank = null`.
 

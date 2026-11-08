@@ -74,4 +74,4 @@ flowchart LR
 
 **Statistics** (`/api/statistics`, `/api/statistics/incidents.csv`) use the same incident visibility (`incidentVisibility()`), so an office's counts, charts and CSV only cover incidents it can open; district/city filters only narrow that.
 
-The frontend mirrors these rules in `frontend/src/auth/permissions.js` and in the `NAV` role lists only to hide UI; it is not a security boundary.
+The frontend mirrors these rules in `frontend/src/utils/permissions.js` and in the `NAV` role lists (`constants/links.js`) only to hide UI; it is not a security boundary.
