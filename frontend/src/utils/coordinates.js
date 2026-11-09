@@ -10,3 +10,7 @@ export const parseCoordinates = (text) => {
   if (lat < south || lat > north || lng < west || lng > east) return null;
   return { lat, lng };
 };
+
+// Opens the point in Google Maps (the app on phones). No API key: the public Maps URL scheme.
+export const googleMapsUrl = ({ lat, lng }) =>
+  `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}`;

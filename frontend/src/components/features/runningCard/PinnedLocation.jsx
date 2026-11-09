@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import OpenInGoogleMaps from "@/components/common/OpenInGoogleMaps.jsx";
 
 /** The chosen point: its label, city and coordinates; a hint until one is chosen. */
 function PinnedLocation({ location, label, city }) {
@@ -14,6 +15,7 @@ function PinnedLocation({ location, label, city }) {
         <div className='font-mono text-xs text-muted-foreground'>
           {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
         </div>
+        <OpenInGoogleMaps position={location} className='mt-2' />
       </div>
     </div>
   );

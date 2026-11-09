@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Elapsed from "@/components/common/Elapsed.jsx";
+import OpenInGoogleMaps from "@/components/common/OpenInGoogleMaps.jsx";
 import { alarmTone } from "@/utils/alarm.js";
 import { formatDateTime } from "@/utils/dateTime.js";
 import { displayName } from "@/utils/person.js";
@@ -24,11 +25,15 @@ function IncidentHeader({ incident, mine, busy, onClose }) {
           </p>
         )}
         {incident.notes && <p className='mt-2 text-sm'>{incident.notes}</p>}
-        {mine && (
-          <Button variant='outline' className='mt-3' onClick={onClose} disabled={busy}>
-            Close incident
-          </Button>
-        )}
+        <div className='mt-3 flex flex-wrap items-center gap-2'>
+          {/* Everyone can open the fire in Google Maps, view-only offices too: it is for getting there. */}
+          <OpenInGoogleMaps position={{ lat: incident.lat, lng: incident.lng }} />
+          {mine && (
+            <Button variant='outline' size='sm' onClick={onClose} disabled={busy}>
+              Close incident
+            </Button>
+          )}
+        </div>
       </div>
       {/* The one loud element: where the incident stands and for how long. */}
       <div
