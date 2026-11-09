@@ -68,7 +68,10 @@ async function main() {
     }
   }
 
-  if ((await prisma.station.count()) === 0) {
+  // SEED_STATIONS=false: a fresh production start where offices add their own stations and trucks.
+  // Without it, the seed (run on every container start) would re-create the stations after they were cleared.
+  const seedStations = process.env.SEED_STATIONS !== 'false';
+  if (seedStations && (await prisma.station.count()) === 0) {
     const stations: SeedStation[] = readJson('stations.json');
     const districts = await prisma.fireDistrict.findMany({ include: { cities: true } });
     const byCode = new Map(districts.map((d) => [d.code, d]));

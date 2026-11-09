@@ -50,7 +50,7 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 4. **Code:** `git clone -b staging https://github.com/geofreybazar/runningcardsystem.git && cd runningcardsystem`. The VPS runs the `staging` branch while it is tested; `main` is still the older app on Vercel. After staging is merged into `main`, switch the VPS with `git checkout main`.
 5. **Secrets** (never committed):
    - `cp .env.example .env`, then set `DOMAIN`, `POSTGRES_PASSWORD` (`openssl rand -hex 24`) and `VITE_GOOGLE_API`.
-   - `cp backend/.env.example backend/.env`, then set `JWT_SECRET` (`openssl rand -base64 48`), real `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD`, and `SEED_PLACEHOLDER_TRUCKS=false`. The override sets `DATABASE_URL`, `FRONTEND_ORIGIN` and `TRUST_PROXY`, and the image sets `NODE_ENV=production`.
+   - `cp backend/.env.example backend/.env`, then set `JWT_SECRET` (`openssl rand -base64 48`), real `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD`, and `SEED_PLACEHOLDER_TRUCKS=false` (plus `SEED_STATIONS=false` if offices will enter their own stations). The override sets `DATABASE_URL`, `FRONTEND_ORIGIN` and `TRUST_PROXY`, and the image sets `NODE_ENV=production`.
 6. **Start:** `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`. Migrations and the seed run on start. Open `https://<domain>`, sign in as the Super Admin and change the password.
 7. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
 8. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.

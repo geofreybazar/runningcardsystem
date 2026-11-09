@@ -18,7 +18,7 @@ Run with `npx prisma db seed` (configured as `tsx prisma/seed.ts` in `prisma.con
 | Fire districts | Upsert 5 districts by `code`, with name, alias (FD1 "Manila Fire District", FD2 "CAMANAVA", FD5 "Quezon City Fire District") and color | no change to existing rows (`update: {}`) |
 | Cities | Upsert 17 cities by `name` under their district; **always overwrites `City.boundary`** from `seed-data/ncr-city-boundaries.json` | boundary refreshed every run |
 | Barangays | `createMany(skipDuplicates)` from the `barangay` npm package (dev dependency), names as spelled by the package | adds only missing ones |
-| Stations | Created from `seed-data/stations.json` **only if the Station table is empty**; one placeholder `ENGINE` truck each when `SEED_PLACEHOLDER_TRUCKS=true` | skipped when stations exist |
+| Stations | Created from `seed-data/stations.json` **only if the Station table is empty** and `SEED_STATIONS` isn't `false`; one placeholder `ENGINE` truck each when `SEED_PLACEHOLDER_TRUCKS=true` | skipped when stations exist |
 | Station city backfill | Every station with `cityId = null` gets the city from `locateCity()` and that city's `districtId`; stations outside every boundary are printed as a warning | only fills nulls |
 | Incident city backfill | Every incident with `cityId = null` gets its city if located | only fills nulls |
 | Settings | Upsert row id 1 with 10 alarm levels | no change to an existing row |
@@ -50,6 +50,7 @@ Validation: `backend/src/geo/city-locator.spec.ts` checks that every seeded stat
 - **Barangay names** come from the `barangay` npm package and may differ from official PSGC spellings. **Needs Verification** against PSGC.
 - **Boundary accuracy.** The medium-resolution outlines are simplified. Points within slivers or gaps fall back to the nearest city within 1 km; accuracy along city borders is approximate.
 - **`Station.cityId` and `Incident.cityId` are nullable in the database** even though the application treats them as required.
+- **No bundled stations** (`SEED_STATIONS=false`): for a fresh production start where offices add their own stations and trucks. The seed runs on every container start, so without it an emptied Station table is refilled.
 - **Placeholder trucks** (`SEED_PLACEHOLDER_TRUCKS=true`) are for demos and tests. With `false`, no station appears on any running card until Operations adds trucks.
 
 ## Test database
