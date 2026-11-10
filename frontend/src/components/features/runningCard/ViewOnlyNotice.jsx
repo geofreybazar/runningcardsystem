@@ -5,7 +5,7 @@ import useAuth from "@/hooks/auth/useAuth.js";
 function ViewOnlyNotice({ city }) {
   const { user } = useAuth();
   return (
-    <div className='flex items-start gap-2 rounded-xl border bg-card p-3 text-sm text-muted-foreground'>
+    <div role='status' className='flex items-start gap-2 rounded-md border border-info/35 bg-info/10 px-3 py-2 text-sm text-info-foreground'>
       <Eye className='mt-0.5 size-4 shrink-0' />
       {!city
         ? "This location is outside Metro Manila."

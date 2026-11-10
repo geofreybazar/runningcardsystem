@@ -68,7 +68,7 @@ function TooltipPin({ color, title, details = [], open }) {
  * (title + detail lines) on hover; the hovered one is raised above its neighbours.
  * With markers, the map fits them all; otherwise it follows the pin.
  */
-function MapComponent({ position, onChange, markers = [], kind = "fire" }) {
+function MapComponent({ position, onChange, markers = [], kind = "fire", overlayTop = false }) {
   const map = useMap();
   const [theme] = useTheme();
   const markerKey = markers.map((m) => m.id).join(",");
@@ -97,6 +97,9 @@ function MapComponent({ position, onChange, markers = [], kind = "fire" }) {
       defaultCenter={DEFAULT_CENTER}
       defaultZoom={12}
       gestureHandling='greedy'
+      // Our own controls sit over the top of the map (the Running Card search): keep Google's out of the way.
+      mapTypeControl={!overlayTop}
+      fullscreenControl={!overlayTop}
       onClick={(e) => onChange && e.detail.latLng && onChange(e.detail.latLng)}
     >
       {markers.map((m) => (

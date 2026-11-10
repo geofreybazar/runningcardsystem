@@ -1,17 +1,16 @@
 import { Siren } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** What Dispatch does, and the button that opens the dispatch dialog. */
-function DispatchBar({ alarmLevel, disabled, onDispatch }) {
+/** The one loud control on the page: dispatch the first alarm. Stays at the bottom of the dispatch panel. */
+function DispatchBar({ alarmLevel, trucks, disabled, onDispatch }) {
   return (
-    <div className='flex flex-col gap-3 rounded-xl border border-primary/20 bg-accent p-3 sm:flex-row sm:items-center'>
-      <Siren className='hidden size-5 shrink-0 text-primary sm:block' />
-      <p className='flex-1 text-sm'>
-        Dispatch sends one truck from each <b>{alarmLevel}</b> station and marks it Responding.
-      </p>
-      <Button onClick={onDispatch} disabled={disabled}>
-        Dispatch {alarmLevel}
+    <div className='grid gap-1.5'>
+      <Button size='lg' className='h-12 w-full text-base font-semibold shadow-sm' onClick={onDispatch} disabled={disabled}>
+        <Siren className='size-5' /> Dispatch {alarmLevel}
       </Button>
+      <p className='text-center text-xs text-muted-foreground'>
+        Sends {trucks} truck{trucks === 1 ? "" : "s"}, one per station, and marks them Responding. You confirm next.
+      </p>
     </div>
   );
 }
