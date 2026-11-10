@@ -39,8 +39,10 @@ function UnitsTable({ incident }) {
                         </span>
                       </span>
                     </TableCell>
-                    <TableCell className='font-data text-base font-semibold'>
-                      {u.truck.callSign}
+                    <TableCell className='max-w-44 font-data text-base font-semibold'>
+                      <div className='truncate' title={u.truck.callSign}>
+                        {u.truck.callSign}
+                      </div>
                       <div className='font-sans text-xs font-normal text-muted-foreground'>
                         {TRUCK_TYPES[u.truck.type]}
                         {u.special && (
