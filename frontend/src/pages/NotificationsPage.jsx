@@ -8,7 +8,7 @@ function NotificationsPage() {
       title='Notifications'
       description='Incidents your area is involved in (fire, trucks sent, or on the running card), and every dispatch, alarm and close.'
     >
-      <div className='grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]'>
+      <div className='grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)]'>
         <OpenIncidents />
         <NotificationFeed />
       </div>

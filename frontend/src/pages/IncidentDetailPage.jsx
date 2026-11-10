@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import Page from "@/components/common/Page.jsx";
 import ConfirmDialog from "@/components/common/ConfirmDialog.jsx";
+import Panel from "@/components/common/Panel.jsx";
 import IncidentHeader from "@/components/features/incidents/detail/IncidentHeader.jsx";
 import IncidentMap from "@/components/features/incidents/detail/IncidentMap.jsx";
 import UnitsTable from "@/components/features/incidents/detail/UnitsTable.jsx";
@@ -40,8 +41,8 @@ function IncidentDetailPage() {
   if (!incident) {
     return (
       <Page>
-        <Skeleton className='h-8 w-64' />
-        <Skeleton className='h-72 w-full' />
+        <Skeleton className='h-24 w-full rounded-lg' />
+        <Skeleton className='h-80 w-full rounded-lg' />
       </Page>
     );
   }
@@ -53,30 +54,40 @@ function IncidentDetailPage() {
     <Page>
       <IncidentHeader incident={incident} mine={mine} busy={busy} onClose={() => setConfirmClose(true)} />
 
-      <div className='grid grid-cols-1 gap-4 xl:grid-cols-[2fr_3fr]'>
-        <div className='h-64 overflow-hidden rounded-xl border md:h-80 xl:h-full xl:min-h-80'>
-          <IncidentMap incident={incident} />
+      {/* Command layout: situation on the left (map, log), resources and actions on the right. */}
+      <div className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]'>
+        <div className='flex min-w-0 flex-col gap-4'>
+          <Panel title='Map' meta='Fire and responding stations' flush>
+            <div className='h-64 md:h-80'>
+              <IncidentMap incident={incident} />
+            </div>
+          </Panel>
+          <Timeline steps={incident.timeline} />
         </div>
-        <UnitsTable incident={incident} />
+
+        <div className='flex min-w-0 flex-col gap-4'>
+          <UnitsTable incident={incident} />
+          {open && !mine && (
+            <p className='rounded-md border border-info/35 bg-info/10 px-3 py-2 text-sm text-info-foreground'>
+              View only: the {incident.city?.name ?? "city"} office raises the alarm and closes this incident.
+            </p>
+          )}
+          {mine && next && (
+            <RaiseAlarm
+              incident={incident}
+              next={next}
+              truckPicks={truckPicks}
+              onPickTruck={(stationId, truckId) => setPicked({ next, picks: { ...truckPicks, [stationId]: truckId } })}
+              busy={busy}
+              onRaise={() => raise.mutate({ id, truckPicks, alarmLevel: next.alarmLevel })}
+            />
+          )}
+          {mine && !nextPending && !next && (
+            <p className='rounded-md border px-3 py-2 text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>
+          )}
+          {mine && <RequestSpecialUnit incident={incident} disabled={busy} />}
+        </div>
       </div>
-
-      <Timeline steps={incident.timeline} />
-
-      {open && !mine && (
-        <p className='text-sm text-muted-foreground'>View only: the {incident.city?.name ?? "city"} office raises the alarm and closes this incident.</p>
-      )}
-      {mine && next && (
-        <RaiseAlarm
-          incident={incident}
-          next={next}
-          truckPicks={truckPicks}
-          onPickTruck={(stationId, truckId) => setPicked({ next, picks: { ...truckPicks, [stationId]: truckId } })}
-          busy={busy}
-          onRaise={() => raise.mutate({ id, truckPicks, alarmLevel: next.alarmLevel })}
-        />
-      )}
-      {mine && !nextPending && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
-      {mine && <RequestSpecialUnit incident={incident} disabled={busy} />}
 
       <ConfirmDialog
         open={confirmClose}

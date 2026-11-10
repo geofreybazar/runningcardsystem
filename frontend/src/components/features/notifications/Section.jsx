@@ -1,9 +1,11 @@
-function Section({ title, children }) {
+import Panel from "@/components/common/Panel.jsx";
+
+/** A notifications page column: a Panel whose body is a divided list. */
+function Section({ title, meta, actions, children }) {
   return (
-    <section className='grid content-start gap-2'>
-      <h2 className='text-sm font-semibold text-muted-foreground'>{title}</h2>
+    <Panel title={title} meta={meta} actions={actions} flush className='self-start'>
       {children}
-    </section>
+    </Panel>
   );
 }
 

@@ -7,14 +7,25 @@ import useNotifications from "@/hooks/notifications/useNotifications.js";
 import useAlarmIndex from "@/hooks/settings/useAlarmIndex.js";
 import notificationService, { NOTIFICATION_PAGE } from "@/service/notification.service.js";
 import NotificationItem from "./NotificationItem.jsx";
+import { NOTIFICATION_PRIORITY as PRIORITY } from "@/constants/notifications.js";
+import { groupByDay } from "@/utils/dateTime.js";
+import { cn } from "@/lib/utils";
 import Section from "./Section.jsx";
 import Empty from "./Empty.jsx";
 
-/** Every dispatch, alarm and close in my area, newest first, with infinite scroll to older ones. */
+const FILTERS = [
+  ["all", "All"],
+  ["high", "Trucks sent"],
+  ["routine", "Closed / released"],
+  ["info", "Deployments"],
+];
+
+/** Every dispatch, alarm and close in my area, newest first by day, with infinite scroll to older ones. */
 function NotificationFeed() {
   const { version, markSeen } = useNotifications();
   const alarmIndex = useAlarmIndex();
   const [notes, setNotes] = useState(null);
+  const [filter, setFilter] = useState("all");
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loaded = useRef(false);
@@ -60,21 +71,55 @@ function NotificationFeed() {
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
+  const shown = notes?.filter((n) => filter === "all" || PRIORITY[n.type] === filter);
+  const unread = notes?.filter((n) => n.unread).length ?? 0;
+
   return (
-    <Section title='Notifications'>
-      {!notes && <ListSkeleton />}
-      {notes?.length === 0 && <Empty>No notifications yet.</Empty>}
-      {notes?.map((n) => (
-        <NotificationItem key={n.id} n={n} alarmIndex={alarmIndex} />
-      ))}
+    <Section
+      title='Activity'
+      meta={unread ? `${unread} new` : null}
+      actions={
+        <div role='group' aria-label='Show' className='flex flex-wrap gap-1'>
+          {FILTERS.map(([value, label]) => (
+            <button
+              key={value}
+              type='button'
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value)}
+              className={cn(
+                "rounded-sm border px-2 py-0.5 text-xs",
+                filter === value ? "border-foreground bg-foreground text-background" : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      }
+    >
+      {!notes && <ListSkeleton className='p-3' />}
+      {shown?.length === 0 && <Empty>{notes.length ? "Nothing of this kind among the loaded notifications." : "No notifications yet."}</Empty>}
+      {shown &&
+        groupByDay(shown).map(([day, items]) => (
+          <section key={day} aria-label={day}>
+            <h3 className='sticky top-12 z-[1] border-y bg-muted/80 px-3 py-1 text-label text-muted-foreground backdrop-blur first:border-t-0'>{day}</h3>
+            <ul className='divide-y'>
+              {items.map((n) => (
+                <NotificationItem key={n.id} n={n} alarmIndex={alarmIndex} />
+              ))}
+            </ul>
+          </section>
+        ))}
       {hasMore && (
-        <Button ref={sentinel} variant='outline' className='mt-1' onClick={loadMore} disabled={loadingMore}>
-          {loadingMore && <LoaderCircle className='animate-spin' />}
-          {loadingMore ? "Loading" : "Load older notifications"}
-        </Button>
+        <div className='border-t p-3'>
+          <Button ref={sentinel} variant='outline' className='w-full' onClick={loadMore} disabled={loadingMore}>
+            {loadingMore && <LoaderCircle className='animate-spin' />}
+            {loadingMore ? "Loading" : "Load older notifications"}
+          </Button>
+        </div>
       )}
       {!hasMore && notes?.length > NOTIFICATION_PAGE && (
-        <p className='py-2 text-center text-xs text-muted-foreground'>You have reached the oldest notification.</p>
+        <p className='border-t py-2 text-center text-xs text-muted-foreground'>You have reached the oldest notification.</p>
       )}
     </Section>
   );

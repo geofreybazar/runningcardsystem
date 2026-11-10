@@ -1,36 +1,40 @@
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import ListSkeleton from "@/components/common/ListSkeleton.jsx";
 import AlarmBadge from "@/components/common/AlarmBadge.jsx";
+import Elapsed from "@/components/common/Elapsed.jsx";
 import useGetIncidents from "@/hooks/incidents/useGetIncidents.js";
-import { formatDateTime } from "@/utils/dateTime.js";
 import Section from "./Section.jsx";
 import Empty from "./Empty.jsx";
 
-/** Open incidents our office is involved in (fire in our area, or our trucks responding). */
+/** Open incidents our office is involved in (fire in our area, or our trucks responding), with how long they have run. */
 function OpenIncidents() {
   const { data: incidents, isPending } = useGetIncidents("OPEN");
   return (
-    <Section title='Open incidents involving us'>
-      {isPending && <ListSkeleton rows={2} />}
+    <Section title='Open incidents' meta={incidents ? `${incidents.length} involving your area` : null}>
+      {isPending && <ListSkeleton rows={2} className='p-3' />}
       {incidents?.length === 0 && <Empty>No open incidents involve your area.</Empty>}
-      {incidents?.map((i) => (
-        <Link key={i.id} to={`/incidents/${i.id}`}>
-          <Card className='gap-1 border-l-4 border-l-primary px-4 py-3 transition-colors hover:bg-accent'>
-            <div className='flex items-center justify-between gap-2'>
-              <span className='truncate font-medium'>{i.locationLabel}</span>
+      <ul className='divide-y'>
+        {incidents?.map((i) => (
+          <li key={i.id}>
+            <Link to={`/incidents/${i.id}`} className='flex items-center gap-3 border-l-[3px] border-l-danger px-3 py-2.5 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none'>
+              <div className='min-w-0 flex-1'>
+                <div className='flex items-center gap-2'>
+                  <AlarmBadge level={i.alarmLevel} index={i.alarmIndex} />
+                  <span className='ml-auto font-data text-base'>
+                    <Elapsed from={i.createdAt} />
+                  </span>
+                </div>
+                <div className='mt-1 truncate text-sm font-medium'>{i.locationLabel}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {i.city?.name} · {i._count.units} units
+                </div>
+              </div>
               <ChevronRight className='size-4 shrink-0 text-muted-foreground' />
-            </div>
-            <div className='flex flex-wrap items-center gap-2'>
-              <AlarmBadge level={i.alarmLevel} index={i.alarmIndex} />
-              <span className='text-sm'>{i.city?.name}</span>
-              <span className='ml-auto font-condensed text-sm tabular-nums text-muted-foreground'>{i._count.units} units</span>
-            </div>
-            <div className='text-xs text-muted-foreground'>Dispatched {formatDateTime(i.createdAt)}</div>
-          </Card>
-        </Link>
-      ))}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

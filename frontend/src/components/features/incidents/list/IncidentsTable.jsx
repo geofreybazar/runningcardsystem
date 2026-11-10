@@ -1,40 +1,49 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import DataTable from "@/components/common/DataTable.jsx";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
+import Elapsed from "@/components/common/Elapsed.jsx";
 import IncidentAlarmBadge from "@/components/features/incidents/IncidentAlarmBadge.jsx";
+import { INCIDENT_STATUS } from "@/constants/status.js";
 import { formatDateTime } from "@/utils/dateTime.js";
 import { displayName } from "@/utils/person.js";
 
-/** Wider screens: incidents as table rows; closed ones add the closing time. */
-function IncidentsTable({ incidents, status, onOpen }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Dispatched</TableHead>
-          <TableHead>Location</TableHead>
-          <TableHead>City</TableHead>
-          <TableHead>Alarm</TableHead>
-          <TableHead className='text-right'>Units</TableHead>
-          <TableHead>By</TableHead>
-          {status === "CLOSED" && <TableHead>Closed</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {incidents?.map((i) => (
-          <TableRow key={i.id} className='cursor-pointer' onClick={() => onOpen(i)}>
-            <TableCell className='whitespace-nowrap text-muted-foreground'>{formatDateTime(i.createdAt)}</TableCell>
-            <TableCell className='max-w-80 truncate font-medium'>{i.locationLabel}</TableCell>
-            <TableCell>{i.city?.name ?? "—"}</TableCell>
-            <TableCell>
-              <IncidentAlarmBadge incident={i} />
-            </TableCell>
-            <TableCell className='text-right tabular-nums'>{i._count.units}</TableCell>
-            <TableCell>{displayName(i.createdBy)}</TableCell>
-            {status === "CLOSED" && <TableCell className='whitespace-nowrap text-muted-foreground'>{formatDateTime(i.closedAt)}</TableCell>}
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
+/** Wider screens: one dense row per incident, newest first; open ones run a live timer, closed ones show the total. */
+function IncidentsTable({ incidents, onOpen }) {
+  const columns = [
+    {
+      key: "status",
+      header: "Status",
+      cell: (i) => (
+        <StatusBadge tone={INCIDENT_STATUS[i.status].tone} pulse={i.status === "OPEN"}>
+          {INCIDENT_STATUS[i.status].label}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "incident",
+      header: "Incident",
+      className: "max-w-96",
+      cell: (i) => (
+        <div className='min-w-0'>
+          <div className='truncate font-medium'>{i.locationLabel}</div>
+          <div className='font-data text-xs text-muted-foreground'>
+            {i.lat.toFixed(5)}, {i.lng.toFixed(5)}
+          </div>
+        </div>
+      ),
+    },
+    { key: "city", header: "City", cell: (i) => i.city?.name ?? "—" },
+    { key: "alarm", header: "Alarm", cell: (i) => <IncidentAlarmBadge incident={i} /> },
+    { key: "units", header: "Units", headClassName: "text-right", className: "text-right font-data text-base", cell: (i) => i._count.units },
+    { key: "dispatched", header: "Dispatched", className: "whitespace-nowrap text-muted-foreground", cell: (i) => formatDateTime(i.createdAt) },
+    {
+      key: "elapsed",
+      header: "Duration",
+      className: "whitespace-nowrap",
+      cell: (i) => <Elapsed from={i.createdAt} to={i.closedAt} />,
+    },
+    { key: "by", header: "Dispatcher", className: "whitespace-nowrap", cell: (i) => displayName(i.createdBy) },
+  ];
+  return <DataTable caption='Incidents' columns={columns} rows={incidents} onRowClick={onOpen} />;
 }
 
 export default IncidentsTable;

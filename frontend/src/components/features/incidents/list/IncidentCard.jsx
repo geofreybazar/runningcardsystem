@@ -1,26 +1,33 @@
 import { ChevronRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
+import Elapsed from "@/components/common/Elapsed.jsx";
 import IncidentAlarmBadge from "@/components/features/incidents/IncidentAlarmBadge.jsx";
+import { INCIDENT_STATUS } from "@/constants/status.js";
 import { formatDateTime } from "@/utils/dateTime.js";
-import { displayName } from "@/utils/person.js";
 
-/** Phones: one tappable card per incident. */
-function IncidentCard({ incident, onOpen }) {
+/** Phones: one tappable row per incident. */
+function IncidentCard({ incident: i, onOpen }) {
   return (
-    <Card className='cursor-pointer gap-1 px-4 py-3' onClick={onOpen}>
-      <div className='flex items-center justify-between gap-2'>
-        <span className='truncate font-medium'>{incident.locationLabel}</span>
+    <li>
+      <button type='button' onClick={onOpen} className='flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none'>
+        <div className='min-w-0 flex-1'>
+          <div className='flex items-center gap-2'>
+            <StatusBadge tone={INCIDENT_STATUS[i.status].tone} pulse={i.status === "OPEN"}>
+              {INCIDENT_STATUS[i.status].label}
+            </StatusBadge>
+            <IncidentAlarmBadge incident={i} />
+            <span className='ml-auto font-data text-sm'>
+              <Elapsed from={i.createdAt} to={i.closedAt} />
+            </span>
+          </div>
+          <div className='mt-1 truncate font-medium'>{i.locationLabel}</div>
+          <div className='text-xs text-muted-foreground'>
+            {i.city?.name} · {formatDateTime(i.createdAt)} · {i._count.units} units
+          </div>
+        </div>
         <ChevronRight className='size-4 shrink-0 text-muted-foreground' />
-      </div>
-      <div className='flex flex-wrap items-center gap-2'>
-        <IncidentAlarmBadge incident={incident} />
-        <span className='text-sm'>{incident.city?.name}</span>
-        <span className='ml-auto font-condensed text-sm tabular-nums text-muted-foreground'>{incident._count.units} units</span>
-      </div>
-      <div className='text-xs text-muted-foreground'>
-        {formatDateTime(incident.createdAt)}, by {displayName(incident.createdBy)}
-      </div>
-    </Card>
+      </button>
+    </li>
   );
 }
 
