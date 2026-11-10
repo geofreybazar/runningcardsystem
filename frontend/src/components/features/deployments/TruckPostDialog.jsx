@@ -63,7 +63,7 @@ function TruckPostDialog({ deployment, unit, onClose }) {
             </Field>
             <PlaceSearch onSelect={pickPlace} onError={setFormError} />
             <div className='h-72 overflow-hidden rounded-lg border'>
-              <MapComponent kind='deployment' position={{ lat: form.lat, lng: form.lng }} onChange={(p) => setForm({ ...form, lat: p.lat, lng: p.lng })} />
+              <MapComponent kind='post' position={{ lat: form.lat, lng: form.lng }} onChange={(p) => setForm({ ...form, lat: p.lat, lng: p.lng })} />
             </div>
             <p className='font-mono text-xs text-muted-foreground'>
               {form.lat.toFixed(6)}, {form.lng.toFixed(6)}

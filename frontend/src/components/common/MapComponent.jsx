@@ -1,5 +1,5 @@
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
-import { Flame } from "lucide-react";
+import { Flag, Flame } from "lucide-react";
 import useTheme from "@/hooks/useTheme.js";
 import { useEffect, useState } from "react";
 import FireTruckIcon from "./FireTruckIcon.jsx";
@@ -22,6 +22,13 @@ function MarkerPin({ color, size, children }) {
 const FirePin = () => (
   <MarkerPin color={BFP_RED} size={38}>
     <Flame className='size-5 text-gold' fill='currentColor' />
+  </MarkerPin>
+);
+
+/** A special event's venue (ASEAN, SONA, …): a flag, so it isn't mistaken for a fire or a truck. */
+const EventPin = () => (
+  <MarkerPin color={BFP_RED} size={34}>
+    <Flag className='size-4 text-gold' fill='currentColor' />
   </MarkerPin>
 );
 
@@ -54,8 +61,8 @@ function TooltipPin({ color, title, details = [], open }) {
 }
 
 /**
- * The main pin (draggable when onChange is given): a fire, a station (`kind="station"`), or a special deployment
- * (`kind="deployment"`, where its trucks stand).
+ * The main pin (draggable when onChange is given): a fire, a station (`kind="station"`), a special event's venue
+ * (`kind="deployment"`, a flag), or one deployed truck's post (`kind="post"`).
  * Optional markers ({ id, position, color, title, details? }) show a fire truck in the district colour, with a tooltip
  * (title + detail lines) on hover; the hovered one is raised above its neighbours.
  * With markers, the map fits them all; otherwise it follows the pin.
@@ -108,9 +115,9 @@ function MapComponent({ position, onChange, markers = [], kind = "fire" }) {
           draggable={!!onChange}
           onDragEnd={(e) => onChange?.(e.latLng.toJSON())}
           zIndex={10}
-          title={{ station: "Station location", deployment: "Deployment location" }[kind] ?? "Fire location"}
+          title={{ station: "Station location", deployment: "Event location", post: "Truck post" }[kind] ?? "Fire location"}
         >
-          {kind === "fire" ? <FirePin /> : <StationPin color={BFP_RED} />}
+          {kind === "fire" ? <FirePin /> : kind === "deployment" ? <EventPin /> : <StationPin color={BFP_RED} />}
         </AdvancedMarker>
       )}
     </Map>
