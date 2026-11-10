@@ -47,7 +47,7 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 1. **VPS:** Ubuntu 24.04 (Hostinger "Docker" OS template, or install Docker Engine and the compose plugin from docs.docker.com). Compose must be v2.24 or newer (`docker compose version`).
 2. **Firewall:** `ufw allow OpenSSH && ufw allow 80 && ufw allow 443/tcp && ufw allow 443/udp && ufw enable`. Also check Hostinger's own firewall in hPanel.
 3. **DNS:** an A record for the domain → the VPS IP. Wait until it resolves, or Caddy can't get the certificate.
-4. **Code:** `git clone -b staging https://github.com/geofreybazar/runningcardsystem.git && cd runningcardsystem`. The VPS runs the `staging` branch while it is tested; `main` is still the older app on Vercel. After staging is merged into `main`, switch the VPS with `git checkout main`.
+4. **Code:** `git clone https://github.com/geofreybazar/runningcardsystem.git /opt/runningcardsystem && cd /opt/runningcardsystem`. The VPS runs `main`.
 5. **Secrets** (never committed):
    - `cp .env.example .env`, then set `DOMAIN`, `POSTGRES_PASSWORD` (`openssl rand -hex 24`) and `VITE_GOOGLE_API`.
    - `cp backend/.env.example backend/.env`, then set `JWT_SECRET` (`openssl rand -base64 48`), real `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD`, and `SEED_PLACEHOLDER_TRUCKS=false` (plus `SEED_STATIONS=false` if offices will enter their own stations). The override sets `DATABASE_URL`, `FRONTEND_ORIGIN` and `TRUST_PROXY`, and the image sets `NODE_ENV=production`.
@@ -55,7 +55,22 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 7. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
 8. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.
    - Restore (into an empty database): `gunzip -c backups/<file>.sql.gz | docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T db psql -U postgres runningcard`.
-9. **Updates:** `git pull` (on the branch the VPS runs), then the same `up -d --build` command, prefixed with `GIT_COMMIT=$(git rev-parse --short HEAD)` so the About page shows the commit (without it, only the version and build date). Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
+9. **Updates:** automatic once [continuous deployment](#continuous-deployment) is set up. By hand: `git pull`, then the same `up -d --build` command, prefixed with `GIT_COMMIT=$(git rev-parse --short HEAD)` so the About page shows the commit (without it, only the version and build date). Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
+
+### Continuous deployment
+
+The `deploy` job in `.github/workflows/ci.yml` runs after the frontend, backend and browser jobs pass on a push to `main`. It SSHes into the VPS, fast-forwards the clone to the tested commit, runs step 9's `up -d --build` with `--wait` (the job fails if a service doesn't come up), and prunes old images. Pull requests never deploy. A newer push to `main` waits for the running deploy instead of cancelling it. The job is skipped until `VPS_HOST` is set.
+
+One-time setup:
+1. On the VPS, as root: `adduser --disabled-password deploy && usermod -aG docker deploy`, then `chown -R deploy: /opt/runningcardsystem`. Docker group membership is root-equivalent, so this key gets full control of the VPS: keep it only in GitHub secrets.
+2. Make a key just for CI (on your machine): `ssh-keygen -t ed25519 -N '' -C github-deploy -f rcs-deploy`. Append `rcs-deploy.pub` to `/home/deploy/.ssh/authorized_keys` on the VPS.
+3. Host key: `ssh-keyscan <vps-ip>` from your machine. Check it against `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` run on the VPS, so you pin the real key.
+4. GitHub → Settings → Secrets and variables → Actions:
+   - Secrets: `VPS_SSH_KEY` = contents of `rcs-deploy` (private key), `VPS_KNOWN_HOSTS` = the `ssh-keyscan` output.
+   - Variables: `VPS_HOST` (IP or hostname), `VPS_USER` = `deploy`, `VPS_PATH` = `/opt/runningcardsystem`.
+5. Delete the local `rcs-deploy` private key, push to `main`, and watch the `deploy` job.
+
+Rollback: `git revert` the bad commit and push; CD deploys the revert. Migrations only run forward, so a revert doesn't undo a schema change.
 
 Notes:
 - Changing `POSTGRES_PASSWORD` after the first start has no effect on the existing database (Postgres reads it only on initialization); change it with `ALTER USER` as well.

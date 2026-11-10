@@ -2,12 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
   pull_request:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a main run: it may be halfway through a deploy. Newer main pushes queue instead.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -108,3 +109,25 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
+  # CD: once every check passes on a push to main, the VPS pulls this commit and rebuilds (docs/development/deployment.md#continuous-deployment).
+  # Skipped until the repo variable VPS_HOST is set, so CI stays green before the VPS exists.
+  deploy:
+    needs: [frontend, backend, browser]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VPS_HOST != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and rebuild on the VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }} # pinned host key: no trust-on-first-use from a fresh runner
+          TARGET: ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}
+          APP_DIR: ${{ vars.VPS_PATH }}
+          SHA: ${{ github.sha }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # Deploys exactly the commit that was tested; --wait fails the job if a service doesn't come up.
+          ssh "$TARGET" "set -e; cd '$APP_DIR'; git fetch -q origin main; git checkout -q main; git merge -q --ff-only $SHA;
+            GIT_COMMIT=\$(git rev-parse --short HEAD) docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait --wait-timeout 300;
+            docker image prune -f"

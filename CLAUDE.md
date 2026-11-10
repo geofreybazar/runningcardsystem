@@ -28,7 +28,7 @@ Single test file: `npx vitest run src/geo/city-locator.spec.ts` or `npx vitest r
 
 Frontend (`cd frontend`): `npm run dev` (proxies `/api` to `API_URL`, default `localhost:3000`) · `npm run build` · `npm run lint` · `npm test` · `npm run test:e2e` (Playwright in a browser; starts its own API on 3100 and **wipes the `_test` DB**).
 
-CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e (throwaway Postgres) on push to `main` and PRs; keep it in step when scripts change.
+CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e (throwaway Postgres) on push to `main` and PRs, then its `deploy` job SSH-deploys green `main` pushes to the VPS (skipped until the `VPS_HOST` repo variable is set; see deployment.md#continuous-deployment); keep it in step when scripts change.
 
 ## Key architecture decisions
 
