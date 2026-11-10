@@ -16,7 +16,7 @@ function NavItems({ items }) {
           asChild
           isActive={active}
           tooltip={n.label}
-          className='data-[active=true]:font-semibold data-[active=true]:shadow-[inset_3px_0_0_var(--gold)]'
+          className='text-shell-foreground/85 hover:bg-shell-raised hover:text-shell-foreground data-[active=true]:bg-shell-raised data-[active=true]:font-semibold data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--primary)]'
         >
           <NavLink to={n.to} onClick={() => isMobile && setOpenMobile(false)}>
             <n.icon />

@@ -94,9 +94,10 @@ export function parseSse(buffer) {
  * Reads an SSE endpoint, calling onEvent(type, data) for each JSON event. Uses fetch rather than EventSource, which
  * can't send the bearer token. Resolves when the server ends the stream; the caller reconnects.
  */
-export async function stream(path, onEvent, signal) {
+export async function stream(path, onEvent, signal, onOpen) {
   const res = await sendSignedIn(path, { signal });
   if (!res.ok) throw new ApiError(res.status, null);
+  onOpen?.();
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
   for (;;) {

@@ -12,8 +12,8 @@ function IncidentHeader({ incident, mine, busy, onClose }) {
   return (
     <div className='flex flex-col gap-4 lg:flex-row lg:items-stretch'>
       <div className='min-w-0 flex-1'>
-        <h1 className='text-xl font-semibold tracking-tight md:text-2xl'>{incident.locationLabel}</h1>
-        <p className='mt-1 text-sm text-muted-foreground'>
+        {/* The location is the page title in the top bar. */}
+        <p className='text-sm text-muted-foreground'>
           {incident.barangay ? `Brgy. ${incident.barangay.name}, ${incident.barangay.city.name}` : incident.city?.name}
         </p>
         <p className='text-sm text-muted-foreground'>

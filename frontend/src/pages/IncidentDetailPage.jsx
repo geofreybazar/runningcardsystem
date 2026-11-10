@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import Page from "@/components/common/Page.jsx";
 import ConfirmDialog from "@/components/common/ConfirmDialog.jsx";
@@ -17,6 +16,7 @@ import useGetNextAlarm from "@/hooks/incidents/useGetNextAlarm.js";
 import useRaiseAlarm from "@/hooks/incidents/useRaiseAlarm.js";
 import useCloseIncident from "@/hooks/incidents/useCloseIncident.js";
 import { canDispatchIn } from "@/utils/permissions.js";
+import usePageTitle from "@/hooks/layout/usePageTitle.js";
 
 function IncidentDetailPage() {
   const { id } = useParams();
@@ -25,6 +25,7 @@ function IncidentDetailPage() {
   const [confirmClose, setConfirmClose] = useState(false);
 
   const { data: incident } = useGetIncident(id);
+  usePageTitle(incident?.locationLabel ?? "Incident", { to: "/incidents", label: "Incidents", aria: "All incidents" });
   const canRaise = incident?.status === "OPEN" && canDispatchIn(user, incident.cityId);
   const { data: next = null, isPending: nextPending } = useGetNextAlarm(id, canRaise);
   const raise = useRaiseAlarm();
@@ -50,10 +51,6 @@ function IncidentDetailPage() {
 
   return (
     <Page>
-      <Link to='/incidents' className='flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground'>
-        <ChevronLeft className='size-4' /> All incidents
-      </Link>
-
       <IncidentHeader incident={incident} mine={mine} busy={busy} onClose={() => setConfirmClose(true)} />
 
       <div className='grid grid-cols-1 gap-4 xl:grid-cols-[2fr_3fr]'>

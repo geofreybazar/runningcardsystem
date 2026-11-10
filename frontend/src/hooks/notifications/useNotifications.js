@@ -8,9 +8,10 @@ export const NotificationsContext = createContext({
   markSeen: () => {},
   viewIncident: () => () => {},
   refreshOpen: () => {},
+  linkStatus: "connecting",
 });
 
-/** Unread count, open incidents in my area, the latest live notification, and the mark-seen actions. */
+/** Unread count, open incidents in my area, the latest live notification, the live link status, and the mark-seen actions. */
 const useNotifications = () => useContext(NotificationsContext);
 
 export default useNotifications;

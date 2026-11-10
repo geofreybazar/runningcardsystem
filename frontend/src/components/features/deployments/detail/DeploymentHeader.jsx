@@ -10,11 +10,9 @@ function DeploymentHeader({ deployment: d, canManage, busy, onEdit, onAddTrucks,
   return (
     <div className='flex flex-col gap-3 lg:flex-row lg:items-start'>
       <div className='min-w-0 flex-1'>
-        <div className='flex flex-wrap items-center gap-2'>
-          <h1 className='text-xl font-semibold tracking-tight md:text-2xl'>{d.name}</h1>
-          <DeploymentStatusBadge status={d.status} />
-        </div>
-        <p className='mt-1 flex items-center gap-1 text-sm text-muted-foreground'>
+        {/* The event name is the page title in the top bar. */}
+        <DeploymentStatusBadge status={d.status} />
+        <p className='mt-2 flex items-center gap-1 text-sm text-muted-foreground'>
           <MapPin className='size-3.5 shrink-0' /> {d.locationLabel}
         </p>
         <p className='flex items-center gap-1 text-sm text-muted-foreground'>

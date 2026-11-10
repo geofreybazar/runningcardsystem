@@ -18,12 +18,14 @@ import useDeleteDeployment from "@/hooks/deployments/useDeleteDeployment.js";
 import { canManageDeployments } from "@/utils/permissions.js";
 import { deploymentToForm } from "@/utils/deploymentForm.js";
 import { deployedTruckMarkers } from "@/utils/deploymentMap.js";
+import usePageTitle from "@/hooks/layout/usePageTitle.js";
 
 function DeploymentDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: deployment, isError } = useGetDeployment(id);
+  usePageTitle(deployment?.name ?? "Special deployment", { to: "/deployments", label: "Special Deployments", aria: "All deployments" });
   const remove = useDeleteDeployment();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const release = useReleaseTruck();
@@ -62,10 +64,6 @@ function DeploymentDetailPage() {
 
   return (
     <Page>
-      <Link to='/deployments' className='flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground'>
-        <ChevronLeft className='size-4' /> All deployments
-      </Link>
-
       <DeploymentHeader
         deployment={deployment}
         canManage={canManage}

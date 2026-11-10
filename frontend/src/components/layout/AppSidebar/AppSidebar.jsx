@@ -7,25 +7,24 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import Brand from "./Brand.jsx";
 import NavItems from "./NavItems.jsx";
-import UserMenu from "./UserMenu.jsx";
+import SidebarProfile from "./SidebarProfile.jsx";
 
-/** The pages this role may open, grouped, with the user menu at the bottom. */
+/** Charcoal navigation: the pages this role may open, grouped by kind of work, with who is signed in at the bottom. */
 function AppSidebar({ items }) {
   const groups = [...new Set(items.map((n) => n.group))];
   return (
     <Sidebar collapsible='icon'>
-      <SidebarHeader>
+      <SidebarHeader className='border-b border-shell-border'>
         <Brand />
       </SidebarHeader>
       <SidebarContent>
         {groups.map((g) => (
           <SidebarGroup key={g}>
-            <SidebarGroupLabel>{g}</SidebarGroupLabel>
+            <SidebarGroupLabel className='text-label text-shell-muted'>{g}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <NavItems items={items.filter((n) => n.group === g)} />
@@ -35,11 +34,7 @@ function AppSidebar({ items }) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <UserMenu />
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarProfile />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

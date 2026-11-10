@@ -33,6 +33,8 @@ function NotificationsProvider({ children }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const me = user?.id;
+  /** The live stream: "connecting" until it opens, "live" while open, "offline" while waiting to retry. */
+  const [linkStatus, setLinkStatus] = useState("connecting");
   const [unread, setUnread] = useState(0);
   const [openIncidents, setOpenIncidents] = useState(0); // open incidents in my area, for the sidebar bubble
   const [last, setLast] = useState(null); // latest live notification, so open pages can reload
@@ -88,10 +90,14 @@ function NotificationsProvider({ children }) {
               }
             },
             abort.signal,
+            () => setLinkStatus("live"),
           );
+          if (!abort.signal.aborted) setLinkStatus("connecting"); // the server ended the stream: reconnect at once
         } catch {
           if (abort.signal.aborted) return;
+          setLinkStatus("offline");
           await new Promise((r) => setTimeout(r, 5000)); // server or network down: retry
+          if (!abort.signal.aborted) setLinkStatus("connecting");
         }
       }
     })();
@@ -116,7 +122,7 @@ function NotificationsProvider({ children }) {
   );
 
   return (
-    <NotificationsContext.Provider value={{ unread, openIncidents, last, version: last?.id ?? 0, markSeen, viewIncident, refreshOpen }}>
+    <NotificationsContext.Provider value={{ unread, openIncidents, last, version: last?.id ?? 0, markSeen, viewIncident, refreshOpen, linkStatus }}>
       {children}
       <div className='sr-only' role='alert' aria-live='assertive'>
         {announcement}
