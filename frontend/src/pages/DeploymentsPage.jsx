@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { CalendarRange, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Page from "@/components/common/Page.jsx";
 import ListSkeleton from "@/components/common/ListSkeleton.jsx";
+import Panel from "@/components/common/Panel.jsx";
+import EmptyState from "@/components/common/EmptyState.jsx";
 import DeploymentCard from "@/components/features/deployments/list/DeploymentCard.jsx";
 import DeploymentsTable from "@/components/features/deployments/list/DeploymentsTable.jsx";
 import DeploymentFormDialog from "@/components/features/deployments/DeploymentFormDialog.jsx";
@@ -26,7 +27,11 @@ function DeploymentsPage() {
   const placeholder = isPending ? (
     <ListSkeleton className='p-3' />
   ) : (
-    deployments?.length === 0 && <p className='py-10 text-center text-sm text-muted-foreground'>No {status === "ACTIVE" ? "active" : "ended"} deployments.</p>
+    deployments?.length === 0 && (
+      <EmptyState icon={CalendarRange} title={`No ${status === "ACTIVE" ? "active" : "ended"} deployments.`}>
+        {status === "ACTIVE" && canManage && "Create one for a planned event, then add the trucks that go."}
+      </EmptyState>
+    )
   );
 
   return (
@@ -49,14 +54,21 @@ function DeploymentsPage() {
         </>
       }
     >
-      {/* Phones: tappable cards. Wider screens: a table. */}
-      <div className='grid gap-2 md:hidden'>
-        {placeholder}
-        {deployments?.map((d) => (
-          <DeploymentCard key={d.id} deployment={d} onOpen={() => open(d)} />
-        ))}
-      </div>
-      <Card className='hidden py-0 md:block'>{placeholder || <DeploymentsTable deployments={deployments} onOpen={open} />}</Card>
+      {/* Phones: tappable rows. Wider screens: the schedule table. */}
+      <Panel flush>
+        {placeholder || (
+          <>
+            <ul className='divide-y md:hidden'>
+              {deployments?.map((d) => (
+                <DeploymentCard key={d.id} deployment={d} onOpen={() => open(d)} />
+              ))}
+            </ul>
+            <div className='hidden md:block'>
+              <DeploymentsTable deployments={deployments} onOpen={open} />
+            </div>
+          </>
+        )}
+      </Panel>
 
       <DeploymentFormDialog initial={form} onClose={() => setForm(null)} onSaved={open} />
     </Page>

@@ -1,4 +1,5 @@
-import { Card } from "@/components/ui/card";
+import Panel from "@/components/common/Panel.jsx";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TRUCK_TYPES } from "@/constants/truck.js";
@@ -8,10 +9,14 @@ import { displayName } from "@/utils/person.js";
 /** Every truck sent to the event, by station, with its post; managers set posts and release trucks still there. */
 function DeploymentTrucks({ units, canRelease, onRelease, onSetPost, busy }) {
   if (units.length === 0) {
-    return <Card className='items-center py-8 text-center text-sm text-muted-foreground'>No trucks assigned yet.</Card>;
+    return (
+      <Panel title='Trucks'>
+        <p className='py-6 text-center text-sm text-muted-foreground'>No trucks assigned yet.</p>
+      </Panel>
+    );
   }
   return (
-    <Card className='py-0'>
+    <Panel title='Trucks' meta={`${units.filter((u) => !u.releasedAt).length} of ${units.length} still there`} flush>
       <div className='overflow-x-auto'>
         <Table>
           <TableHeader>
@@ -26,13 +31,13 @@ function DeploymentTrucks({ units, canRelease, onRelease, onSetPost, busy }) {
           <TableBody>
             {units.map((u) => (
               <TableRow key={u.id}>
-                <TableCell className='font-condensed text-base font-semibold'>
+                <TableCell className='font-data text-base font-semibold'>
                   {u.truck.callSign}
                   <div className='font-sans text-xs font-normal text-muted-foreground'>{TRUCK_TYPES[u.truck.type]}</div>
                 </TableCell>
                 <TableCell>
                   <span className='flex items-center gap-2'>
-                    <span className='size-2.5 shrink-0 rounded-full' style={{ background: u.station.district.color }} />
+                    <span className='size-2.5 shrink-0 rounded-[2px]' style={{ background: u.station.district.color }} />
                     <span>
                       {u.station.name}
                       {u.station.city && <span className='block text-xs text-muted-foreground'>{u.station.city.name}</span>}
@@ -62,7 +67,7 @@ function DeploymentTrucks({ units, canRelease, onRelease, onSetPost, busy }) {
                       Release
                     </Button>
                   ) : (
-                    <span className='text-muted-foreground'>On deployment</span>
+                    <StatusBadge tone='info'>On deployment</StatusBadge>
                   )}
                 </TableCell>
               </TableRow>
@@ -70,7 +75,7 @@ function DeploymentTrucks({ units, canRelease, onRelease, onSetPost, busy }) {
           </TableBody>
         </Table>
       </div>
-    </Card>
+    </Panel>
   );
 }
 

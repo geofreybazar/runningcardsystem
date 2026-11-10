@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import Page from "@/components/common/Page.jsx";
 import SimpleSelect from "@/components/common/SimpleSelect.jsx";
 import ConfirmDialog from "@/components/common/ConfirmDialog.jsx";
+import EmptyState from "@/components/common/EmptyState.jsx";
 import StationList from "@/components/features/stations/StationList.jsx";
 import StationDetail from "@/components/features/stations/StationDetail.jsx";
 import StationFormDialog from "@/components/features/stations/StationFormDialog.jsx";
@@ -54,6 +54,7 @@ function StationsPage() {
             value={districtId}
             onChange={pickDistrict}
             className='w-full bg-card sm:w-72'
+            aria-label='Fire district'
             options={districts.map((d) => ({ value: d.id, label: districtName(d) }))}
           />
           {canAddHere && (
@@ -88,7 +89,11 @@ function StationsPage() {
             onEditTruck={(t) => setTruckForm(truckToForm(t))}
           />
         ) : (
-          <Card className='hidden min-h-64 items-center justify-center text-sm text-muted-foreground lg:flex'>Select a station to see its trucks.</Card>
+          <div className='hidden rounded-lg border border-dashed lg:block'>
+            <EmptyState icon={Truck} title='Select a station'>
+              Its details and vehicle inventory appear here. The bar beside each station shows its trucks by status.
+            </EmptyState>
+          </div>
         )}
       </div>
 

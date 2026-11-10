@@ -1,5 +1,4 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import IconAction from "@/components/common/IconAction.jsx";
 import useRemoveTruck from "@/hooks/stations/useRemoveTruck.js";
@@ -11,17 +10,15 @@ function TruckList({ trucks, editable, onEditTruck }) {
   const { mutate: removeTruck } = useRemoveTruck();
 
   return trucks.length === 0 ? (
-    <Alert>
-      <AlertDescription>No trucks. This station is skipped on running cards until a truck is added.</AlertDescription>
-    </Alert>
+    <p className='px-4 py-6 text-center text-sm text-muted-foreground'>No trucks. This station is skipped on running cards until a truck is added.</p>
   ) : (
     <>
-      <div className='grid gap-2 md:hidden'>
+      <div className='divide-y md:hidden'>
         {trucks.map((t) => (
-          <div key={t.id} className='rounded-lg border p-3'>
+          <div key={t.id} className='p-3'>
             <div className='flex items-start justify-between gap-2'>
               <div className='min-w-0'>
-                <div className='break-words font-condensed text-base font-semibold'>{t.callSign}</div>
+                <div className='font-data text-base font-semibold break-words'>{t.callSign}</div>
                 <div className='text-xs text-muted-foreground'>
                   {[TRUCK_TYPES[t.type], OWNERSHIP[t.ownership], t.plateNumber, t.waterCapacityLiters != null && `${t.waterCapacityLiters} L`]
                     .filter(Boolean)
@@ -64,12 +61,12 @@ function TruckList({ trucks, editable, onEditTruck }) {
           <TableBody>
             {trucks.map((t) => (
               <TableRow key={t.id}>
-                <TableCell className='max-w-48 truncate font-condensed text-base font-semibold' title={t.callSign}>
+                <TableCell className='max-w-48 truncate font-data text-base font-semibold' title={t.callSign}>
                   {t.callSign}
                 </TableCell>
                 <TableCell>{TRUCK_TYPES[t.type]}</TableCell>
-                <TableCell>{t.plateNumber ?? "—"}</TableCell>
-                <TableCell className='text-right tabular-nums'>{t.waterCapacityLiters ?? "—"}</TableCell>
+                <TableCell className='font-data text-base'>{t.plateNumber ?? "—"}</TableCell>
+                <TableCell className='text-right font-data text-base'>{t.waterCapacityLiters ?? "—"}</TableCell>
                 <TableCell>{OWNERSHIP[t.ownership]}</TableCell>
                 <TableCell>
                   <TruckStatusControl truck={t} editable={editable} className='h-8 w-40' />

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Page from "@/components/common/Page.jsx";
 import ConfirmDialog from "@/components/common/ConfirmDialog.jsx";
 import MapComponent from "@/components/common/MapComponent.jsx";
+import Panel from "@/components/common/Panel.jsx";
 import DeploymentHeader from "@/components/features/deployments/detail/DeploymentHeader.jsx";
 import DeploymentTrucks from "@/components/features/deployments/detail/DeploymentTrucks.jsx";
 import DeploymentFormDialog from "@/components/features/deployments/DeploymentFormDialog.jsx";
@@ -51,8 +52,8 @@ function DeploymentDetailPage() {
   if (!deployment) {
     return (
       <Page>
-        <Skeleton className='h-8 w-64' />
-        <Skeleton className='h-72 w-full' />
+        <Skeleton className='h-24 w-full rounded-lg' />
+        <Skeleton className='h-80 w-full rounded-lg' />
       </Page>
     );
   }
@@ -74,11 +75,13 @@ function DeploymentDetailPage() {
         onDelete={() => setConfirmDelete(true)}
       />
 
-      <div className='grid grid-cols-1 gap-4 xl:grid-cols-[2fr_3fr]'>
-        <div className='h-72 overflow-hidden rounded-xl border md:h-96'>
-          {/* The event pin, plus every truck still there at its post. */}
-          <MapComponent kind='deployment' position={position} markers={deployedTruckMarkers(deployment)} />
-        </div>
+      <div className='grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]'>
+        <Panel title='Map' meta='Venue and truck posts' flush className='self-start'>
+          <div className='h-72 md:h-96'>
+            {/* The event pin, plus every truck still there at its post. */}
+            <MapComponent kind='deployment' position={position} markers={deployedTruckMarkers(deployment)} />
+          </div>
+        </Panel>
         <DeploymentTrucks
           units={deployment.units}
           canRelease={canManage && active}

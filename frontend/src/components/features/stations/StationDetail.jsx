@@ -1,56 +1,70 @@
-import { ChevronLeft, MapPin, Pencil, Phone, Plus, Truck } from "lucide-react";
+import { ChevronLeft, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import Panel from "@/components/common/Panel.jsx";
+import KeyValue from "@/components/common/KeyValue.jsx";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
+import { TRUCK_STATUS } from "@/constants/truck.js";
 import TruckList from "./TruckList.jsx";
 
-/** The selected station: address, contact, actions for editors, and its trucks. */
+/** The selected station: its facts and editor actions, a status count, and its vehicle inventory. */
 function StationDetail({ station, editable, onBack, onEdit, onDeactivate, onAddTruck, onEditTruck }) {
+  const counts = Object.keys(TRUCK_STATUS)
+    .map((s) => [s, station.trucks.filter((t) => t.status === s).length])
+    .filter(([, n]) => n);
   return (
-    <Card className='min-w-0 gap-4 px-4 py-4 md:px-6'>
+    <div className='flex min-w-0 flex-col gap-4'>
       <button onClick={onBack} className='flex w-fit items-center gap-1 text-sm text-muted-foreground lg:hidden'>
         <ChevronLeft className='size-4' /> Stations
       </button>
-      <div className='flex flex-wrap items-start gap-3'>
-        <div className='min-w-0 flex-1'>
-          <h2 className='text-lg font-semibold'>{station.name}</h2>
-          <div className='mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground'>
-            <span className='flex items-center gap-1'>
-              <MapPin className='size-3.5' />
-              {[station.city?.name, station.address].filter(Boolean).join(", ") || "No address"}
-            </span>
-            {station.contactNumber && (
-              <span className='flex items-center gap-1'>
-                <Phone className='size-3.5' />
-                {station.contactNumber}
-              </span>
-            )}
-          </div>
-        </div>
-        {editable && (
-          <div className='flex gap-2'>
-            <Button variant='outline' size='sm' onClick={onEdit}>
-              <Pencil /> Edit
-            </Button>
-            <Button variant='outline' size='sm' className='text-destructive' onClick={onDeactivate}>
-              Deactivate
-            </Button>
-          </div>
-        )}
-      </div>
+      <Panel
+        title={station.name}
+        actions={
+          editable && (
+            <>
+              <Button variant='outline' size='sm' onClick={onEdit}>
+                <Pencil /> Edit
+              </Button>
+              <Button variant='outline' size='sm' className='text-destructive' onClick={onDeactivate}>
+                Deactivate
+              </Button>
+            </>
+          )
+        }
+      >
+        <KeyValue
+          columns={2}
+          items={[
+            { label: "City", value: station.city?.name ?? "No city set" },
+            { label: "Address", value: station.address || "No address" },
+            { label: "Contact", value: station.contactNumber },
+            { label: "Coordinates", value: `${station.lat.toFixed(5)}, ${station.lng.toFixed(5)}`, mono: true },
+          ]}
+        />
+      </Panel>
 
-      <div className='flex items-center justify-between'>
-        <h3 className='flex items-center gap-2 font-medium'>
-          <Truck className='size-4' /> Trucks
-        </h3>
-        {editable && (
-          <Button size='sm' variant='outline' onClick={onAddTruck}>
-            <Plus /> Add truck
-          </Button>
-        )}
-      </div>
-
-      <TruckList trucks={station.trucks} editable={editable} onEditTruck={onEditTruck} />
-    </Card>
+      <Panel
+        title='Vehicle inventory'
+        meta={
+          <span className='inline-flex flex-wrap gap-1 align-middle'>
+            {counts.map(([s, n]) => (
+              <StatusBadge key={s} tone={TRUCK_STATUS[s].tone}>
+                {n} {TRUCK_STATUS[s].label}
+              </StatusBadge>
+            ))}
+          </span>
+        }
+        actions={
+          editable && (
+            <Button size='sm' onClick={onAddTruck}>
+              <Plus /> Add truck
+            </Button>
+          )
+        }
+        flush
+      >
+        <TruckList trucks={station.trucks} editable={editable} onEditTruck={onEditTruck} />
+      </Panel>
+    </div>
   );
 }
 
