@@ -53,7 +53,7 @@ function StationFormDialog({ initial, district, editableCities, onClose, onSaved
     <Dialog open={!!initial} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className='max-h-[95svh] overflow-y-auto sm:max-w-3xl'>
         <DialogHeader>
-          <DialogTitle>{form?.id ? "Edit station" : `Add station to ${district?.name}`}</DialogTitle>
+          <DialogTitle>{form?.id ? "Edit station" : district ? `Add station to ${district.name}` : "Add station"}</DialogTitle>
         </DialogHeader>
         {form && (
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>

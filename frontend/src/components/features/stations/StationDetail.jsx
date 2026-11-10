@@ -12,7 +12,7 @@ function StationDetail({ station, editable, onBack, onEdit, onDeactivate, onAddT
     .map((s) => [s, station.trucks.filter((t) => t.status === s).length])
     .filter(([, n]) => n);
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
+    <div className='flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto'>
       <button onClick={onBack} className='flex w-fit items-center gap-1 text-sm text-muted-foreground lg:hidden'>
         <ChevronLeft className='size-4' /> Stations
       </button>

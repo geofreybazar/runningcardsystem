@@ -1,6 +1,7 @@
 import { api } from "./client.js";
 
-const getStations = (districtId) => api(`/stations?districtId=${districtId}`);
+/** "ALL": every active station in the region. */
+const getStations = (districtId) => api(districtId === "ALL" ? "/stations" : `/stations?districtId=${districtId}`);
 const addStation = (body) => api("/stations", { method: "POST", body });
 const editStation = ({ id, ...body }) => api(`/stations/${id}`, { method: "PATCH", body });
 const deactivateStation = (id) => api(`/stations/${id}`, { method: "PATCH", body: { isActive: false } });

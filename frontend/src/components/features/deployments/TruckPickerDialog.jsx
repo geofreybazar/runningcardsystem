@@ -66,7 +66,7 @@ function TruckPickerDialog({ deployment, open, onClose }) {
         ) : withAvailable.length === 0 ? (
           <p className='py-6 text-center text-sm text-muted-foreground'>No available trucks in this district.</p>
         ) : (
-          <ul className='grid max-h-[50svh] gap-3 overflow-auto'>
+          <ul className='relative grid max-h-[50svh] gap-3 overflow-auto'>
             {withAvailable.map((s) => (
               <li key={s.id} className='rounded-lg border p-3'>
                 <div className='text-sm font-medium'>{s.name}</div>

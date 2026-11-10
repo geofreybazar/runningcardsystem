@@ -62,7 +62,7 @@ function HomePage() {
 
       {/* Dispatch panel */}
       <aside aria-label='Running card' className='flex min-h-0 flex-col bg-card xl:w-[30rem] xl:shrink-0'>
-        <div className='min-h-0 flex-1 xl:overflow-y-auto' aria-busy={loading}>
+        <div className='relative min-h-0 flex-1 xl:overflow-y-auto' aria-busy={loading}>
           {!location ? (
             <EmptyState icon={MapPinned} title='Pick the fire location' className='py-16'>
               Search an address, landmark or barangay, type coordinates like <span className='font-data'>14.5916, 121.0031</span> and press Enter,
