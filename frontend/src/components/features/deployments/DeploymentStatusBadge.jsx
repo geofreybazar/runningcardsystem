@@ -1,15 +1,10 @@
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
+import { DEPLOYMENT_STATUS } from "@/constants/status.js";
 
-/** Active deployments use the gold accent, like their trucks' "Deployed" badge; ended ones are muted. */
-const DeploymentStatusBadge = ({ status }) =>
-  status === "ACTIVE" ? (
-    <Badge variant='outline' className='border-gold/50 bg-gold/20 text-foreground'>
-      Active
-    </Badge>
-  ) : (
-    <Badge variant='outline' className='bg-muted text-muted-foreground'>
-      Ended
-    </Badge>
-  );
+/** Active deployments share the info tone with their trucks' "Deployed" badge; ended ones are muted. */
+function DeploymentStatusBadge({ status }) {
+  const s = DEPLOYMENT_STATUS[status];
+  return <StatusBadge tone={s.tone}>{s.label}</StatusBadge>;
+}
 
 export default DeploymentStatusBadge;

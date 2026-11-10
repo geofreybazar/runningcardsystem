@@ -6,7 +6,7 @@ function AlarmBadge({ level, index, closed, className }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 font-condensed text-sm leading-tight font-semibold whitespace-nowrap",
+        "inline-flex h-5 items-center rounded-sm px-1.5 font-data text-sm leading-none font-semibold whitespace-nowrap",
         closed ? "bg-secondary text-secondary-foreground" : alarmTone(index),
         className,
       )}

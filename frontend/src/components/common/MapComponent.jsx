@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import FireTruckIcon from "./FireTruckIcon.jsx";
 
 const DEFAULT_CENTER = { lat: 14.6091, lng: 121.0223 };
-const BFP_RED = "#b91c1c";
+// Marker content is ordinary DOM, so theme tokens apply (and follow dark mode).
+const BFP_RED = "var(--primary)";
 
 /** A round badge with a pointer below; AdvancedMarker anchors its content at the bottom centre, i.e. the tip. */
 function MarkerPin({ color, size, children }) {

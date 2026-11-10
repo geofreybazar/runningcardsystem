@@ -5,7 +5,7 @@ import { alarmTone, formatElapsed } from "./alarm.js";
 test("alarmTone escalates red → charcoal → black", () => {
   assert.match(alarmTone(0), /bg-primary/);
   assert.match(alarmTone(4), /bg-primary/);
-  assert.match(alarmTone(5), /bg-neutral-800/);
+  assert.match(alarmTone(5), /bg-shell/);
   assert.match(alarmTone(9), /bg-black/);
 });
 

@@ -1,4 +1,5 @@
-const CRIMSON = "oklch(0.33 0.11 25)";
+// The shell charcoal: the sign-in panel matches the app's sidebar and top bar.
+const CRIMSON = "var(--shell)";
 
 // Backdrop photo (CC BY-SA 4.0): the licence requires this credit wherever the photo is shown.
 const PHOTO_CREDIT = {

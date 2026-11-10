@@ -1,10 +1,10 @@
 /**
  * One escalation scale everywhere an alarm level appears: BFP red for the numbered alarms (1st–5th),
- * charcoal for the task forces, black with a gold ring for the general alarm.
+ * shell charcoal for the task forces, black with a gold ring for the general alarm.
  */
 export function alarmTone(index) {
   if (index == null || index < 5) return "bg-primary text-primary-foreground";
-  if (index < 9) return "bg-neutral-800 text-white dark:bg-neutral-600";
+  if (index < 9) return "bg-shell text-shell-foreground ring-1 ring-shell-border dark:bg-shell-raised";
   return "bg-black text-white ring-1 ring-gold";
 }
 

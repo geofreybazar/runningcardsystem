@@ -1,12 +1,12 @@
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
 import { TRUCK_STATUS } from "@/constants/truck.js";
 
-function TruckStatusBadge({ status }) {
+function TruckStatusBadge({ status, className }) {
   const s = TRUCK_STATUS[status];
   return (
-    <Badge variant='outline' className={s.className}>
+    <StatusBadge tone={s.tone} className={className}>
       {s.label}
-    </Badge>
+    </StatusBadge>
   );
 }
 
