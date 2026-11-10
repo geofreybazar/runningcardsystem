@@ -18,6 +18,7 @@ export const ACTION_LABELS = {
   CHANGE_PASSWORD: "Changed own password",
   DISPATCH: "Dispatched",
   RAISE_ALARM: "Raised alarm",
+  REQUEST_UNIT: "Requested special unit",
   CLOSE: "Closed incident",
   SET_PIN: "Pinned barangay",
   ASSIGN: "Deployed trucks",

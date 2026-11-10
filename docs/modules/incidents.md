@@ -3,7 +3,7 @@
 `backend/src/incidents/` · API: [incidents](../api/incidents.md) · Processes: [dispatch, raise, close](../architecture/business-processes.md#3-dispatch-create-incident)
 
 - Imports `RunningCardModule`.
-- `IncidentsController`: class `@Can('operate')`; create / next-alarm / raise / close also `@Can('dispatch')`.
+- `IncidentsController`: class `@Can('operate')`; create / next-alarm / raise / special-units / close also `@Can('dispatch')`.
 - `IncidentsService`:
   - `visibleTo(user)`: area filter for list and detail.
   - `list`, `get` (adds `alarmLevel`, `nextAlarmLevel`).

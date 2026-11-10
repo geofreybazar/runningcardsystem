@@ -87,6 +87,8 @@ Exact 401/403 bodies from `@nestjs/authentication` / `@nestjs/authorization` are
 | POST | `/api/incidents` | `operate` + `dispatch` + `dispatchIn` | [incidents](incidents.md) |
 | GET | `/api/incidents/:id/next-alarm` | `operate` + `dispatch` | [incidents](incidents.md) |
 | POST | `/api/incidents/:id/raise` | `operate` + `dispatch` + `dispatchIn` | [incidents](incidents.md) |
+| GET | `/api/incidents/:id/special-units` | `operate` + `dispatch` + `dispatchIn` | [incidents](incidents.md) |
+| POST | `/api/incidents/:id/special-units` | `operate` + `dispatch` + `dispatchIn` | [incidents](incidents.md) |
 | POST | `/api/incidents/:id/close` | `operate` + `dispatch` + `dispatchIn` | [incidents](incidents.md) |
 | GET | `/api/settings` | `operate` | [settings](settings.md) |
 | PUT | `/api/settings` | `manageSettings` | [settings](settings.md) |

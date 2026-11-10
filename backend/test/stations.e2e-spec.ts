@@ -64,12 +64,14 @@ describe('stations and trucks', () => {
     expect(truck.body.status).toBe('AVAILABLE');
     await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ status: 'OUT_OF_SERVICE' }).expect(200);
 
-    // Ambulance and Rescue units can't be added or set any more; fire truck types still can.
-    for (const type of ['AMBULANCE', 'RESCUE']) {
+    // The old type names are gone; every BFP type can be added and set.
+    for (const type of ['AERIAL_LADDER', 'RESCUE', 'OTHER']) {
       await http.post(`/api/stations/${created.body.id}/trucks`).set(opsMalabon).send({ callSign: `X ${type}`, type, ownership: 'BFP' }).expect(400);
       await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type }).expect(400);
     }
-    for (const type of ['TANKER', 'AERIAL_LADDER', 'OTHER']) await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type }).expect(200);
+    for (const type of ['MINI_PUMPER', 'TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE', 'ENGINE']) {
+      await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type }).expect(200);
+    }
     await http.delete(`/api/trucks/${truck.body.id}`).set(opsMalabon).expect(204);
     const after = (await http.get(`/api/stations?cityId=${malabon}`).set(opsMalabon)).body.find((s: { id: number }) => s.id === created.body.id);
     expect(after.trucks).toHaveLength(0);

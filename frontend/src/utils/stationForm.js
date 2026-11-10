@@ -1,11 +1,6 @@
 import { TRUCK_TYPES } from "@/constants/truck.js";
-import { TRUCK_TYPES as ALLOWED_TRUCK_TYPES } from "@shared/validation";
 
-// Ambulance and Rescue are no longer offered; an existing truck of that type keeps showing it until edited.
-export const truckTypeOptions = (current) =>
-  Object.keys(TRUCK_TYPES)
-    .filter((t) => ALLOWED_TRUCK_TYPES.includes(t) || t === current)
-    .map((t) => ({ value: t, label: TRUCK_TYPES[t] }));
+export const truckTypeOptions = () => Object.entries(TRUCK_TYPES).map(([value, label]) => ({ value, label }));
 
 const nullIfBlank = (v) => (v === "" || v == null ? null : v);
 

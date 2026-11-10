@@ -6,7 +6,7 @@ const SAMPALOC = { lat: 14.6079, lng: 120.995 }; // Manila (Fire District 1)
 const MONUMENTO = { lat: 14.6573, lng: 120.9839 }; // Caloocan (Fire District 2)
 const TAFT = { lat: 14.5649, lng: 120.9934 }; // Malate, Manila
 
-type Unit = { stationId: number; truckId: number; alarmLevel: string; releasedAt: string | null; truck: { status: string } };
+type Unit = { stationId: number; truckId: number; alarmLevel: string; releasedAt: string | null; special: boolean; truck: { status: string } };
 
 describe('incidents: dispatch, raise alarm, close', () => {
   let app: INestApplication;
@@ -64,7 +64,7 @@ describe('incidents: dispatch, raise alarm, close', () => {
     const extra = await http
       .post(`/api/stations/${nearest.id}/trucks`)
       .set(superAdmin)
-      .send({ callSign: 'Second Engine', type: 'TANKER', ownership: 'BFP' })
+      .send({ callSign: 'Second Engine', type: 'MINI_PUMPER', ownership: 'BFP' })
       .expect(201);
 
     const incident = (await dispatch(manilaRadio, SAMPALOC, { truckPicks: { [nearest.id]: extra.body.id } }).expect(201)).body;
@@ -122,6 +122,49 @@ describe('incidents: dispatch, raise alarm, close', () => {
     expect(c.units.some((u: Unit) => busy.has(u.truckId))).toBe(false);
 
     for (const inc of [a, b, c]) await http.post(`/api/incidents/${inc.id}/close`).set(manilaRadio).expect(200);
+  });
+
+  it('sends special units on request, outside the running card', async () => {
+    const card = (await http.get('/api/running-card').query(SAMPALOC).set(manilaRadio)).body.alarms;
+    const [first, second] = [card[0].stations[0], card[1].stations[0]];
+    const addTruck = (stationId: number, callSign: string, type: string) =>
+      http.post(`/api/stations/${stationId}/trucks`).set(superAdmin).send({ callSign, type, ownership: 'BFP' }).expect(201);
+    const ambulance = (await addTruck(first.id, 'Amb 1', 'AMBULANCE')).body;
+    const ladder = (await addTruck(second.id, 'Ladder 2', 'LADDER')).body;
+
+    // Special units never show on the running card.
+    const again = (await http.get('/api/running-card').query(SAMPALOC).set(manilaRadio)).body.alarms;
+    const cardTrucks = again.flatMap((a: { stations: { trucks: { id: number }[] }[] }) => a.stations.flatMap((st) => st.trucks.map((t) => t.id)));
+    expect(cardTrucks).not.toContain(ambulance.id);
+    expect(cardTrucks).not.toContain(ladder.id);
+
+    const incident = (await dispatch(manilaRadio, SAMPALOC).expect(201)).body;
+    expect(incident.units.some((u: Unit) => u.truckId === ambulance.id || u.truckId === ladder.id)).toBe(false);
+
+    const offered = (await http.get(`/api/incidents/${incident.id}/special-units`).query({ type: 'AMBULANCE' }).set(manilaRadio).expect(200)).body;
+    expect(offered[0].trucks.map((t: { id: number }) => t.id)).toContain(ambulance.id);
+    await http.get(`/api/incidents/${incident.id}/special-units`).query({ type: 'ENGINE' }).set(manilaRadio).expect(400);
+    await http.get(`/api/incidents/${incident.id}/special-units`).query({ type: 'AMBULANCE' }).set(caloocanRadio).expect(403);
+
+    // Only the fire city's dispatchers send one; it goes out at once under the current alarm.
+    const url = `/api/incidents/${incident.id}/special-units`;
+    await http.post(url).set(caloocanRadio).send({ truckId: ambulance.id }).expect(403);
+    await http.post(url).set(manilaRadio).send({ truckId: incident.units[0].truckId }).expect(400); // an engine: use the alarm
+    const withAmb = (await http.post(url).set(manilaRadio).send({ truckId: ambulance.id }).expect(200)).body;
+    const ambUnit = withAmb.units.find((u: Unit) => u.truckId === ambulance.id);
+    expect(ambUnit).toMatchObject({ special: true, alarmLevel: '1st Alarm', truck: { status: 'RESPONDING', type: 'AMBULANCE' } });
+    expect(withAmb.alarmLevel).toBe('1st Alarm');
+    expect(withAmb.timeline.at(-1)).toMatchObject({ type: 'UNIT_REQUESTED', trucks: 1 });
+    await http.post(url).set(manilaRadio).send({ truckId: ambulance.id }).expect(409); // already taken
+
+    // A station that only sent a special unit still sends a pumper when the alarm is raised.
+    await http.post(url).set(manilaRadio).send({ truckId: ladder.id }).expect(200);
+    const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(manilaRadio).expect(200)).body;
+    expect(next.stations.map((st: { id: number }) => st.id)).toContain(second.id);
+
+    await http.post(`/api/incidents/${incident.id}/close`).set(manilaRadio).expect(200);
+    expect(await truckStatus(first.id, ambulance.id)).toBe('AVAILABLE');
+    expect(await truckStatus(second.id, ladder.id)).toBe('AVAILABLE');
   });
 
   it('shows incidents by area', async () => {

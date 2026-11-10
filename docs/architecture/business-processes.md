@@ -5,7 +5,7 @@
 Source: `backend/src/running-card/running-card.service.ts`, `running-card.logic.ts`.
 
 1. Load `Settings` (row id 1): `stationsPerAlarm`, `maxDistanceKm`, `alarmLevels`.
-2. Load stations where `isActive = true`, `id NOT IN excludeStationIds`, and at least one truck has `isActive = true AND status = 'AVAILABLE'`. Each station includes only those available trucks, ordered by `id`.
+2. Load stations where `isActive = true`, `id NOT IN excludeStationIds`, and at least one truck has `isActive = true AND status = 'AVAILABLE' AND type IN (MINI_PUMPER, ENGINE)`. Each station includes only those trucks, ordered by `id`.
 3. `buildRunningCard()` computes the haversine distance (km) from the origin, drops stations beyond `maxDistanceKm`, sorts ascending, and slices into groups of `stationsPerAlarm`, one group per alarm level, in order.
 4. Alarm levels with no stations are dropped, so a card can have fewer levels than `alarmLevels`.
 
@@ -70,10 +70,16 @@ Rules:
 Source: `incidents.service.ts` (`nextAlarm`, `raise`).
 
 1. Load the open incident (404 if missing, 400 if closed); authorize `dispatchIn(user, incident.cityId)`.
-2. `nextAlarm()`: next level name = `alarmLevels[alarmIndex + 1]` (null → 400 "already at the highest alarm level"). Recompute the card from the incident location, excluding stations already on the incident; the first group becomes the next alarm.
+2. `nextAlarm()`: next level name = `alarmLevels[alarmIndex + 1]` (null → 400 "already at the highest alarm level"). Recompute the card from the incident location, excluding stations already on the incident by an alarm (units with `special = false`); the first group becomes the next alarm.
 3. In a transaction: `UPDATE Incident SET alarmIndex = alarmIndex + 1 WHERE id AND status = OPEN AND alarmIndex = <value read in step 2>`. If 0 rows → 409 (someone else raised it). Then claim trucks as in dispatch (409 if none).
 
 `GET /api/incidents/:id/next-alarm` returns the same preview without changing anything.
+
+## 4a. Special units
+
+Source: `incidents.service.ts` (`specialUnits`, `requestSpecialUnit`), `running-card.service.ts` (`nearestWithType`).
+
+Tankers, ladders, rescue trucks, CSSR trucks and ambulances are never on the running card. The fire city's dispatcher picks a type on the incident page, gets the nearest stations with one available, and sends one. It is claimed like any dispatch (conditional update to `RESPONDING`, 409 if taken) and recorded as a unit with `special = true` under the current alarm level, without raising the alarm. Close releases it with the other units.
 
 ## 5. Close incident
 

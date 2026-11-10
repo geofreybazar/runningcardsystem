@@ -9,6 +9,7 @@ import type { CreateIncidentDto, TruckPicks } from './incidents.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { claimTruck, releaseTrucks } from '../stations/truck-claims.js';
+import { SPECIAL_TRUCK_TYPES } from '../shared/validation.js';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type CardStation = Awaited<ReturnType<RunningCardService['generate']>>[number]['stations'][number];
@@ -151,7 +152,9 @@ export class IncidentsService {
     const levels = await this.alarmLevels();
     const alarmLevel = levels[incident.alarmIndex + 1];
     if (!alarmLevel) return null;
-    const card = await this.runningCard.generate(incident, { excludeStationIds: incident.units.map((u) => u.stationId) });
+    // A station that only sent a special unit (e.g. its ambulance) still sends a pumper on the next alarm.
+    const onAlarms = incident.units.filter((u) => !u.special).map((u) => u.stationId);
+    const card = await this.runningCard.generate(incident, { excludeStationIds: onAlarms });
     return { alarmLevel, fromAlarmIndex: incident.alarmIndex, stations: card[0]?.stations ?? [] };
   }
 
@@ -171,6 +174,39 @@ export class IncidentsService {
       if (sent.length === 0) throw new ConflictException('Those trucks became unavailable. Reload and try again.');
       await this.audit.log(user.id, 'RAISE_ALARM', 'Incident', id, { alarmLevel: next.alarmLevel, trucks: trucksOf(sent) }, { db: tx });
       return this.notifications.record(tx, id, 'ALARM_RAISED', next.alarmLevel, user.id, sent);
+    });
+    await this.notifications.publish(notified);
+    return this.get(user, id);
+  }
+
+  /** Nearest stations with an available special unit of `type`, for the dispatchers of the incident's city. */
+  async specialUnits(user: AuthUser, id: string, type: (typeof SPECIAL_TRUCK_TYPES)[number]) {
+    const incident = await this.openIncident(id);
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, incident.cityId);
+    return this.runningCard.nearestWithType(incident, type);
+  }
+
+  /**
+   * Sends one special unit at the fire city's request, right away if it is still available. It is recorded under the
+   * current alarm level; the alarm itself does not change.
+   */
+  async requestSpecialUnit(user: AuthUser, id: string, truckId: number) {
+    const incident = await this.openIncident(id);
+    await this.authz.authorize(AccessPolicy, 'dispatchIn', user, incident.cityId);
+    const truck = await this.prisma.truck.findFirst({ where: { id: truckId, isActive: true, station: { isActive: true } }, select: { type: true, stationId: true } });
+    if (!truck) throw new NotFoundException('Truck not found');
+    if (!(SPECIAL_TRUCK_TYPES as readonly string[]).includes(truck.type)) {
+      throw new BadRequestException('Mini Pumpers and Engines come with the running card; raise the alarm instead');
+    }
+    const alarmLevel = (await this.alarmLevels())[incident.alarmIndex];
+    const notified = await this.prisma.$transaction(async (tx) => {
+      if (!(await claimTruck(tx, truckId, 'RESPONDING'))) throw new ConflictException('That unit is no longer available. Reload and try again.');
+      const unit = await tx.incidentUnit.create({
+        data: { incidentId: id, stationId: truck.stationId, truckId, alarmLevel, special: true },
+        select: { station: { select: { name: true, cityId: true, city: { select: { name: true } } } }, truck: { select: { callSign: true, type: true } } },
+      });
+      await this.audit.log(user.id, 'REQUEST_UNIT', 'Incident', id, { alarmLevel, type: unit.truck.type, trucks: trucksOf([unit]) }, { db: tx });
+      return this.notifications.record(tx, id, 'UNIT_REQUESTED', alarmLevel, user.id, [unit]);
     });
     await this.notifications.publish(notified);
     return this.get(user, id);

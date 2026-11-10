@@ -27,5 +27,5 @@ Controller `RunningCardController` (`backend/src/running-card/running-card.contr
 }
 ```
 
-- `distance` is kilometers (haversine). Only `AVAILABLE`, active trucks are listed; stations without one are omitted. Empty alarm levels are dropped. See [business processes](../architecture/business-processes.md#1-building-the-running-card).
+- `distance` is kilometers (haversine). Only `AVAILABLE`, active Mini Pumpers and Engines are listed (special units are requested per incident); stations without one are omitted. Empty alarm levels are dropped. See [business processes](../architecture/business-processes.md#1-building-the-running-card).
 - **Errors:** 400 for missing or invalid coordinates. Coordinates outside NCR are valid: `city` is `null` and stations within `maxDistanceKm` are still listed.

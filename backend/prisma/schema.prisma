@@ -15,13 +15,15 @@ enum Role {
   RADIO_OPERATOR
 }
 
+/// MINI_PUMPER and ENGINE go on the running card; the others are special units, requested per incident.
 enum TruckType {
+  MINI_PUMPER
   ENGINE
   TANKER
-  AERIAL_LADDER
-  RESCUE
+  LADDER
+  RESCUE_TRUCK
+  CSSR_TRUCK
   AMBULANCE
-  OTHER
 }
 
 enum TruckOwnership {
@@ -65,6 +67,8 @@ enum NotificationType {
   DISPATCHED
   ALARM_RAISED
   INCIDENT_CLOSED
+  /// A special unit (ambulance, ladder, …) sent to an incident at the fire city's request.
+  UNIT_REQUESTED
   DEPLOYMENT_ASSIGNED
   DEPLOYMENT_RELEASED
 }
@@ -254,6 +258,8 @@ model IncidentUnit {
   truckId      Int
   truck        Truck     @relation(fields: [truckId], references: [id])
   alarmLevel   String
+  /// Sent by a special-unit request, not on the running card; such units don't take the station off later alarms.
+  special      Boolean   @default(false)
   dispatchedAt DateTime  @default(now())
   releasedAt   DateTime?
 

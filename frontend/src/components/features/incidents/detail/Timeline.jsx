@@ -1,4 +1,4 @@
-import { CircleCheck, Siren, TrendingUp } from "lucide-react";
+import { CircleCheck, Siren, TrendingUp, UserPlus } from "lucide-react";
 import { Card as Panel } from "@/components/ui/card";
 import { alarmTone } from "@/utils/alarm.js";
 import { formatDateTime } from "@/utils/dateTime.js";
@@ -9,6 +9,7 @@ const STEP = {
   DISPATCHED: { icon: Siren, label: (s) => `${s.alarmLevel} dispatched`, verb: "sent" },
   ALARM_RAISED: { icon: TrendingUp, label: (s) => `Raised to ${s.alarmLevel}`, verb: "sent" },
   INCIDENT_CLOSED: { icon: CircleCheck, label: () => "Incident closed", verb: "released" },
+  UNIT_REQUESTED: { icon: UserPlus, label: (s) => `Special unit requested (${s.alarmLevel})`, verb: "sent" },
 };
 
 /** Time log: when each alarm was dispatched or raised, and the close, with who did it. */
@@ -20,15 +21,16 @@ function Timeline({ steps }) {
       <ol className='relative grid gap-4 border-l pl-5'>
         {steps.map((s, i) => {
           const { icon: Icon, label, verb } = STEP[s.type];
+          // Each dispatch/raise is one level up the scale; the close and special-unit requests are shown neutral.
           const closed = s.type === "INCIDENT_CLOSED";
-          // Each dispatch/raise is one level up the scale; the close is shown neutral.
-          const index = steps.slice(0, i).filter((p) => p.type !== "INCIDENT_CLOSED").length;
+          const neutral = closed || s.type === "UNIT_REQUESTED";
+          const index = steps.slice(0, i).filter((p) => p.type === "DISPATCHED" || p.type === "ALARM_RAISED").length;
           return (
             <li key={i} className='relative'>
               <span
                 className={cn(
                   "absolute top-0.5 -left-[1.95rem] flex size-5 items-center justify-center rounded-full",
-                  closed ? "border bg-card text-success" : alarmTone(index),
+                  closed ? "border bg-card text-success" : neutral ? "border bg-card text-primary" : alarmTone(index),
                 )}
               >
                 <Icon className='size-3' />

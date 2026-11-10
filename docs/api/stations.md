@@ -33,7 +33,7 @@ Write routes need the `editStations` ability (SUPER_ADMIN, or OPERATIONS of an o
 - **Audit:** `DEACTIVATE` or `UPDATE`, `changes` = body.
 
 ## POST /api/stations/:id/trucks
-- **Body:** `callSign` (1–80), `type` (`ENGINE`, `TANKER`, `AERIAL_LADDER` or `OTHER`; `AMBULANCE` and `RESCUE` are rejected with 400: they are not fire trucks), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityLiters?` (int ≥ 0).
+- **Body:** `callSign` (1–80), `type` (`MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK` or `AMBULANCE`; only Mini Pumper and Engine go on the running card, the rest are [special units](incidents.md#get-apiincidentsidspecial-unitstype)), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityLiters?` (int ≥ 0).
 - **201:** Truck (status `AVAILABLE`). **Errors:** 400, 403, 404.
 - **Audit:** `CREATE Truck`.
 

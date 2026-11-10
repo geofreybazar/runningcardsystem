@@ -9,6 +9,7 @@ import IncidentMap from "@/components/features/incidents/detail/IncidentMap.jsx"
 import UnitsTable from "@/components/features/incidents/detail/UnitsTable.jsx";
 import Timeline from "@/components/features/incidents/detail/Timeline.jsx";
 import RaiseAlarm from "@/components/features/incidents/detail/RaiseAlarm.jsx";
+import RequestSpecialUnit from "@/components/features/incidents/detail/RequestSpecialUnit.jsx";
 import useAuth from "@/hooks/auth/useAuth.js";
 import useNotifications from "@/hooks/notifications/useNotifications.js";
 import useGetIncident from "@/hooks/incidents/useGetIncident.js";
@@ -78,6 +79,7 @@ function IncidentDetailPage() {
         />
       )}
       {mine && !nextPending && !next && <p className='text-sm text-muted-foreground'>This incident is at the highest alarm level.</p>}
+      {mine && <RequestSpecialUnit incident={incident} disabled={busy} />}
 
       <ConfirmDialog
         open={confirmClose}

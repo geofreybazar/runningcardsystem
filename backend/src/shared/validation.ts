@@ -8,8 +8,11 @@ import { z } from 'zod';
 export const RANKS = ['FO1', 'FO2', 'FO3', 'SFO1', 'SFO2', 'SFO3', 'SFO4', 'FINSP', 'FSINSP', 'FCINSP', 'FSUPT', 'FSSUPT', 'FCSUPT'] as const;
 export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'RADIO_OPERATOR'] as const;
 export const OFFICE_LEVELS = ['REGIONAL', 'DISTRICT', 'CITY'] as const;
-/** Types a truck can be given. AMBULANCE and RESCUE stay in the database enum only for older records. */
-export const TRUCK_TYPES = ['ENGINE', 'TANKER', 'AERIAL_LADDER', 'OTHER'] as const;
+export const TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE', 'TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const;
+/** Types the running card (1st Alarm and raised alarms) sends. */
+export const RUNNING_CARD_TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
+/** Special units: never on the running card, sent only when the fire's city requests one on an incident. */
+export const SPECIAL_TRUCK_TYPES = ['TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
 export const TRUCK_OWNERSHIPS = ['BFP', 'LGU'] as const;
 /** Statuses a station editor may set. DEPLOYED (special deployments) is set and cleared only by the deployment. */
 export const TRUCK_STATUSES = ['AVAILABLE', 'RESPONDING', 'OUT_OF_SERVICE'] as const;
@@ -80,7 +83,7 @@ export const updateStationSchema = z.strictObject({ ...stationFields, isActive: 
 const truckFields = {
   callSign: text(80),
   plateNumber: optionalText(20),
-  type: z.enum(TRUCK_TYPES, { error: 'Choose Engine, Tanker, Aerial ladder or Other' }),
+  type: z.enum(TRUCK_TYPES, { error: 'Choose a truck type' }),
   waterCapacityLiters: z.int({ error: 'Whole litres only' }).min(0, 'Cannot be negative').nullable().optional(),
   ownership: z.enum(TRUCK_OWNERSHIPS, { error: 'Choose an owner' }),
 };

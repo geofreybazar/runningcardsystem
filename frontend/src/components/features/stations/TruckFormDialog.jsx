@@ -64,7 +64,7 @@ function TruckFormDialog({ initial, stationId, onClose }) {
             </Field>
             <div className='grid grid-cols-2 gap-4'>
               <Field label='Type' error={errors?.type}>
-                <SimpleSelect value={form.type} onChange={(type) => setForm({ ...form, type })} options={truckTypeOptions(form.type)} />
+                <SimpleSelect value={form.type} onChange={(type) => setForm({ ...form, type })} options={truckTypeOptions()} />
               </Field>
               <Field label='Owner' error={errors?.ownership}>
                 <SimpleSelect value={form.ownership} onChange={(ownership) => setForm({ ...form, ownership })} options={toOptions(OWNERSHIP)} />

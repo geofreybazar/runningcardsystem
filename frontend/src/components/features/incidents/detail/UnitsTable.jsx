@@ -1,6 +1,7 @@
 import { Card as Panel } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AlarmBadge from "@/components/common/AlarmBadge.jsx";
+import { Badge } from "@/components/ui/badge";
 import { TRUCK_TYPES } from "@/constants/truck.js";
 import { formatTime } from "@/utils/dateTime.js";
 
@@ -39,7 +40,10 @@ function UnitsTable({ incident }) {
                     </TableCell>
                     <TableCell className='font-condensed text-base font-semibold'>
                       {u.truck.callSign}
-                      <div className='font-sans text-xs font-normal text-muted-foreground'>{TRUCK_TYPES[u.truck.type]}</div>
+                      <div className='font-sans text-xs font-normal text-muted-foreground'>
+                        {TRUCK_TYPES[u.truck.type]}
+                        {u.special && <Badge variant='outline' className='ml-1.5 h-4 px-1 text-[10px]'>Requested</Badge>}
+                      </div>
                     </TableCell>
                     <TableCell className='tabular-nums'>{formatTime(u.dispatchedAt)}</TableCell>
                     <TableCell className='tabular-nums text-muted-foreground'>{u.releasedAt ? formatTime(u.releasedAt) : "—"}</TableCell>

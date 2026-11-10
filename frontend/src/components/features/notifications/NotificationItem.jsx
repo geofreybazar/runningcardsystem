@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CircleCheck, Siren, TrendingUp, Undo2 } from "lucide-react";
+import { CircleCheck, Siren, TrendingUp, Undo2, UserPlus } from "lucide-react";
 import FireTruckIcon from "@/components/common/FireTruckIcon.jsx";
 import { Card } from "@/components/ui/card";
 import AlarmBadge from "@/components/common/AlarmBadge.jsx";
@@ -8,7 +8,7 @@ import { displayName } from "@/utils/person.js";
 import { formatDateTime } from "@/utils/dateTime.js";
 import { notificationLink, notificationPlace } from "@/utils/notification.js";
 
-const ICONS = { DISPATCHED: Siren, ALARM_RAISED: TrendingUp, INCIDENT_CLOSED: CircleCheck, DEPLOYMENT_ASSIGNED: FireTruckIcon, DEPLOYMENT_RELEASED: Undo2 };
+const ICONS = { DISPATCHED: Siren, ALARM_RAISED: TrendingUp, INCIDENT_CLOSED: CircleCheck, UNIT_REQUESTED: UserPlus, DEPLOYMENT_ASSIGNED: FireTruckIcon, DEPLOYMENT_RELEASED: Undo2 };
 const RELEASED = new Set(["INCIDENT_CLOSED", "DEPLOYMENT_RELEASED"]);
 
 /** One notification: what happened, where, our trucks involved, who did it. */

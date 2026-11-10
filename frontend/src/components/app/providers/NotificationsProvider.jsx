@@ -51,7 +51,7 @@ function NotificationsProvider({ children }) {
       const description = trucksMoved(n);
       const options = { description, action: { label: "View", onClick: () => navigate(notificationLink(n)) } };
       // Our trucks sent to a fire: sound and a longer red toast. Everything else (closes, planned deployments): a normal toast.
-      const toFire = n.type === "DISPATCHED" || n.type === "ALARM_RAISED";
+      const toFire = n.type === "DISPATCHED" || n.type === "ALARM_RAISED" || n.type === "UNIT_REQUESTED";
       if (n.units.length && toFire) {
         beep();
         toast.error(message, { ...options, duration: 30_000 });

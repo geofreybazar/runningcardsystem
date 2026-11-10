@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import * as shared from './validation.js';
 import { DeploymentStatus, OfficeLevel, Rank, Role, TruckOwnership, TruckStatus, TruckType } from '../generated/prisma/enums.js';
-import { DEPLOYMENT_STATUSES, OFFICE_LEVELS, RANKS, ROLES, TRUCK_OWNERSHIPS, TRUCK_STATUSES, TRUCK_TYPES, accountNumber, deploymentFormSchema, userFormSchema } from './validation.js';
+import { DEPLOYMENT_STATUSES, OFFICE_LEVELS, RANKS, ROLES, TRUCK_OWNERSHIPS, RUNNING_CARD_TRUCK_TYPES, SPECIAL_TRUCK_TYPES, TRUCK_STATUSES, TRUCK_TYPES, accountNumber, deploymentFormSchema, userFormSchema } from './validation.js';
 
 // The shared lists can't import Prisma (the frontend bundles them), so check them against the schema here.
 describe('shared validation', () => {
@@ -13,8 +13,9 @@ describe('shared validation', () => {
     expect([...TRUCK_STATUSES, 'DEPLOYED'].sort()).toEqual(Object.values(TruckStatus).sort()); // DEPLOYED: set by deployments only
     expect([...DEPLOYMENT_STATUSES].sort()).toEqual(Object.values(DeploymentStatus).sort());
     // Only the types still offered; the database keeps AMBULANCE and RESCUE for older records.
-    expect(TRUCK_TYPES.every((t) => (Object.values(TruckType) as string[]).includes(t))).toBe(true);
-    expect([...TRUCK_TYPES].sort()).toEqual(Object.values(TruckType).filter((t) => t !== 'AMBULANCE' && t !== 'RESCUE').sort());
+    expect([...TRUCK_TYPES].sort()).toEqual(Object.values(TruckType).sort());
+    // Every type is either a running-card type or a special unit, never both.
+    expect([...RUNNING_CARD_TRUCK_TYPES, ...SPECIAL_TRUCK_TYPES].sort()).toEqual([...TRUCK_TYPES].sort());
   });
 
   it('account numbers', () => {

@@ -11,11 +11,11 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 | `Role` | `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `RADIO_OPERATOR` | `User.role` |
 | `OfficeLevel` | `REGIONAL`, `DISTRICT`, `CITY` | `User.officeLevel` |
 | `Rank` | `FO1`, `FO2`, `FO3`, `SFO1`, `SFO2`, `SFO3`, `SFO4`, `FINSP`, `FSINSP`, `FCINSP`, `FSUPT`, `FSSUPT`, `FCSUPT` (lowest → highest) | `User.rank` |
-| `TruckType` | `ENGINE`, `TANKER`, `AERIAL_LADDER`, `RESCUE`, `AMBULANCE`, `OTHER` | `Truck.type`. `RESCUE` and `AMBULANCE` remain only for older records: the API no longer accepts them for new or edited trucks |
+| `TruckType` | `MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` | `Truck.type`. `MINI_PUMPER`/`ENGINE` are running-card types; the others are special units sent on request. Migration `20261110090000` mapped `AERIAL_LADDER`→`LADDER`, `RESCUE`→`RESCUE_TRUCK`, `OTHER`→`ENGINE` |
 | `TruckOwnership` | `BFP`, `LGU` | `Truck.ownership`. `VOLUNTEER` was removed on 2026-11-08; existing Volunteer trucks were changed to `BFP` by migration `20261108120000_truck_posts_no_volunteer` |
 | `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE`, `DEPLOYED` | `Truck.status`. `DEPLOYED` = on a special deployment; set and cleared only by the deployment |
 | `IncidentStatus` | `OPEN`, `CLOSED` | `Incident.status` |
-| `NotificationType` | `DISPATCHED`, `ALARM_RAISED`, `INCIDENT_CLOSED`, `DEPLOYMENT_ASSIGNED`, `DEPLOYMENT_RELEASED` | `Notification.type` |
+| `NotificationType` | `DISPATCHED`, `ALARM_RAISED`, `INCIDENT_CLOSED`, `UNIT_REQUESTED`, `DEPLOYMENT_ASSIGNED`, `DEPLOYMENT_RELEASED` | `Notification.type` |
 | `DeploymentStatus` | `ACTIVE`, `ENDED` | `SpecialDeployment.status` |
 
 ## Models
@@ -164,6 +164,7 @@ Index: `(status, createdAt)`, `(cityId)`. Has many `IncidentUnit`.
 | `stationId` | Int | FK → `Station.id` (RESTRICT) |
 | `truckId` | Int | FK → `Truck.id` (RESTRICT) |
 | `alarmLevel` | String | level name at dispatch time (copied, not a reference) |
+| `special` | Boolean | default `false`; `true` for a special unit sent on request (does not take its station off later alarms) |
 | `dispatchedAt` | DateTime | default `now()` |
 | `releasedAt` | DateTime? | set when the incident closes |
 

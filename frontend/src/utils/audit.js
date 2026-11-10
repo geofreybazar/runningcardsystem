@@ -9,6 +9,7 @@ export function auditDetails({ action, entity, changes: c, ip }) {
   if (action === "TOKEN_REUSED") return "A refresh token was used twice (possible stolen session); all its sessions were signed out";
   if (action === "DISPATCH") return `${c.alarmLevel} for ${c.locationLabel} (${c.city}): ${list(c.trucks)}`;
   if (action === "RAISE_ALARM") return `${c.alarmLevel}: ${list(c.trucks)}`;
+  if (action === "REQUEST_UNIT") return `Special unit at ${c.alarmLevel}: ${list(c.trucks)}`;
   if (action === "CLOSE") return `Closed at ${c.alarmLevel}; released ${list(c.released)}`;
   if (entity === "Deployment" && (action === "ASSIGN" || action === "RELEASE")) return list(c.trucks);
   if (entity === "Deployment" && action === "END") return `Released ${list(c.released)}`;

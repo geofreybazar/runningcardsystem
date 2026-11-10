@@ -8,9 +8,13 @@ import {
   createIncidentSchema,
   incidentQuerySchema,
   raiseAlarmSchema,
+  requestSpecialUnitSchema,
+  specialUnitsQuerySchema,
   type CreateIncidentDto,
   type IncidentQuery,
   type RaiseAlarmDto,
+  type RequestSpecialUnitDto,
+  type SpecialUnitsQuery,
 } from './incidents.dto.js';
 
 @Controller('incidents')
@@ -45,6 +49,19 @@ export class IncidentsController {
   @HttpCode(200)
   raise(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: raiseAlarmSchema }) dto: RaiseAlarmDto) {
     return this.incidents.raise(user, id, dto.truckPicks);
+  }
+
+  @Can(AccessPolicy, 'dispatch')
+  @Get(':id/special-units')
+  specialUnits(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Query({ schema: specialUnitsQuerySchema }) query: SpecialUnitsQuery) {
+    return this.incidents.specialUnits(user, id, query.type);
+  }
+
+  @Can(AccessPolicy, 'dispatch')
+  @Post(':id/special-units')
+  @HttpCode(200)
+  requestSpecialUnit(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: requestSpecialUnitSchema }) dto: RequestSpecialUnitDto) {
+    return this.incidents.requestSpecialUnit(user, id, dto.truckId);
   }
 
   @Can(AccessPolicy, 'dispatch')

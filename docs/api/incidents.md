@@ -33,7 +33,7 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 - **200:** incidents in the caller's area, newest first, without `runningCard`, with `createdBy` (account number, rank, names), `city { name }`, `_count { units }`, and computed `alarmLevel`.
 
 ## GET /api/incidents/:id
-- **200:** detail object, including `timeline`: one entry per step `{ type: DISPATCHED | ALARM_RAISED | INCIDENT_CLOSED, alarmLevel, at, by: person | null, trucks }` (from the step's notification; incidents older than notifications fall back to the units, with `by` only for the dispatch and close). Unit stations include `city { name }`. **403** `This incident is outside your area` if it exists but is not visible; **404** if it does not exist.
+- **200:** detail object, including `timeline`: one entry per step `{ type: DISPATCHED | ALARM_RAISED | UNIT_REQUESTED | INCIDENT_CLOSED, alarmLevel, at, by: person | null, trucks }` (from the step's notification; incidents older than notifications fall back to the units, with `by` only for the dispatch and close). Unit stations include `city { name }`. **403** `This incident is outside your area` if it exists but is not visible; **404** if it does not exist.
 
 ## POST /api/incidents (dispatch)
 - **Body:** `lat`, `lng`, `locationLabel` (1–250), `barangayId?` int, `notes?` (≤2000), `truckPicks?` object `{ "<stationId>": truckId }` (validated only as an object).
@@ -50,8 +50,18 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 - **Flow:** open-incident check → `dispatchIn(incident.cityId)` → next alarm (400 at the highest level; 409 no stations) → transaction: conditional `alarmIndex` increment (409 if changed meanwhile) → claim trucks (409 if none).
 - **200:** detail object.
 
-## POST /api/incidents/:id/close
-- **Flow:** open-incident check (404/400) → `dispatchIn(incident.cityId)` → transaction: `RESPONDING` trucks of unreleased units → `AVAILABLE`; units `releasedAt = now`; incident `CLOSED`, `closedAt`, `closedById`.
+## GET /api/incidents/:id/special-units?type=
+- **Query:** `type`: one of `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` (400 otherwise).
+- **200:** up to 5 nearest active stations within `maxDistanceKm` with an available truck of that type, nearest first, in the card-station shape (`trucks` lists only that type).
+- **Errors:** 404, 400 `This incident is closed`, 403 unless `dispatchIn(incident.cityId)`.
+
+## POST /api/incidents/:id/special-units
+- **Body:** `{ "truckId": int }`.
+- **Flow:** open-incident check → `dispatchIn(incident.cityId)` → truck must be active at an active station (404) and a special type (400 for Mini Pumper/Engine) → transaction: claim it (409 `That unit is no longer available`), add a unit with `special = true` under the current alarm level, audit `REQUEST_UNIT`, notification `UNIT_REQUESTED`. The alarm level does not change; a station already on the incident may still send its special unit.
 - **200:** detail object.
 
-Incident actions are **not** written to the audit log.
+## POST /api/incidents/:id/close
+- **Flow:** open-incident check (404/400) → `dispatchIn(incident.cityId)` → transaction: `RESPONDING` trucks of unreleased units (special units included) → `AVAILABLE`; units `releasedAt = now`; incident `CLOSED`, `closedAt`, `closedById`.
+- **200:** detail object.
+
+Dispatch, raise, special-unit requests and close are audited (`DISPATCH`, `RAISE_ALARM`, `REQUEST_UNIT`, `CLOSE`).

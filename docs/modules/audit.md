@@ -13,7 +13,7 @@ What is logged (from the callers):
 | `UsersService` | `CREATE`, `UPDATE`, `DISABLE`, `RESET_PASSWORD`, `DELETE` on `User` |
 | `AuthService` | `SIGN_IN`, `SIGN_IN_FAILED` (reason: unknown account number, wrong password, account disabled, paused after repeated failures; with IP) on `Session`; `CHANGE_PASSWORD` on `User` |
 | `AuthAuditListener` | `SIGN_OUT`, `TOKEN_REUSED` (a refresh token used twice: possible stolen session) on `Session` |
-| `IncidentsService` | `DISPATCH`, `RAISE_ALARM`, `CLOSE` on `Incident`, with the alarm level and the trucks sent or released |
+| `IncidentsService` | `DISPATCH`, `RAISE_ALARM`, `REQUEST_UNIT` (special unit), `CLOSE` on `Incident`, with the alarm level and the trucks sent or released |
 | `StationsService` | `CREATE`, `UPDATE`, `DEACTIVATE` on `Station`; `CREATE`, `UPDATE`, `STATUS`, `DELETE` on `Truck` |
 | `DistrictsController` | `SET_PIN` (first pin) and `UPDATE` (correction) on `Barangay` |
 | `SettingsController` | `UPDATE` on `Settings` (before and after) |
