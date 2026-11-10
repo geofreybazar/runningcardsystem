@@ -10,9 +10,9 @@ export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'RADIO_OPERATOR'] as
 export const OFFICE_LEVELS = ['REGIONAL', 'DISTRICT', 'CITY'] as const;
 export const TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE', 'TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const;
 /** Types the running card (1st Alarm and raised alarms) sends. */
-export const RUNNING_CARD_TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
+export const RUNNING_CARD_TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE', 'TANKER'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
 /** Special units: never on the running card, sent only when the fire's city requests one on an incident. */
-export const SPECIAL_TRUCK_TYPES = ['TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
+export const SPECIAL_TRUCK_TYPES = ['LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const satisfies readonly (typeof TRUCK_TYPES)[number][];
 export const TRUCK_OWNERSHIPS = ['BFP', 'LGU'] as const;
 /** Statuses a station editor may set. DEPLOYED (special deployments) is set and cleared only by the deployment. */
 export const TRUCK_STATUSES = ['AVAILABLE', 'RESPONDING', 'OUT_OF_SERVICE'] as const;

@@ -138,6 +138,11 @@ describe('incidents: dispatch, raise alarm, close', () => {
     expect(cardTrucks).not.toContain(ambulance.id);
     expect(cardTrucks).not.toContain(ladder.id);
 
+    // A Tanker is a running-card truck: offered as the station's pick.
+    const tanker = (await addTruck(first.id, 'Tanker 1', 'TANKER')).body;
+    const withTanker = (await http.get('/api/running-card').query(SAMPALOC).set(manilaRadio)).body.alarms;
+    expect(withTanker[0].stations.find((st: { id: number }) => st.id === first.id).trucks.map((t: { id: number }) => t.id)).toContain(tanker.id);
+
     const incident = (await dispatch(manilaRadio, SAMPALOC).expect(201)).body;
     expect(incident.units.some((u: Unit) => u.truckId === ambulance.id || u.truckId === ladder.id)).toBe(false);
 
@@ -150,6 +155,7 @@ describe('incidents: dispatch, raise alarm, close', () => {
     const url = `/api/incidents/${incident.id}/special-units`;
     await http.post(url).set(caloocanRadio).send({ truckId: ambulance.id }).expect(403);
     await http.post(url).set(manilaRadio).send({ truckId: incident.units[0].truckId }).expect(400); // an engine: use the alarm
+    await http.get(`/api/incidents/${incident.id}/special-units`).query({ type: 'TANKER' }).set(manilaRadio).expect(400); // tankers are on the card
     const withAmb = (await http.post(url).set(manilaRadio).send({ truckId: ambulance.id }).expect(200)).body;
     const ambUnit = withAmb.units.find((u: Unit) => u.truckId === ambulance.id);
     expect(ambUnit).toMatchObject({ special: true, alarmLevel: '1st Alarm', truck: { status: 'RESPONDING', type: 'AMBULANCE' } });

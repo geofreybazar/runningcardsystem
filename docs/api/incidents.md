@@ -51,13 +51,13 @@ Controller `IncidentsController` (`backend/src/incidents/incidents.controller.ts
 - **200:** detail object.
 
 ## GET /api/incidents/:id/special-units?type=
-- **Query:** `type`: one of `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` (400 otherwise).
+- **Query:** `type`: one of `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` (400 otherwise).
 - **200:** up to 5 nearest active stations within `maxDistanceKm` with an available truck of that type, nearest first, in the card-station shape (`trucks` lists only that type).
 - **Errors:** 404, 400 `This incident is closed`, 403 unless `dispatchIn(incident.cityId)`.
 
 ## POST /api/incidents/:id/special-units
 - **Body:** `{ "truckId": int }`.
-- **Flow:** open-incident check → `dispatchIn(incident.cityId)` → truck must be active at an active station (404) and a special type (400 for Mini Pumper/Engine) → transaction: claim it (409 `That unit is no longer available`), add a unit with `special = true` under the current alarm level, audit `REQUEST_UNIT`, notification `UNIT_REQUESTED`. The alarm level does not change; a station already on the incident may still send its special unit.
+- **Flow:** open-incident check → `dispatchIn(incident.cityId)` → truck must be active at an active station (404) and a special type (400 for Mini Pumper/Engine/Tanker) → transaction: claim it (409 `That unit is no longer available`), add a unit with `special = true` under the current alarm level, audit `REQUEST_UNIT`, notification `UNIT_REQUESTED`. The alarm level does not change; a station already on the incident may still send its special unit.
 - **200:** detail object.
 
 ## POST /api/incidents/:id/close

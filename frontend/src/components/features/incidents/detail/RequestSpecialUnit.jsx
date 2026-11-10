@@ -12,7 +12,7 @@ import useRequestSpecialUnit from "@/hooks/incidents/useRequestSpecialUnit.js";
 const TYPE_OPTIONS = SPECIAL_TRUCK_TYPES.map((t) => ({ value: t, label: TRUCK_TYPES[t] }));
 
 /**
- * Special units (tanker, ladder, rescue, CSSR, ambulance) are not on the running card: the fire city's dispatcher
+ * Special units (ladder, rescue, CSSR, ambulance) are not on the running card: the fire city's dispatcher
  * picks a type and sends one of the nearest available units, which goes out at once.
  */
 function RequestSpecialUnit({ incident, disabled }) {
@@ -27,7 +27,7 @@ function RequestSpecialUnit({ incident, disabled }) {
         <UserPlus className='hidden size-5 shrink-0 text-primary sm:block' />
         <div className='flex-1'>
           <h2 className='text-sm font-semibold'>Request a special unit</h2>
-          <p className='text-xs text-muted-foreground'>Tankers, ladders, rescue, CSSR and ambulances are not on the running card. An available unit is sent right away.</p>
+          <p className='text-xs text-muted-foreground'>Ladders, rescue, CSSR and ambulances are not on the running card. An available unit is sent right away.</p>
         </div>
         <SimpleSelect value={type} onChange={setType} options={TYPE_OPTIONS} placeholder='Choose a unit type' className='w-full sm:w-52' aria-label='Special unit type' />
       </div>

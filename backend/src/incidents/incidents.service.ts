@@ -196,7 +196,7 @@ export class IncidentsService {
     const truck = await this.prisma.truck.findFirst({ where: { id: truckId, isActive: true, station: { isActive: true } }, select: { type: true, stationId: true } });
     if (!truck) throw new NotFoundException('Truck not found');
     if (!(SPECIAL_TRUCK_TYPES as readonly string[]).includes(truck.type)) {
-      throw new BadRequestException('Mini Pumpers and Engines come with the running card; raise the alarm instead');
+      throw new BadRequestException('Mini Pumpers, Engines and Tankers come with the running card; raise the alarm instead');
     }
     const alarmLevel = (await this.alarmLevels())[incident.alarmIndex];
     const notified = await this.prisma.$transaction(async (tx) => {

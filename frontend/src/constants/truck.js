@@ -1,6 +1,6 @@
 export { SPECIAL_TRUCK_TYPES } from "@shared/validation";
 
-/** In the order the forms offer them; Mini Pumper and Engine are the running-card types, the rest are special units. */
+/** In the order the forms offer them; Mini Pumper, Engine and Tanker are the running-card types, the rest are special units. */
 export const TRUCK_TYPES = {
   MINI_PUMPER: "Mini Pumper",
   ENGINE: "Engine",

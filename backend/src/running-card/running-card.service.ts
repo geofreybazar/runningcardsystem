@@ -19,7 +19,7 @@ const TRUCK_SELECT = { id: true, callSign: true, type: true, plateNumber: true, 
 export class RunningCardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Live card: only active stations with an available Mini Pumper or Engine, each listing those trucks. */
+  /** Live card: only active stations with an available Mini Pumper, Engine or Tanker, each listing those trucks. */
   async generate(origin: LatLng, { excludeStationIds = [] as number[] } = {}) {
     const onCard: Prisma.TruckWhereInput = { isActive: true, status: 'AVAILABLE', type: { in: [...RUNNING_CARD_TRUCK_TYPES] } };
     const [settings, stations] = await Promise.all([

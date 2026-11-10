@@ -5,7 +5,7 @@
 Source: `backend/src/running-card/running-card.service.ts`, `running-card.logic.ts`.
 
 1. Load `Settings` (row id 1): `stationsPerAlarm`, `maxDistanceKm`, `alarmLevels`.
-2. Load stations where `isActive = true`, `id NOT IN excludeStationIds`, and at least one truck has `isActive = true AND status = 'AVAILABLE' AND type IN (MINI_PUMPER, ENGINE)`. Each station includes only those trucks, ordered by `id`.
+2. Load stations where `isActive = true`, `id NOT IN excludeStationIds`, and at least one truck has `isActive = true AND status = 'AVAILABLE' AND type IN (MINI_PUMPER, ENGINE, TANKER)`. Each station includes only those trucks, ordered by `id`.
 3. `buildRunningCard()` computes the haversine distance (km) from the origin, drops stations beyond `maxDistanceKm`, sorts ascending, and slices into groups of `stationsPerAlarm`, one group per alarm level, in order.
 4. Alarm levels with no stations are dropped, so a card can have fewer levels than `alarmLevels`.
 
@@ -79,7 +79,7 @@ Source: `incidents.service.ts` (`nextAlarm`, `raise`).
 
 Source: `incidents.service.ts` (`specialUnits`, `requestSpecialUnit`), `running-card.service.ts` (`nearestWithType`).
 
-Tankers, ladders, rescue trucks, CSSR trucks and ambulances are never on the running card. The fire city's dispatcher picks a type on the incident page, gets the nearest stations with one available, and sends one. It is claimed like any dispatch (conditional update to `RESPONDING`, 409 if taken) and recorded as a unit with `special = true` under the current alarm level, without raising the alarm. Close releases it with the other units.
+Ladders, rescue trucks, CSSR trucks and ambulances are never on the running card. The fire city's dispatcher picks a type on the incident page, gets the nearest stations with one available, and sends one. It is claimed like any dispatch (conditional update to `RESPONDING`, 409 if taken) and recorded as a unit with `special = true` under the current alarm level, without raising the alarm. Close releases it with the other units.
 
 ## 5. Close incident
 

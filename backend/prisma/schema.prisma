@@ -15,7 +15,7 @@ enum Role {
   RADIO_OPERATOR
 }
 
-/// MINI_PUMPER and ENGINE go on the running card; the others are special units, requested per incident.
+/// MINI_PUMPER, ENGINE and TANKER go on the running card; the others are special units, requested per incident.
 enum TruckType {
   MINI_PUMPER
   ENGINE

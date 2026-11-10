@@ -11,7 +11,7 @@ Source of truth: `backend/prisma/schema.prisma` and the migrations in `backend/p
 | `Role` | `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `RADIO_OPERATOR` | `User.role` |
 | `OfficeLevel` | `REGIONAL`, `DISTRICT`, `CITY` | `User.officeLevel` |
 | `Rank` | `FO1`, `FO2`, `FO3`, `SFO1`, `SFO2`, `SFO3`, `SFO4`, `FINSP`, `FSINSP`, `FCINSP`, `FSUPT`, `FSSUPT`, `FCSUPT` (lowest → highest) | `User.rank` |
-| `TruckType` | `MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` | `Truck.type`. `MINI_PUMPER`/`ENGINE` are running-card types; the others are special units sent on request. Migration `20261110090000` mapped `AERIAL_LADDER`→`LADDER`, `RESCUE`→`RESCUE_TRUCK`, `OTHER`→`ENGINE` |
+| `TruckType` | `MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK`, `AMBULANCE` | `Truck.type`. `MINI_PUMPER`/`ENGINE`/`TANKER` are running-card types; the others are special units sent on request. Migration `20261110090000` mapped `AERIAL_LADDER`→`LADDER`, `RESCUE`→`RESCUE_TRUCK`, `OTHER`→`ENGINE` |
 | `TruckOwnership` | `BFP`, `LGU` | `Truck.ownership`. `VOLUNTEER` was removed on 2026-11-08; existing Volunteer trucks were changed to `BFP` by migration `20261108120000_truck_posts_no_volunteer` |
 | `TruckStatus` | `AVAILABLE`, `RESPONDING`, `OUT_OF_SERVICE`, `DEPLOYED` | `Truck.status`. `DEPLOYED` = on a special deployment; set and cleared only by the deployment |
 | `IncidentStatus` | `OPEN`, `CLOSED` | `Incident.status` |
