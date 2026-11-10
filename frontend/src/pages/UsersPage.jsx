@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Page from "@/components/common/Page.jsx";
 import ConfirmDialog from "@/components/common/ConfirmDialog.jsx";
 import ListSkeleton from "@/components/common/ListSkeleton.jsx";
+import Panel from "@/components/common/Panel.jsx";
+import EmptyState from "@/components/common/EmptyState.jsx";
 import MobileView from "@/components/features/users/table/MobileView.jsx";
 import DesktopView from "@/components/features/users/table/DesktopView.jsx";
 import UserFormDialog from "@/components/features/users/UserFormDialog.jsx";
@@ -57,16 +59,18 @@ function UsersPage() {
       }
     >
       <UserFilters filters={filters} onChange={setFilters} shown={shown.length} total={users.length} />
-      {isPending ? (
-        <ListSkeleton />
-      ) : shown.length === 0 ? (
-        <p className='py-10 text-center text-sm text-muted-foreground'>No users match these filters.</p>
-      ) : (
-        <>
-          <MobileView {...views} />
-          <DesktopView {...views} />
-        </>
-      )}
+      <Panel flush>
+        {isPending ? (
+          <ListSkeleton className='p-3' />
+        ) : shown.length === 0 ? (
+          <EmptyState icon={Users} title='No users match these filters.' />
+        ) : (
+          <>
+            <MobileView {...views} />
+            <DesktopView {...views} />
+          </>
+        )}
+      </Panel>
 
       <UserFormDialog
         initial={form}

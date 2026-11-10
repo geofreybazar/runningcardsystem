@@ -1,5 +1,4 @@
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ROLE_LABELS } from "@/constants/roles.js";
@@ -10,7 +9,7 @@ import Actions from "./Actions.jsx";
 /** Wider screens: a table. */
 function DesktopView({ users, editable, onEdit, onReset, onRemove, onSetActive }) {
   return (
-    <Card className='hidden py-0 md:block'>
+    <div className='hidden md:block'>
       <Table>
         <TableHeader>
           <TableRow>
@@ -25,17 +24,17 @@ function DesktopView({ users, editable, onEdit, onReset, onRemove, onSetActive }
         <TableBody>
           {users.map((u) => (
             <TableRow key={u.id}>
-              <TableCell className='font-medium'>{displayName(u)}</TableCell>
+              <TableCell className={u.isActive ? "font-medium" : "font-medium text-muted-foreground line-through decoration-muted-foreground/50"}>{displayName(u)}</TableCell>
               <TableCell>
-                <span className='font-mono text-muted-foreground'>{u.accountNumber}</span>
+                <span className='font-data text-base'>{u.accountNumber}</span>
                 {u.mustChangePassword && (
-                  <Badge variant='outline' className='ml-2'>
+                  <StatusBadge tone='warning' className='ml-2'>
                     Temporary password
-                  </Badge>
+                  </StatusBadge>
                 )}
               </TableCell>
               <TableCell>{ROLE_LABELS[u.role]}</TableCell>
-              <TableCell>{officeName(u)}</TableCell>
+              <TableCell className='text-muted-foreground'>{officeName(u)}</TableCell>
               <TableCell>
                 <Switch checked={u.isActive} disabled={!editable(u)} onCheckedChange={(v) => onSetActive(u, v)} aria-label='Active' />
               </TableCell>
@@ -44,7 +43,7 @@ function DesktopView({ users, editable, onEdit, onReset, onRemove, onSetActive }
           ))}
         </TableBody>
       </Table>
-    </Card>
+    </div>
   );
 }
 

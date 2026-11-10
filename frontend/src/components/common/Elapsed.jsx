@@ -11,7 +11,7 @@ function Elapsed({ from, to }) {
   }, [to]);
   const end = to ? new Date(to).getTime() : now;
   return (
-    <time className='font-condensed tabular-nums' dateTime={`PT${Math.floor((end - new Date(from).getTime()) / 1000)}S`}>
+    <time className='font-data' dateTime={`PT${Math.floor((end - new Date(from).getTime()) / 1000)}S`}>
       {formatElapsed(end - new Date(from).getTime())}
     </time>
   );

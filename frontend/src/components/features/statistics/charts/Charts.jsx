@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,11 +28,11 @@ function Tip({ value, label, children }) {
 export function ChartCard({ title, note, table, empty, children, className }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <Card className={cn("gap-3 px-4 py-4", className)}>
-      <div className='flex items-start justify-between gap-2'>
-        <div>
-          <h3 className='text-sm font-semibold'>{title}</h3>
-          {note && <p className='text-xs text-muted-foreground'>{note}</p>}
+    <section className={cn("flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card", className)}>
+      <div className='flex min-h-10 items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5'>
+        <div className='min-w-0'>
+          <h3 className='truncate text-sm font-semibold'>{title}</h3>
+          {note && <p className='truncate text-xs text-muted-foreground'>{note}</p>}
         </div>
         {table && !empty && (
           <Button variant='ghost' size='sm' className='h-7 shrink-0 text-xs' onClick={() => setAsTable((v) => !v)} aria-pressed={asTable}>
@@ -41,7 +40,8 @@ export function ChartCard({ title, note, table, empty, children, className }) {
           </Button>
         )}
       </div>
-      {empty ? (
+      <div className='flex-1 p-4'>
+        {empty ? (
         <p className='py-6 text-center text-sm text-muted-foreground'>{empty}</p>
       ) : asTable ? (
         <div className='max-h-80 overflow-auto'>
@@ -71,18 +71,19 @@ export function ChartCard({ title, note, table, empty, children, className }) {
       ) : (
         children
       )}
-    </Card>
+      </div>
+    </section>
   );
 }
 
 /** A headline number. */
 export function StatTile({ label, value, hint }) {
   return (
-    <Card className='gap-1 px-4 py-3'>
-      <span className='text-xs text-muted-foreground'>{label}</span>
-      <span className='font-condensed text-3xl leading-none font-semibold tabular-nums'>{value}</span>
-      {hint && <span className='text-xs text-muted-foreground'>{hint}</span>}
-    </Card>
+    <div className='grid min-w-0 gap-1 px-4 py-3'>
+      <span className='text-label text-muted-foreground'>{label}</span>
+      <span className='font-data text-3xl leading-none font-semibold'>{value}</span>
+      {hint && <span className='truncate text-xs text-muted-foreground'>{hint}</span>}
+    </div>
   );
 }
 
@@ -104,7 +105,7 @@ export function BarList({ items, unit = "" }) {
                     style={{ width: `${max ? (item.value / max) * 100 : 0}%`, minWidth: item.value > 0 ? 2 : 0 }}
                   />
                 </div>
-                <span className='min-w-10 text-right font-condensed text-sm tabular-nums'>{display}</span>
+                <span className='min-w-10 text-right font-data text-sm'>{display}</span>
               </div>
             </Tip>
           </li>

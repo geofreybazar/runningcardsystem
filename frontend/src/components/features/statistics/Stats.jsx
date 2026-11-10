@@ -29,7 +29,8 @@ function Stats({ stats: s }) {
   return (
     <>
       <Section title='Incident trends'>
-        <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
+        {/* One KPI strip: the headline figures side by side, divided rather than boxed. */}
+        <div className='grid grid-cols-2 divide-x divide-y overflow-hidden rounded-lg border bg-card lg:grid-cols-4 lg:divide-y-0 [&>*:nth-child(3)]:border-l-0 lg:[&>*:nth-child(3)]:border-l'>
           <StatTile label='Incidents' value={s.summary.incidents} hint={`${s.range.from} to ${s.range.to}`} />
           <StatTile label='Open now' value={s.summary.open} hint={`${s.summary.closed} closed`} />
           <StatTile label='Trucks sent' value={s.summary.unitsSent} hint={`${s.summary.mutualAidUnits} to another city`} />

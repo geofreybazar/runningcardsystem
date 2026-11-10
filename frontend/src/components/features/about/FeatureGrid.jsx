@@ -1,5 +1,5 @@
 import { Bell, CalendarRange, ChartColumn, Flame, Siren, UserPlus } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import Panel from "@/components/common/Panel.jsx";
 
 const FEATURES = [
   { icon: Flame, title: "Running Card", text: "Nearest stations with an available truck for any location, grouped by alarm level." },
@@ -12,22 +12,19 @@ const FEATURES = [
 
 function FeatureGrid() {
   return (
-    <section className='grid gap-3'>
-      <h2 className='text-lg font-semibold'>What it does</h2>
-      <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'>
+    <Panel title='What it does' flush>
+      <ul className='grid sm:grid-cols-2 xl:grid-cols-3'>
         {FEATURES.map((f) => (
-          <Card key={f.title} className='flex-row items-start gap-3 px-4 py-4'>
-            <span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary'>
-              <f.icon className='size-5' />
-            </span>
+          <li key={f.title} className='flex items-start gap-3 border-b px-4 py-3 sm:border-r'>
+            <f.icon className='mt-0.5 size-5 shrink-0 text-primary' aria-hidden='true' />
             <div>
               <h3 className='text-sm font-semibold'>{f.title}</h3>
               <p className='text-sm text-muted-foreground'>{f.text}</p>
             </div>
-          </Card>
+          </li>
         ))}
-      </div>
-    </section>
+      </ul>
+    </Panel>
   );
 }
 

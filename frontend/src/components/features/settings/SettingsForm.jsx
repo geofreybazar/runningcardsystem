@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import Field from "@/components/common/Field.jsx";
+import StatusBadge from "@/components/common/StatusBadge.jsx";
+import { alarmTone } from "@/utils/alarm.js";
+import { cn } from "@/lib/utils";
 import SubmitButton from "@/components/common/SubmitButton.jsx";
 import useGetSettings from "@/hooks/settings/useGetSettings.js";
 import { formErrors } from "@/utils/validation.js";
@@ -56,12 +59,32 @@ function SettingsForm() {
               <Input type='number' min={1} max={200} value={form.maxDistanceKm} onChange={(e) => setEdits({ ...form, maxDistanceKm: e.target.value })} />
             </Field>
           </div>
-          <Field label='Alarm levels, in order' hint='One per line. Each level gets the next group of nearest stations.' error={errors?.alarmLevels}>
-            <Textarea rows={10} className='font-mono text-sm' value={form.alarmLevels} onChange={(e) => setEdits({ ...form, alarmLevels: e.target.value })} />
-          </Field>
-          <SubmitButton type='submit' className='w-fit' saving={saving}>
-            Save rules
-          </SubmitButton>
+          <div className='grid gap-4 md:grid-cols-[minmax(0,1fr)_14rem]'>
+            <Field label='Alarm levels, in order' hint='One per line. Each level gets the next group of nearest stations.' error={errors?.alarmLevels}>
+              <Textarea rows={11} className='font-mono text-sm' value={form.alarmLevels} onChange={(e) => setEdits({ ...form, alarmLevels: e.target.value })} />
+            </Field>
+            {/* Preview on the escalation scale, as the levels will look on cards and badges. */}
+            <div className='grid content-start gap-1.5'>
+              <span className='text-label text-muted-foreground'>Preview</span>
+              <ol className='grid gap-1' aria-label='Alarm level preview'>
+                {form.alarmLevels
+                  .split("\n")
+                  .map((l) => l.trim())
+                  .filter(Boolean)
+                  .map((level, i) => (
+                    <li key={`${i}-${level}`} className={cn("rounded-sm px-2 py-0.5 font-data text-sm font-semibold", alarmTone(i))}>
+                      {level}
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          </div>
+          <div className='flex items-center gap-3 border-t pt-4'>
+            <SubmitButton type='submit' className='w-fit' saving={saving}>
+              Save rules
+            </SubmitButton>
+            {edits && <StatusBadge tone='warning'>Unsaved changes</StatusBadge>}
+          </div>
         </form>
       )}
     </>

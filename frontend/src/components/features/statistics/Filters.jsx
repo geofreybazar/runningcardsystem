@@ -17,7 +17,7 @@ function Filters({ from, to, districtId, cityId, districts, onChange, onDownload
   const district = districts.find((d) => String(d.id) === districtId);
 
   return (
-    <div className='flex flex-wrap items-end gap-3'>
+    <div className='sticky top-12 z-20 -mx-3 flex flex-wrap items-end gap-3 border-b bg-background/95 px-3 py-2 backdrop-blur md:-mx-5 md:px-5'>
       <Tabs value={activePreset ?? ""} onValueChange={(p) => set(presetRange(p))}>
         <TabsList>
           {PRESETS.map((p) => (

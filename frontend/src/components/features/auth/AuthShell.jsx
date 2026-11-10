@@ -15,7 +15,7 @@ function AuthShell({ title, description, children }) {
   return (
     <div className='grid min-h-svh grid-rows-[auto_1fr] bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-1'>
       <aside
-        className='relative isolate overflow-hidden px-8 py-10 text-white lg:order-2 lg:flex lg:flex-col lg:justify-center lg:overflow-visible lg:py-14 lg:pr-16 lg:pl-24'
+        className='relative isolate overflow-hidden border-t-4 border-primary px-8 py-10 text-white lg:order-2 lg:border-t-0 lg:border-l-4 lg:flex lg:flex-col lg:justify-center lg:overflow-visible lg:py-14 lg:pr-16 lg:pl-24'
         style={{ background: CRIMSON }}
       >
         {/* The photo is tinted into the crimson and fades out towards the curve, so the edge stays clean. */}

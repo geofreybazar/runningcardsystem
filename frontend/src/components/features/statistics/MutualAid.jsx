@@ -14,8 +14,8 @@ function MutualAid({ rows }) {
           {rows.map((r) => (
             <tr key={r.name} className='border-t'>
               <td className='py-1.5'>{r.name}</td>
-              <td className='py-1.5 text-right font-condensed tabular-nums'>{r.sent}</td>
-              <td className='py-1.5 text-right font-condensed tabular-nums'>{r.received}</td>
+              <td className='py-1.5 text-right font-data'>{r.sent}</td>
+              <td className='py-1.5 text-right font-data'>{r.received}</td>
             </tr>
           ))}
         </tbody>
