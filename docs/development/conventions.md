@@ -26,3 +26,11 @@ Observed in the code; follow them when changing it.
 - **Data access:** `service/<domain>.service.js` (the only callers of `api()`) → `hooks/<domain>/useX.js` (one query or mutation each) → components. Pages stay thin; feature parts go in `components/features/<feature>/`. Show action results with `toast` (sonner) and form errors with `Alert`.
 - **Permissions in UI** use `src/utils/permissions.js` helpers and `NAV` role lists, for display only.
 - Responsive: tables for `md+`, cards below.
+
+## Git workflow
+
+- Work on a feature branch (e.g. `redesign/ui`), not on `main`. CI runs on pushes to `main` and on pull requests.
+- Merge into `main` when the work is done and CI is green: a fast-forward (`git merge --ff-only <branch>`) or a pull request.
+- **Delete the branch once the merge or pull request has succeeded**, locally and on GitHub:
+  `git branch -d <branch> && git push origin --delete <branch>` (for a pull request, GitHub's "Delete branch" button does the remote part).
+  `git branch -d` refuses a branch that is not fully merged, which is the safety check; never force it with `-D` for a branch that still has unmerged work.
