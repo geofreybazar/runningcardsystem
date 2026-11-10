@@ -55,7 +55,7 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 7. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
 8. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.
    - Restore (into an empty database): `gunzip -c backups/<file>.sql.gz | docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T db psql -U postgres runningcard`.
-9. **Updates:** `git pull` (on the branch the VPS runs), then the same `up -d --build` command. Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
+9. **Updates:** `git pull` (on the branch the VPS runs), then the same `up -d --build` command, prefixed with `GIT_COMMIT=$(git rev-parse --short HEAD)` so the About page shows the commit (without it, only the version and build date). Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
 
 Notes:
 - Changing `POSTGRES_PASSWORD` after the first start has no effect on the existing database (Postgres reads it only on initialization); change it with `ALTER USER` as well.

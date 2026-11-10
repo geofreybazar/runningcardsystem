@@ -33,6 +33,7 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         VITE_GOOGLE_API: ${VITE_GOOGLE_API}
+        GIT_COMMIT: ${GIT_COMMIT:-}
     depends_on:
       - backend
     ports:

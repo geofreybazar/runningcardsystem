@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
 import useAuth from "@/hooks/auth/useAuth.js";
 import { NAV } from "@/constants/links.js";
@@ -16,6 +16,7 @@ import NotificationsPage from "@/pages/NotificationsPage.jsx";
 import StatisticsPage from "@/pages/StatisticsPage.jsx";
 import DeploymentsPage from "@/pages/DeploymentsPage.jsx";
 import DeploymentDetailPage from "@/pages/DeploymentDetailPage.jsx";
+import AboutPage from "@/pages/AboutPage.jsx";
 
 const PAGES = {
   "/": <HomePage />,
@@ -27,6 +28,7 @@ const PAGES = {
   "/audit-log": <AuditLogPage />,
   "/settings": <SettingsPage />,
   "/deployments": <DeploymentsPage />,
+  "/about": <AboutPage />,
 };
 
 function ChangePasswordRoute() {
@@ -36,6 +38,7 @@ function ChangePasswordRoute() {
 
 function Router() {
   const { user, ready } = useAuth();
+  const { pathname } = useLocation();
   if (!ready) {
     return (
       <div className='flex min-h-svh items-center justify-center'>
@@ -43,7 +46,8 @@ function Router() {
       </div>
     );
   }
-  if (!user) return <LoginPage />;
+  // The About page can be read before signing in (linked from the sign-in page).
+  if (!user) return pathname === "/about" ? <AboutPage publicView /> : <LoginPage />;
   if (user.mustChangePassword) return <ChangePasswordPage />;
 
   const pages = NAV.filter((n) => n.roles.includes(user.role));
