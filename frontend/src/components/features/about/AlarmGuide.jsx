@@ -23,8 +23,8 @@ function AlarmGuide({ signedIn }) {
   return (
     <Panel title='How alarm levels work' bodyClassName='grid gap-4 p-4'>
         <p className='text-sm leading-relaxed'>
-          Stations are ranked by distance from the fire. Each alarm level takes the next {settings ? <b>{settings.stationsPerAlarm}</b> : "few"} nearest
-          stations not yet on the incident{settings && <> within {settings.maxDistanceKm} km</>}, and each station sends one available truck. Raising the
+          Stations are ranked by road distance from the fire (the driving route, not a straight line). Each alarm level takes the next {settings ? <b>{settings.stationsPerAlarm}</b> : "few"} nearest
+          stations not yet on the incident{settings && <> within {settings.maxDistanceKm} km by road</>}, and each station sends one available truck. Raising the
           alarm sends the next group; closing the incident returns every truck to Available.
         </p>
         {settings && (

@@ -6,10 +6,12 @@ Source: `backend/src/running-card/running-card.service.ts`, `running-card.logic.
 
 1. Load `Settings` (row id 1): `stationsPerAlarm`, `maxDistanceKm`, `alarmLevels`.
 2. Load stations where `isActive = true`, `id NOT IN excludeStationIds`, and at least one truck has `isActive = true AND status = 'AVAILABLE' AND type IN (MINI_PUMPER, ENGINE, TANKER)`. Each station includes only those trucks, ordered by `id`.
-3. `buildRunningCard()` computes the haversine distance (km) from the origin, drops stations beyond `maxDistanceKm`, sorts ascending, and slices into groups of `stationsPerAlarm`, one group per alarm level, in order.
-4. Alarm levels with no stations are dropped, so a card can have fewer levels than `alarmLevels`.
+3. `withinStraightLine()` keeps stations within `maxDistanceKm` in a straight line (a road is never shorter, so no station within range by road is lost).
+4. `RoadDistanceService` ([routing](../modules/routing.md)) gets each one's **road distance** (km) from the station to the fire from OSRM. If OSRM is unavailable, the haversine distance is used instead and the station is marked `byRoad: false`.
+5. `buildRunningCard()` drops stations beyond `maxDistanceKm` by that distance, sorts ascending, and slices into groups of `stationsPerAlarm`, one group per alarm level, in order.
+6. Alarm levels with no stations are dropped, so a card can have fewer levels than `alarmLevels`.
 
-The card is computed on every request; nothing is cached. Distance is straight-line, not road travel.
+The card is computed on every request; nothing is cached. Distance is the driving route (car profile, no live traffic), not travel time.
 
 ## 2. Which city a point is in
 

@@ -55,7 +55,7 @@ function SettingsForm() {
             <Field label='Stations per alarm level' error={errors?.stationsPerAlarm}>
               <Input type='number' min={1} max={20} value={form.stationsPerAlarm} onChange={(e) => setEdits({ ...form, stationsPerAlarm: e.target.value })} />
             </Field>
-            <Field label='Max distance (km)' hint='Stations farther than this never appear' error={errors?.maxDistanceKm}>
+            <Field label='Max distance (km)' hint='By road: stations farther than this never appear' error={errors?.maxDistanceKm}>
               <Input type='number' min={1} max={200} value={form.maxDistanceKm} onChange={(e) => setEdits({ ...form, maxDistanceKm: e.target.value })} />
             </Field>
           </div>

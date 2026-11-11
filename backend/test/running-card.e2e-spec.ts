@@ -32,6 +32,8 @@ describe('running card and barangay pins', () => {
     const all = alarms.flatMap((a: { stations: { distance: number }[] }) => a.stations);
     expect(all.every((s: { distance: number }, i: number) => i === 0 || all[i - 1].distance <= s.distance)).toBe(true);
     expect(alarms[0].stations[0].trucks.length).toBeGreaterThan(0);
+    // No OSRM_URL in tests: every distance is the straight-line fallback, flagged as such.
+    expect(all.every((s: { byRoad: boolean }) => s.byRoad === false)).toBe(true);
   });
 
   it('skips a station whose trucks are all unavailable', async () => {

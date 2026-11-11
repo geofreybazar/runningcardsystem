@@ -14,6 +14,9 @@ services:
       TRUST_PROXY: "2" # Caddy -> nginx -> API: the client IP is two hops back
     restart: unless-stopped
 
+  osrm:
+    restart: unless-stopped
+
   frontend:
     ports: !reset [] # only Caddy is reachable from outside
     restart: unless-stopped

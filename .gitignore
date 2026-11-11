@@ -32,3 +32,8 @@ backups/
 # Playwright
 test-results/
 playwright-report/
+
+# OSRM road graph (deploy/osrm/prepare.sh)
+deploy/osrm/data/
+deploy/osrm/data.old/
+deploy/osrm/build.*/

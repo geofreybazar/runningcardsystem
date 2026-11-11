@@ -17,7 +17,7 @@ Given a fire location in Metro Manila (NCR), the system lists the nearest fire s
 | API | [Conventions](api/README.md) · [auth](api/auth.md) · [users](api/users.md) · [districts](api/districts.md) · [stations](api/stations.md) · [running-card](api/running-card.md) · [incidents](api/incidents.md) · [settings](api/settings.md) · [audit](api/audit.md) · [notifications](api/notifications.md) · [statistics](api/statistics.md) · [deployments](api/deployments.md) |
 | Security | [Authentication](security/authentication.md) · [Authorization](security/authorization.md) · [Known gaps](security/gaps.md) |
 | Development | [Setup](development/setup.md) · [Testing](development/testing.md) · [Deployment](development/deployment.md) · [Conventions](development/conventions.md) |
-| Modules | [auth](modules/auth.md) · [users](modules/users.md) · [districts](modules/districts.md) · [stations](modules/stations.md) · [running-card](modules/running-card.md) · [incidents](modules/incidents.md) · [settings](modules/settings.md) · [audit](modules/audit.md) · [notifications](modules/notifications.md) · [deployments](modules/deployments.md) · [geo](modules/geo.md) · [prisma](modules/prisma.md) |
+| Modules | [auth](modules/auth.md) · [users](modules/users.md) · [districts](modules/districts.md) · [stations](modules/stations.md) · [running-card](modules/running-card.md) · [incidents](modules/incidents.md) · [settings](modules/settings.md) · [audit](modules/audit.md) · [notifications](modules/notifications.md) · [deployments](modules/deployments.md) · [geo](modules/geo.md) · [routing](modules/routing.md) · [prisma](modules/prisma.md) |
 | Review | [Documentation review: inconsistencies, assumptions, open items](review.md) |
 
 ## Glossary

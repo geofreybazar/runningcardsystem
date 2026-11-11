@@ -19,12 +19,29 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      osrm:
+        condition: service_started # not healthy: without the road graph the API still runs, on straight-line distances
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/runningcard
       FRONTEND_ORIGIN: http://localhost:8080
       SWAGGER: "false"
       TRUST_PROXY: "1" # nginx (frontend container) is the one hop in front
+      OSRM_URL: http://osrm:5000
+
+  # Road distances for the running card. Build its data first: deploy/osrm/prepare.sh (docs/modules/routing.md).
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1 # keep in step with deploy/osrm/prepare.sh
+    # Without data it waits instead of exiting, so `up --wait` (the CD deploy) still succeeds; the API falls back.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -f /data/ncr.osrm.mldgr ]; then exec osrm-routed --algorithm mld --max-table-size 500 /data/ncr.osrm; fi
+        echo "No road graph in deploy/osrm/data: run deploy/osrm/prepare.sh. Straight-line distances until then."
+        exec sleep infinity
+    volumes:
+      - ./deploy/osrm/data:/data:ro
+    # Internal only: the API calls it on the compose network.
 
   frontend:
     build:
