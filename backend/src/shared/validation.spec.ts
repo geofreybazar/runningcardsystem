@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import * as shared from './validation.js';
 import { DeploymentStatus, OfficeLevel, Rank, Role, TruckOwnership, TruckStatus, TruckType } from '../generated/prisma/enums.js';
-import { DEPLOYMENT_STATUSES, OFFICE_LEVELS, RANKS, ROLES, TRUCK_OWNERSHIPS, RUNNING_CARD_TRUCK_TYPES, SPECIAL_TRUCK_TYPES, TRUCK_STATUSES, TRUCK_TYPES, accountNumber, deploymentFormSchema, userFormSchema } from './validation.js';
+import { DEPLOYMENT_STATUSES, OFFICE_LEVELS, RANKS, ROLES, TRUCK_OWNERSHIPS, RUNNING_CARD_TRUCK_TYPES, SPECIAL_TRUCK_TYPES, TRUCK_STATUSES, TRUCK_TYPES, accountNumber, createUserSchema, deploymentFormSchema, formatName, userFormSchema } from './validation.js';
 
 // The shared lists can't import Prisma (the frontend bundles them), so check them against the schema here.
 describe('shared validation', () => {
@@ -31,6 +31,19 @@ describe('shared validation', () => {
     expect(issues({ ...base, role: 'SUPER_ADMIN', officeLevel: 'REGIONAL', cityId: null })).toEqual([]);
     expect(issues({ ...base, rank: 'FO1', cityId: null })).toEqual(['cityId: Choose a city']);
     expect(issues({ ...base, rank: 'FO1', firstName: ' ', accountNumber: 'x' })).toEqual(['firstName: Required', 'accountNumber: Use 1-3 letters then 4-8 digits, e.g. B13084']);
+  });
+
+  it('names: proper case whatever was typed', () => {
+    expect(formatName('JUAN')).toBe('Juan');
+    expect(formatName('  dela   CRUZ ')).toBe('Dela Cruz');
+    expect(formatName('MA. LOURDES')).toBe('Ma. Lourdes');
+    expect(formatName('santos-reyes')).toBe('Santos-Reyes');
+    expect(formatName("o'brien")).toBe("O'Brien");
+    expect(formatName('DELA CRUZ III')).toBe('Dela Cruz III');
+    expect(formatName('ÑIGUEZ')).toBe('Ñiguez');
+    const u = createUserSchema.parse({ firstName: 'JUAN', middleName: 'DIMACULANGAN', lastName: 'DELA CRUZ', accountNumber: 'B13084', role: 'ADMIN', rank: 'FO1' });
+    expect([u.firstName, u.middleName, u.lastName]).toEqual(['Juan', 'Dimaculangan', 'Dela Cruz']);
+    expect(createUserSchema.parse({ ...u, middleName: '  ' }).middleName).toBeNull();
   });
 
   it('deployment form: dates in order', () => {
