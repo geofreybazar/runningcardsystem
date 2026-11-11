@@ -7,6 +7,7 @@ import FireTruckIcon from "./FireTruckIcon.jsx";
 const DEFAULT_CENTER = { lat: 14.6091, lng: 121.0223 };
 // Marker content is ordinary DOM, so theme tokens apply (and follow dark mode).
 const BFP_RED = "var(--primary)";
+const DIMMED = "var(--muted-foreground)"; // a station with no available truck
 
 /** A round badge with a pointer below; AdvancedMarker anchors its content at the bottom centre, i.e. the tip. */
 function MarkerPin({ color, size, children }) {
@@ -40,7 +41,7 @@ const StationPin = ({ color }) => (
 );
 
 /** A truck/station pin with a card above it while hovered: the title in bold, then one line per detail. */
-function TooltipPin({ color, title, details = [], open }) {
+function TooltipPin({ color, dimmed, title, details = [], open }) {
   return (
     <div className='relative' aria-label={[title, ...details].join(", ")}>
       {open && (
@@ -56,7 +57,7 @@ function TooltipPin({ color, title, details = [], open }) {
           ))}
         </div>
       )}
-      <StationPin color={color} />
+      <StationPin color={dimmed ? DIMMED : color} />
     </div>
   );
 }
@@ -64,9 +65,9 @@ function TooltipPin({ color, title, details = [], open }) {
 /**
  * The main pin (draggable when onChange is given): a fire, a station (`kind="station"`), a special event's venue
  * (`kind="deployment"`, a flag), or one deployed truck's post (`kind="post"`).
- * Optional markers ({ id, position, color, title, details? }) show a fire truck in the district colour, with a tooltip
- * (title + detail lines) on hover; the hovered one is raised above its neighbours.
- * With markers, the map fits them all; otherwise it follows the pin.
+ * Optional markers ({ id, position, color, dimmed?, title, details? }) show a fire truck in the district colour (grey when
+ * dimmed), with a tooltip (title + detail lines) on hover, or on tap for touch screens; the open one is raised above its
+ * neighbours. With markers, the map fits them all (and the pin, if any); otherwise it follows the pin.
  */
 function MapComponent({ position, onChange, markers = [], kind = "fire", overlayTop = false }) {
   const map = useMap();
@@ -75,13 +76,15 @@ function MapComponent({ position, onChange, markers = [], kind = "fire", overlay
   const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
-    if (!map || !position) return;
+    if (!map) return;
     if (markers.length) {
-      const bounds = new window.google.maps.LatLngBounds(position);
+      const bounds = new window.google.maps.LatLngBounds();
+      if (position) bounds.extend(position);
       markers.forEach((m) => bounds.extend(m.position));
       map.fitBounds(bounds, 48);
       return;
     }
+    if (!position) return;
     map.panTo(position);
     if (map.getZoom() < 15) map.setZoom(15);
     // markers is summarised by markerKey
@@ -100,7 +103,10 @@ function MapComponent({ position, onChange, markers = [], kind = "fire", overlay
       // Our own controls sit over the top of the map (the Running Card search): keep Google's out of the way.
       mapTypeControl={!overlayTop}
       fullscreenControl={!overlayTop}
-      onClick={(e) => onChange && e.detail.latLng && onChange(e.detail.latLng)}
+      onClick={(e) => {
+        setHovered(null); // a tap on the map closes a tapped-open tooltip
+        if (onChange && e.detail.latLng) onChange(e.detail.latLng);
+      }}
     >
       {markers.map((m) => (
         <AdvancedMarker
@@ -109,8 +115,9 @@ function MapComponent({ position, onChange, markers = [], kind = "fire", overlay
           zIndex={hovered === m.id ? 20 : undefined}
           onMouseEnter={() => setHovered(m.id)}
           onMouseLeave={() => setHovered((h) => (h === m.id ? null : h))}
+          onClick={() => setHovered((h) => (h === m.id ? null : m.id))} // touch screens have no hover
         >
-          <TooltipPin color={m.color} title={m.title} details={m.details} open={hovered === m.id} />
+          <TooltipPin color={m.color} dimmed={m.dimmed} title={m.title} details={m.details} open={hovered === m.id} />
         </AdvancedMarker>
       ))}
       {position && (

@@ -8,6 +8,7 @@ import LoginPage from "@/pages/LoginPage.jsx";
 import ChangePasswordPage from "@/pages/ChangePasswordPage.jsx";
 import UsersPage from "@/pages/UsersPage.jsx";
 import StationsPage from "@/pages/StationsPage.jsx";
+import StationMapPage from "@/pages/StationMapPage.jsx";
 import IncidentsPage from "@/pages/IncidentsPage.jsx";
 import IncidentDetailPage from "@/pages/IncidentDetailPage.jsx";
 import SettingsPage from "@/pages/SettingsPage.jsx";
@@ -24,6 +25,7 @@ const PAGES = {
   "/notifications": <NotificationsPage />,
   "/statistics": <StatisticsPage />,
   "/stations": <StationsPage />,
+  "/station-map": <StationMapPage />,
   "/users": <UsersPage />,
   "/audit-log": <AuditLogPage />,
   "/settings": <SettingsPage />,
