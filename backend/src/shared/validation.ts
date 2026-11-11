@@ -19,6 +19,18 @@ export const TRUCK_STATUSES = ['AVAILABLE', 'RESPONDING', 'OUT_OF_SERVICE'] as c
 export const DEPLOYMENT_STATUSES = ['ACTIVE', 'ENDED'] as const;
 
 const text = (max: number) => z.string().trim().min(1, 'Required').max(max, `At most ${max} characters`);
+/**
+ * Names in proper case whatever the admin typed: "JUAN" -> "Juan", "dela  cruz" -> "Dela Cruz", "santos-reyes" ->
+ * "Santos-Reyes", "o'brien" -> "O'Brien". Roman-numeral suffixes stay uppercase ("Dela Cruz III").
+ */
+export const formatName = (s: string) =>
+  s
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/(^|[\s'-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase())
+    .replace(/\b(i{2,3}|iv|vi{0,3}|ix)\b/gi, (w) => w.toUpperCase());
+const personName = (max: number) => text(max).transform(formatName);
 const optionalText = (max: number) => z.string().max(max, `At most ${max} characters`).nullable().optional();
 
 /** BFP account number, e.g. B13084. Uppercased first, so b13084 is accepted and stored as B13084. */
@@ -36,9 +48,9 @@ export const lng = z.number({ error: 'Place it on the map' }).min(-180).max(180)
 const userFields = {
   /** Required for every role except SUPER_ADMIN (see withUserRules; UsersService checks updates against the stored role). */
   rank: z.enum(RANKS, { error: 'Choose a rank' }).nullable().optional(),
-  firstName: text(60),
-  middleName: z.string().trim().max(60, 'At most 60 characters').transform((s) => s || null).nullable().optional(),
-  lastName: text(60),
+  firstName: personName(60),
+  middleName: z.string().trim().max(60, 'At most 60 characters').transform((s) => (s ? formatName(s) : null)).nullable().optional(),
+  lastName: personName(60),
   accountNumber,
   role: z.enum(ROLES, { error: 'Choose a role' }),
   /** Defaults to REGIONAL. DISTRICT needs districtId; CITY needs cityId (the district follows from the city). */

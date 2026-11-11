@@ -20,8 +20,9 @@ const INCLUDE = {
   },
 } as const;
 
+// Middle initial without a period: how uniformed personnel write it (matches the frontend's displayName).
 const person = (p: { rank: string | null; firstName: string; middleName: string | null; lastName: string }) =>
-  [p.rank, p.firstName, p.middleName && `${p.middleName[0]}.`, p.lastName].filter(Boolean).join(' ');
+  [p.rank, p.firstName, p.middleName && p.middleName.trim()[0].toUpperCase(), p.lastName].filter(Boolean).join(' ');
 
 @Injectable()
 export class StatisticsService {
