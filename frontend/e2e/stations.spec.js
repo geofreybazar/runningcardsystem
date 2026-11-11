@@ -29,3 +29,24 @@ test("stations: region-wide resource counts, then narrow to one city of Fire Dis
   await expect(resources.getByRole("row").filter({ hasText: "Caloocan" })).toHaveCount(1);
   await expect(resources.getByRole("row").filter({ hasText: " total" })).toHaveCount(0);
 });
+
+test("station map: every station on one map, narrowed by district and search", async ({ page }) => {
+  await signInAsSuperAdmin(page);
+  await page.getByRole("link", { name: "Station Map" }).click();
+
+  const summary = page.getByText(/^\d+ stations? · \d+ with an available truck$/);
+  await expect(summary).toBeVisible();
+  const countOf = async () => Number((await summary.textContent()).match(/^\d+/)[0]);
+  const all = await countOf();
+  expect(all).toBeGreaterThan(0);
+  await expect(page.getByRole("list", { name: "Map legend" }).getByText("No available truck")).toBeVisible();
+
+  await choose(page, page.getByLabel("Fire district"), "Fire District II (CAMANAVA)");
+  await expect.poll(countOf).toBeLessThan(all);
+  const legend = page.getByRole("list", { name: "Map legend" });
+  // Only Fire District II's colour (plus "No available truck") remains in the legend.
+  await expect(legend.getByRole("listitem")).toHaveText([/^Fire District II\b/, "No available truck"]);
+
+  await page.getByLabel("Search stations").fill("zzz-no-such-station");
+  await expect(page.getByText(/^0 stations · 0 with an available truck$/)).toBeVisible();
+});

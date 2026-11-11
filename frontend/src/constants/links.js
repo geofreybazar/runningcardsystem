@@ -1,4 +1,4 @@
-import { Bell, CalendarRange, ChartColumn, Flame, Info, ScrollText, Settings, Siren, Truck, Users } from "lucide-react";
+import { Bell, CalendarRange, ChartColumn, Flame, Info, MapPinned, ScrollText, Settings, Siren, Truck, Users } from "lucide-react";
 
 const ALL = ["SUPER_ADMIN", "ADMIN", "OPERATIONS", "RADIO_OPERATOR"];
 
@@ -8,7 +8,8 @@ export const NAV = [
   { to: "/", label: "Running Card", icon: Flame, group: "Operations", roles: ["SUPER_ADMIN", "RADIO_OPERATOR"] },
   { to: "/incidents", label: "Incidents", icon: Siren, group: "Operations", roles: ALL },
   { to: "/notifications", label: "Notifications", icon: Bell, group: "Operations", roles: ALL },
-    { to: "/stations", label: "Stations & Trucks", icon: Truck, group: "Resources", roles: ALL },
+  { to: "/stations", label: "Stations & Trucks", icon: Truck, group: "Resources", roles: ALL },
+  { to: "/station-map", label: "Station Map", icon: MapPinned, group: "Resources", roles: ALL },
   // Planned events (ASEAN, SONA): everyone sees where trucks went; Regional Operations manages them.
   { to: "/deployments", label: "Special Deployments", icon: CalendarRange, group: "Resources", roles: ALL },
   { to: "/statistics", label: "Statistics", icon: ChartColumn, group: "Analysis", roles: ALL },
