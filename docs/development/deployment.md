@@ -8,6 +8,7 @@
 |---|---|---|
 | `db` | `postgres:16` | user/password/db set in the compose file; volume `pgdata`; healthcheck `pg_isready`; no host port published |
 | `backend` | `./backend` (`Dockerfile`) | `env_file: ./backend/.env`; overrides `DATABASE_URL` to the `db` service and `FRONTEND_ORIGIN` to `http://localhost:8080`; waits for a healthy `db` |
+| `osrm` | `ghcr.io/project-osrm/osrm-backend` (pinned) | road router for the running card, internal only; reads the graph from `deploy/osrm/data` (see below); without it, it idles and the API uses straight-line distances |
 | `frontend` | `./frontend` (`Dockerfile`) | build arg `VITE_GOOGLE_API` from the shell or a `.env` next to the compose file; publishes `8080:80` |
 
 ```bash
@@ -16,6 +17,21 @@ docker compose up --build       # http://localhost:8080
 ```
 
 The compose file contains a development-style Postgres password; change it for real deployments.
+
+## OSRM road graph (`deploy/osrm/`)
+
+The running card ranks stations by road distance ([routing](../modules/routing.md)). The `osrm` service needs a road graph built from OpenStreetMap, which is not in git:
+
+```bash
+deploy/osrm/prepare.sh          # downloads the Philippines extract, clips to NCR, builds deploy/osrm/data/
+docker compose restart osrm     # if the stack is already running
+```
+
+- Needs Docker, ~1.5 GB free disk and ~2 GB RAM while it runs (a few minutes). The running `osrm` container needs far less (check with `docker stats`).
+- Run it again to pick up new roads (monthly is plenty). It swaps in the new graph only when the build completes.
+- Without the graph, `osrm` logs a hint and idles; the API falls back to straight-line distances and the card says so (≈). CD does not build the graph: run the script once on the VPS.
+- Dev without Docker: leave `OSRM_URL` unset in `backend/.env`. To test road distances locally, publish the port (`ports: ["5000:5000"]` in a local override) and set `OSRM_URL=http://localhost:5000`.
+- Image version: `docker-compose.yml` and `prepare.sh` must use the same OSRM release (the graph format is versioned).
 
 ## Backend image (`backend/Dockerfile`)
 
@@ -51,15 +67,16 @@ The repo layout doesn't matter here: the VPS clones the repo and builds both ima
 5. **Secrets** (never committed):
    - `cp .env.example .env`, then set `DOMAIN`, `POSTGRES_PASSWORD` (`openssl rand -hex 24`) and `VITE_GOOGLE_API`.
    - `cp backend/.env.example backend/.env`, then set `JWT_SECRET` (`openssl rand -base64 48`), real `SUPERADMIN_ACCOUNT_NUMBER` / `SUPERADMIN_PASSWORD`, and `SEED_PLACEHOLDER_TRUCKS=false` (plus `SEED_STATIONS=false` if offices will enter their own stations). The override sets `DATABASE_URL`, `FRONTEND_ORIGIN` and `TRUST_PROXY`, and the image sets `NODE_ENV=production`.
-6. **Start:** `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`. Migrations and the seed run on start. Open `https://<domain>`, sign in as the Super Admin and change the password.
-7. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
-8. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.
+6. **Road graph:** `deploy/osrm/prepare.sh` (see [OSRM road graph](#osrm-road-graph-deployosrm)).
+7. **Start:** `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`. Migrations and the seed run on start. Open `https://<domain>`, sign in as the Super Admin and change the password.
+8. **Google key:** restrict it by HTTP referrer to `https://<domain>/*`.
+9. **Backups:** `crontab -e`, then add `30 2 * * * /path/to/runningcardsystem/deploy/backup.sh >> /var/log/rcs-backup.log 2>&1`. Dumps go to `backups/` and are kept 14 days. They are still on the same server: copy them off it or enable Hostinger's VPS backups.
    - Restore (into an empty database): `gunzip -c backups/<file>.sql.gz | docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T db psql -U postgres runningcard`.
-9. **Updates:** automatic once [continuous deployment](#continuous-deployment) is set up. By hand: `git pull`, then the same `up -d --build` command, prefixed with `GIT_COMMIT=$(git rev-parse --short HEAD)` so the About page shows the commit (without it, only the version and build date). Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
+10. **Updates:** automatic once [continuous deployment](#continuous-deployment) is set up. By hand: `git pull`, then the same `up -d --build` command (and `deploy/osrm/prepare.sh` now and then for new roads), prefixed with `GIT_COMMIT=$(git rev-parse --short HEAD)` so the About page shows the commit (without it, only the version and build date). Data (`pgdata`) and certificates (`caddy_data`) live in volumes and survive rebuilds.
 
 ### Continuous deployment
 
-The `deploy` job in `.github/workflows/ci.yml` runs after the frontend, backend and browser jobs pass on a push to `main`. It SSHes into the VPS, fast-forwards the clone to the tested commit, runs step 9's `up -d --build` with `--wait` (the job fails if a service doesn't come up), and prunes old images. Pull requests never deploy. A newer push to `main` waits for the running deploy instead of cancelling it. The job is skipped until `VPS_HOST` is set.
+The `deploy` job in `.github/workflows/ci.yml` runs after the frontend, backend and browser jobs pass on a push to `main`. It SSHes into the VPS, fast-forwards the clone to the tested commit, runs step 10's `up -d --build` with `--wait` (the job fails if a service doesn't come up), and prunes old images. Pull requests never deploy. A newer push to `main` waits for the running deploy instead of cancelling it. The job is skipped until `VPS_HOST` is set.
 
 One-time setup:
 1. On the VPS, as root: `adduser --disabled-password deploy && usermod -aG docker deploy`, then `chown -R deploy: /opt/runningcardsystem`. Docker group membership is root-equivalent, so this key gets full control of the VPS: keep it only in GitHub secrets.

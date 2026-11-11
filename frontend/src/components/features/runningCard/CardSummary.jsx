@@ -1,16 +1,17 @@
 import { districtName } from "@/utils/permissions.js";
+import { isStraightLine } from "@/utils/distance.js";
 
-/** At a glance: how much help is in range, how close the nearest is, and which districts it comes from. */
+/** At a glance: how much help is in range, how close the nearest is (by road; ≈ = straight-line fallback), and which districts it comes from. */
 function CardSummary({ runningCard }) {
   const stations = runningCard.flatMap((a) => a.stations);
   const trucks = stations.reduce((n, s) => n + s.trucks.length, 0);
-  const nearest = Math.min(...stations.map((s) => s.distance));
+  const nearest = stations.reduce((a, b) => (b.distance < a.distance ? b : a));
   const districts = [...new Map(stations.map((s) => [s.district.code, s.district])).values()].sort((a, b) => a.code - b.code);
   const figures = [
     ["Alarm levels", runningCard.length],
     ["Stations", stations.length],
     ["Trucks available", trucks],
-    ["Nearest", `${nearest.toFixed(1)} km`],
+    ["Nearest", `${isStraightLine(nearest) ? "≈" : ""}${nearest.distance.toFixed(1)} km`],
   ];
   return (
     <div className='border-b'>

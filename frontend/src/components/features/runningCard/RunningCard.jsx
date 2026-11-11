@@ -1,17 +1,18 @@
-import { Truck } from "lucide-react";
+import { TriangleAlert, Truck } from "lucide-react";
 import SimpleSelect from "@/components/common/SimpleSelect.jsx";
 import EmptyState from "@/components/common/EmptyState.jsx";
 import { cn } from "@/lib/utils";
 import { alarmTone } from "@/utils/alarm.js";
 import { districtName } from "@/utils/permissions.js";
 import { TRUCK_TYPES } from "@/constants/truck.js";
+import { STRAIGHT_LINE_HINT, anyStraightLine, isStraightLine } from "@/utils/distance.js";
 
 const truckLabel = (t) => `${t.callSign} · ${TRUCK_TYPES[t.type]}`;
 
 /**
  * The running card: one section per alarm level (its header on the escalation scale), stations nearest first.
  * Each row: order, district colour, station and city, the truck that goes (pickable when the station has several),
- * distance. Every listed truck is Available: the card is built from live status.
+ * road distance (km). Every listed truck is Available: the card is built from live status.
  */
 function RunningCard({ runningCard, truckPicks = {}, onPickTruck }) {
   if (!runningCard) return null;
@@ -26,6 +27,12 @@ function RunningCard({ runningCard, truckPicks = {}, onPickTruck }) {
   let order = 0;
   return (
     <div className='flex flex-col'>
+      {anyStraightLine(runningCard.flatMap((a) => a.stations)) && (
+        <p role='status' className='flex items-start gap-2 border-b border-l-2 border-l-warning bg-warning/10 px-4 py-1.5 text-xs'>
+          <TriangleAlert className='mt-px size-3.5 shrink-0 text-warning-foreground' aria-hidden='true' />
+          Road routing is unavailable, so distances marked ≈ are straight-line and the order may not match the roads.
+        </p>
+      )}
       {runningCard.map((alarm, i) => (
         <section key={alarm.alarmLevel} aria-label={alarm.alarmLevel} className='border-b last:border-b-0'>
           <header className={cn("flex items-center justify-between px-4 py-1.5", alarmTone(alarm.index ?? i))}>
@@ -69,7 +76,11 @@ function RunningCard({ runningCard, truckPicks = {}, onPickTruck }) {
                       </div>
                     )}
                   </div>
-                  <span className='text-right font-data text-base text-foreground'>
+                  <span
+                    className='text-right font-data text-base text-foreground'
+                    title={isStraightLine(station) ? STRAIGHT_LINE_HINT : "Distance by road"}
+                  >
+                    {isStraightLine(station) && <span className='mr-0.5 text-warning-foreground'>≈</span>}
                     {station.distance.toFixed(1)}
                     <span className='ml-0.5 text-xs text-muted-foreground'>km</span>
                   </span>

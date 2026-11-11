@@ -19,7 +19,8 @@ Controller `RunningCardController` (`backend/src/running-card/running-card.contr
           "contactNumber": null,
           "district": { "code": 1, "name": "Fire District 1", "color": "#fb923c" },
           "trucks": [{ "id": 30, "callSign": "…", "type": "ENGINE", "plateNumber": null, "waterCapacityLiters": null }],
-          "distance": 0.01
+          "distance": 0.01,
+          "byRoad": true
         }
       ]
     }
@@ -27,5 +28,5 @@ Controller `RunningCardController` (`backend/src/running-card/running-card.contr
 }
 ```
 
-- `distance` is kilometers (haversine). Only `AVAILABLE`, active Mini Pumpers, Engines and Tankers are listed (special units are requested per incident); stations without one are omitted. Empty alarm levels are dropped. See [business processes](../architecture/business-processes.md#1-building-the-running-card).
+- `distance` is road kilometers from the station to the fire ([routing](../modules/routing.md)). `byRoad: false` means road routing was unavailable and it is the straight-line distance; the web app marks it with ≈. The same fields appear on next-alarm previews, special-unit lists, and the `runningCard` saved on an incident (incidents saved before road distances have no `byRoad`). Only `AVAILABLE`, active Mini Pumpers, Engines and Tankers are listed (special units are requested per incident); stations without one are omitted. Empty alarm levels are dropped. See [business processes](../architecture/business-processes.md#1-building-the-running-card).
 - **Errors:** 400 for missing or invalid coordinates. Coordinates outside NCR are valid: `city` is `null` and stations within `maxDistanceKm` are still listed.

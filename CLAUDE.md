@@ -36,7 +36,7 @@ CI: `.github/workflows/ci.yml` runs both apps' lint/test/build plus backend e2e 
 - **Offices drive access.** `User.officeLevel` REGIONAL/DISTRICT/CITY → `areaCityIds` and `dispatchCityId`, computed in `backend/src/auth/area.ts` and added to every request's user by `UserLoader`. Only Radio Operators of the fire's city (FD1/FD5 district offices count as their single city) and Super Admin dispatch. The frontend mirror is `frontend/src/utils/permissions.js` (+ `constants/office.js`); keep them in sync.
 - **City of a point** comes from bundled barangay outlines (`CityDirectory.cityAt`), not from Google. The cache is per process; restart after re-seeding.
 - **Tokens:** 15-min access JWT in memory on the client; rotating 7-day refresh token only in the httpOnly `rcs_rt` cookie (path `/api/auth`). The user is reloaded every request, so disabling an account takes effect immediately.
-- **Running card** is computed per request from live truck status. Dispatch claims trucks with conditional updates in a transaction (one truck per station, never double-booked).
+- **Running card** is computed per request from live truck status, ranked by road distance from the self-hosted OSRM router (`backend/src/routing/`, `deploy/osrm/prepare.sh`); if OSRM is down it falls back to straight-line (`byRoad: false`), never fails. Dispatch claims trucks with conditional updates in a transaction (one truck per station, never double-booked).
 - **Special deployments** (ASEAN, SONA): Regional Operations sets trucks to `DEPLOYED`, which the running card and dispatch skip (they take `AVAILABLE` only). Only the deployment sets and clears `DEPLOYED`.
 - **Soft deletes** for users, stations and trucks; incident history keeps references.
 

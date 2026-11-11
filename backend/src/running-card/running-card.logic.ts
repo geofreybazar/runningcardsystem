@@ -21,14 +21,22 @@ export const haversineKm = (a: LatLng, b: LatLng) => {
 };
 
 /**
- * Nearest stations first, grouped `stationsPerAlarm` per alarm level, one group per entry in `alarmLevels`.
- * Callers pass only stations that can respond (active, with an available truck).
+ * Stations within `maxKm` in a straight line. A road is never shorter than the straight line, so this drops no station
+ * that is within `maxKm` by road; it only keeps the routing request small.
  */
-export function buildRunningCard<S extends LatLng>(origin: LatLng, stations: S[], rules: CardRules) {
-  const ranked = stations
-    .map((s) => ({ ...s, distance: haversineKm(origin, s) }))
-    .filter((s) => s.distance <= rules.maxDistanceKm)
-    .sort((a, b) => a.distance - b.distance);
+export const withinStraightLine = <S extends LatLng>(origin: LatLng, stations: S[], maxKm: number) =>
+  stations.filter((s) => haversineKm(origin, s) <= maxKm);
+
+/** Within `maxKm`, nearest first, by the distance already on each station (road km, or straight line as a fallback). */
+export const nearestFirst = <S extends { distance: number }>(stations: S[], maxKm: number) =>
+  stations.filter((s) => s.distance <= maxKm).sort((a, b) => a.distance - b.distance);
+
+/**
+ * Nearest stations first, grouped `stationsPerAlarm` per alarm level, one group per entry in `alarmLevels`.
+ * Callers pass only stations that can respond (active, with an available truck), each with its distance to the fire.
+ */
+export function buildRunningCard<S extends { distance: number }>(stations: S[], rules: CardRules) {
+  const ranked = nearestFirst(stations, rules.maxDistanceKm);
   return rules.alarmLevels
     .map((alarmLevel, i) => ({
       alarmLevel,

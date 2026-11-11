@@ -8,6 +8,7 @@ import { SPECIAL_TRUCK_TYPES, TRUCK_TYPES } from "@/constants/truck.js";
 import { districtName } from "@/utils/permissions.js";
 import useGetSpecialUnits from "@/hooks/incidents/useGetSpecialUnits.js";
 import useRequestSpecialUnit from "@/hooks/incidents/useRequestSpecialUnit.js";
+import { STRAIGHT_LINE_HINT, isStraightLine } from "@/utils/distance.js";
 
 const TYPE_OPTIONS = SPECIAL_TRUCK_TYPES.map((t) => ({ value: t, label: TRUCK_TYPES[t] }));
 
@@ -47,7 +48,10 @@ function RequestSpecialUnit({ incident, disabled }) {
                     {truck.plateNumber && ` · ${truck.plateNumber}`}
                   </div>
                 </div>
-                <span className='shrink-0 font-data text-base text-muted-foreground'>{station.distance.toFixed(1)} km</span>
+                <span className='shrink-0 font-data text-base text-muted-foreground' title={isStraightLine(station) ? STRAIGHT_LINE_HINT : "Distance by road"}>
+                  {isStraightLine(station) && <span className='mr-0.5 text-warning-foreground'>≈</span>}
+                  {station.distance.toFixed(1)} km
+                </span>
                 <Button
                   size='sm'
                   variant='outline'

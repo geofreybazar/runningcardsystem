@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
-import { buildRunningCard, haversineKm, type LatLng } from './running-card.logic.js';
+import { buildRunningCard, nearestFirst, withinStraightLine, type LatLng } from './running-card.logic.js';
+import { RoadDistanceService } from '../routing/road-distance.service.js';
 import { RUNNING_CARD_TRUCK_TYPES, type SPECIAL_TRUCK_TYPES } from '../shared/validation.js';
 
 const STATION_SELECT = {
@@ -17,9 +18,19 @@ const TRUCK_SELECT = { id: true, callSign: true, type: true, plateNumber: true, 
 
 @Injectable()
 export class RunningCardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roads: RoadDistanceService,
+  ) {}
 
-  /** Live card: only active stations with an available Mini Pumper, Engine or Tanker, each listing those trucks. */
+  /** Stations in straight-line range, each with `distance` (road km) and `byRoad` (false: straight-line fallback). */
+  private async withDistances<S extends LatLng>(origin: LatLng, stations: S[], maxKm: number) {
+    const candidates = withinStraightLine(origin, stations, maxKm);
+    const distances = await this.roads.fromStations(origin, candidates);
+    return candidates.map((s, i) => ({ ...s, ...distances[i] }));
+  }
+
+  /** Live card, ranked by road distance: only active stations with an available Mini Pumper, Engine or Tanker, each listing those trucks. */
   async generate(origin: LatLng, { excludeStationIds = [] as number[] } = {}) {
     const onCard: Prisma.TruckWhereInput = { isActive: true, status: 'AVAILABLE', type: { in: [...RUNNING_CARD_TRUCK_TYPES] } };
     const [settings, stations] = await Promise.all([
@@ -29,7 +40,7 @@ export class RunningCardService {
         select: { ...STATION_SELECT, trucks: { where: onCard, select: TRUCK_SELECT, orderBy: { id: 'asc' } } },
       }),
     ]);
-    return buildRunningCard(origin, stations, settings);
+    return buildRunningCard(await this.withDistances(origin, stations, settings.maxDistanceKm), settings);
   }
 
   /** Nearest active stations (within the card's range) with an available truck of one special type. */
@@ -42,10 +53,6 @@ export class RunningCardService {
         select: { ...STATION_SELECT, trucks: { where: ofType, select: TRUCK_SELECT, orderBy: { id: 'asc' } } },
       }),
     ]);
-    return stations
-      .map((s) => ({ ...s, distance: haversineKm(origin, s) }))
-      .filter((s) => s.distance <= settings.maxDistanceKm)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, limit);
+    return nearestFirst(await this.withDistances(origin, stations, settings.maxDistanceKm), settings.maxDistanceKm).slice(0, limit);
   }
 }
