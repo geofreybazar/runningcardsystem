@@ -3,13 +3,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Page from "@/components/common/Page.jsx";
 import Filters from "@/components/features/statistics/Filters.jsx";
 import Stats from "@/components/features/statistics/Stats.jsx";
+import useAuth from "@/hooks/auth/useAuth.js";
 import useGetDistricts from "@/hooks/districts/useGetDistricts.js";
 import useGetStatistics from "@/hooks/statistics/useGetStatistics.js";
 import useDownloadIncidentsCsv from "@/hooks/statistics/useDownloadIncidentsCsv.js";
-import { presetRange } from "@/utils/stats.js";
+import { areaDistricts, presetRange } from "@/utils/stats.js";
 
-/** Incident statistics for the viewer's area (the server applies the same visibility as the Incidents page). */
+/** Statistics of the fires inside the viewer's area; the server applies the same limit, the filters only offer that area. */
 function StatisticsPage() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams(); // filters live in the URL, so a link reproduces the view
   const defaults = presetRange("30d");
   const from = params.get("from") ?? defaults.from;
@@ -18,7 +20,8 @@ function StatisticsPage() {
   const cityId = params.get("cityId") ?? "";
   const query = new URLSearchParams({ from, to, ...(districtId && { districtId }), ...(cityId && { cityId }) }).toString();
 
-  const { data: districts = [] } = useGetDistricts();
+  const { data: allDistricts = [] } = useGetDistricts();
+  const districts = areaDistricts(allDistricts, user.areaCityIds);
   const { data: stats, isPlaceholderData: loading } = useGetStatistics(query);
   const { mutate: downloadCsv, isPending: downloading } = useDownloadIncidentsCsv();
 
@@ -29,7 +32,7 @@ function StatisticsPage() {
   };
 
   return (
-    <Page title='Statistics' description='Incidents in your area: trends, response times, station workload, and when and where fires happen.'>
+    <Page title='Statistics' description='Fires in your area: trends, response times, station workload, and when and where fires happen.'>
       <Filters
         from={from}
         to={to}

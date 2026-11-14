@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PERSON_SELECT, type AuthUser } from '../auth/auth-user.js';
-import { incidentVisibility } from '../incidents/incidents.service.js';
 import { addDays, computeStatistics, csvCell, manilaDateTime, manilaRange, manilaToday } from './statistics.logic.js';
 import type { StatisticsQuery } from './statistics.dto.js';
 
@@ -24,6 +23,12 @@ const INCLUDE = {
 const person = (p: { rank: string | null; firstName: string; middleName: string | null; lastName: string }) =>
   [p.rank, p.firstName, p.middleName && p.middleName.trim()[0].toUpperCase(), p.lastName].filter(Boolean).join(' ');
 
+/**
+ * Statistics count the fires inside the viewer's own cities only (city office: its city; district: its cities; regional: all).
+ * Unlike the Incidents page, a fire elsewhere does not count just because the office's trucks responded to it.
+ */
+const fireInArea = (user: AuthUser) => (user.areaCityIds === null ? {} : { cityId: { in: user.areaCityIds } });
+
 @Injectable()
 export class StatisticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -35,7 +40,7 @@ export class StatisticsService {
     return { from, to };
   }
 
-  /** Incidents the user may see, dispatched in the range, narrowed to a district or city. */
+  /** Fires in the user's area, dispatched in the range, narrowed to a district or city. */
   private async load(user: AuthUser, q: StatisticsQuery) {
     const { from, to } = this.range(q);
     const { start, end } = manilaRange(from, to);
@@ -43,7 +48,7 @@ export class StatisticsService {
       this.prisma.incident.findMany({
         where: {
           AND: [
-            incidentVisibility(user),
+            fireInArea(user),
             { createdAt: { gte: start, lt: end } },
             q.districtId ? { city: { districtId: q.districtId } } : {},
             q.cityId ? { cityId: q.cityId } : {},

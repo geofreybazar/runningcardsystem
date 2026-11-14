@@ -30,3 +30,17 @@ export function bucketLabel(bucket, kind) {
 }
 
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/**
+ * The districts and cities a statistics viewer may pick: all for the Regional office (`areaCityIds` null), otherwise only the
+ * office's own cities (`narrowed` marks a district shown with fewer cities than it has). Mirrors fireInArea() on the server.
+ */
+export function areaDistricts(districts, areaCityIds) {
+  if (areaCityIds == null) return districts;
+  return districts
+    .map((d) => {
+      const cities = d.cities.filter((c) => areaCityIds.includes(c.id));
+      return { ...d, cities, narrowed: cities.length < d.cities.length };
+    })
+    .filter((d) => d.cities.length > 0);
+}

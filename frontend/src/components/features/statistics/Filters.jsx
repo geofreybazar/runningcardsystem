@@ -14,7 +14,10 @@ function Filters({ from, to, districtId, cityId, districts, onChange, onDownload
     const r = presetRange(p.value);
     return r.from === from && r.to === to;
   })?.value;
-  const district = districts.find((d) => String(d.id) === districtId);
+  // A district or city office sees one district (and a city office one city): show it, locked.
+  const districtLocked = districts.length === 1;
+  const district = districtLocked ? districts[0] : districts.find((d) => String(d.id) === districtId);
+  const cityLocked = district?.cities.length === 1 && district.narrowed;
 
   return (
     <div className='sticky top-12 z-20 -mx-3 flex flex-wrap items-end gap-3 border-b bg-background/95 px-3 py-2 backdrop-blur md:-mx-5 md:px-5'>
@@ -38,18 +41,20 @@ function Filters({ from, to, districtId, cityId, districts, onChange, onDownload
       <SimpleSelect
         className='h-9 w-56 bg-card'
         aria-label='District'
-        value={districtId}
+        value={districtLocked ? String(district.id) : districtId}
+        disabled={districtLocked}
         onChange={(v) => set({ districtId: v === "all" ? "" : String(v), cityId: "" })}
-        options={[{ value: "all", label: "All districts" }, ...districts.map((d) => ({ value: String(d.id), label: districtName(d) }))]}
+        options={[...(districtLocked ? [] : [{ value: "all", label: "All districts" }]), ...districts.map((d) => ({ value: String(d.id), label: districtName(d) }))]}
         placeholder='All districts'
       />
-      {district && district.cities.length > 1 && (
+      {district && (district.cities.length > 1 || cityLocked) && (
         <SimpleSelect
           className='h-9 w-44 bg-card'
           aria-label='City'
-          value={cityId}
+          value={cityLocked ? String(district.cities[0].id) : cityId}
+          disabled={cityLocked}
           onChange={(v) => set({ cityId: v === "all" ? "" : String(v) })}
-          options={[{ value: "all", label: "All cities" }, ...district.cities.map((c) => ({ value: String(c.id), label: c.name }))]}
+          options={[...(cityLocked ? [] : [{ value: "all", label: "All cities" }]), ...district.cities.map((c) => ({ value: String(c.id), label: c.name }))]}
           placeholder='All cities'
         />
       )}

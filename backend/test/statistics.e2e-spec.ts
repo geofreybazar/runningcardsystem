@@ -48,6 +48,18 @@ describe('statistics', () => {
     expect((await stats(caloocanRadio, '?districtId=3')).summary.incidents).toBe(0);
   });
 
+  it('counts only fires inside the office’s cities, not fires elsewhere its trucks responded to', async () => {
+    const fire = (await http.get(`/api/incidents/${fireId}`).set(superAdmin).expect(200)).body;
+    const helper = fire.units.find((u: { station: { cityId: number | null } }) => u.station.cityId !== null && u.station.cityId !== fire.cityId);
+    expect(helper).toBeDefined(); // the raised Monumento fire pulls in a station from another city
+    const helperRadio = await makeUser(app, superAdmin, 'T8004', 'RADIO_OPERATOR', { officeLevel: 'CITY', cityId: helper.station.cityId });
+    // It can open the incident (its truck responded) but its statistics leave the Caloocan fire out.
+    await http.get(`/api/incidents/${fireId}`).set(helperRadio).expect(200);
+    expect((await stats(helperRadio)).byCity.some((c) => c.name === 'Caloocan')).toBe(false);
+    const csv = (await http.get('/api/statistics/incidents.csv').set(helperRadio).expect(200)).text;
+    expect(csv).not.toContain('Stats fire');
+  });
+
   it('reports highest alarm reached, mutual aid and a daily trend', async () => {
     const s = await stats(regionalRadio);
     expect(s.byAlarm.find((a) => a.level === '2nd Alarm')!.count).toBeGreaterThanOrEqual(1);

@@ -2,7 +2,7 @@
 
 Controller `StatisticsController` (`backend/src/statistics/statistics.controller.ts`), service `StatisticsService`; aggregation in `statistics.logic.ts` (pure, unit-tested). Every route needs `operate`.
 
-**Visibility:** the same rule as incidents (`incidentVisibility()` in `incidents.service.ts`): an office sees incidents in its cities, ones its stations responded to, and ones that notified it; Regional accounts (incl. Admin and Super Admin) see all of NCR. The district/city filters narrow that further; they never widen it.
+**Scope:** only fires inside the viewer's cities (`fireInArea()` in `statistics.service.ts`, from `areaCityIds`): a city office counts its city, a district office its cities, Regional accounts (incl. Admin and Super Admin) all of NCR. Unlike the Incidents page, a fire in another city is not counted even when the office's trucks responded to it, so mutual aid only shows trucks sent between cities of the same area. The district/city filters narrow that further; they never widen it. The page locks the district and city filters to the office's area.
 
 **Times** are Manila time (UTC+8): date filters, daily/weekly buckets, the weekday x hour grid, and CSV timestamps.
 
