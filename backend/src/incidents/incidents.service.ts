@@ -106,7 +106,7 @@ export class IncidentsService {
       throw new NotFoundException('Incident not found');
     }
     const levels = await this.alarmLevels();
-    const { notifications, ...rest } = incident;
+    const { notifications: _notifications, ...rest } = incident; // the timeline replaces the raw notifications
     return { ...rest, alarmLevel: levels[incident.alarmIndex], nextAlarmLevel: levels[incident.alarmIndex + 1] ?? null, timeline: timeline(incident) };
   }
 

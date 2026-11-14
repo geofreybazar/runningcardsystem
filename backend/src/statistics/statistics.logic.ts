@@ -194,7 +194,7 @@ export function computeStatistics(incidents: StatIncident[], opts: { from: strin
 }
 
 /** One spreadsheet cell: quoted, and leading = + - @ (formula triggers in Excel/Sheets) neutralised with a quote. */
-export function csvCell(value: unknown): string {
+export function csvCell(value: string | number | null | undefined): string {
   let s = value === null || value === undefined ? '' : String(value);
   if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return `"${s.replace(/"/g, '""')}"`;
