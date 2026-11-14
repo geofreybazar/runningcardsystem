@@ -9,7 +9,7 @@ function RaiseAlarm({ incident, next, truckPicks, onPickTruck, busy, onRaise }) 
   return (
     <Panel
       title={`Next: ${next.alarmLevel}`}
-      meta={stations ? `${stations} station${stations === 1 ? "" : "s"} not yet on this incident` : "no more stations in range"}
+      meta={stations ? `${stations} nearest station${stations === 1 ? "" : "s"} (own-city stations can send another truck)` : "no more stations in range"}
       flush
     >
       <RunningCard

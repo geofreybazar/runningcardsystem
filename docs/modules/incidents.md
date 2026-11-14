@@ -8,7 +8,7 @@
   - `visibleTo(user)`: area filter for list and detail.
   - `list`, `get` (adds `alarmLevel`, `nextAlarmLevel`).
   - `create`: `cityAt` → `dispatchIn` → card → transaction.
-  - `nextAlarm(id)`
+  - `nextAlarm(id)`: next card, skipping outside-city stations already on the incident; own-city stations may send another truck.
   - `raise`: `dispatchIn` → conditional `alarmIndex` bump → claim.
   - `close`: `dispatchIn` → release trucks and units.
   - Private `dispatch()`: claims one truck per station with a conditional update.
