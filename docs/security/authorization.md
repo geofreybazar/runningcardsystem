@@ -73,6 +73,6 @@ flowchart LR
 
 **Notifications** (`NotificationsService.isFor` / `forUser`): an office receives and lists notifications whose `cityIds` share a city with its `areaCityIds`, with `units` cut to its own area; Regional accounts (`null` area) receive all, with all units. `IncidentsService.visibleTo()` also lets an office open incidents that notified it, so cities that are only on the running card can view the incident.
 
-**Statistics** (`/api/statistics`, `/api/statistics/incidents.csv`) use the same incident visibility (`incidentVisibility()`), so an office's counts, charts and CSV only cover incidents it can open; district/city filters only narrow that.
+**Statistics** (`/api/statistics`, `/api/statistics/incidents.csv`) count only fires inside the office's area (`areaCityIds`, `fireInArea()` in `statistics.service.ts`), not the wider incident visibility: a fire elsewhere that the office's trucks responded to can be opened on the Incidents page but is not in its statistics. District/city filters only narrow that.
 
 The frontend mirrors these rules in `frontend/src/utils/permissions.js` and in the `NAV` role lists (`constants/links.js`) only to hide UI; it is not a security boundary.
