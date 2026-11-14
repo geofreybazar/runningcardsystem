@@ -21,8 +21,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24 # same as the Dockerfiles
           cache: npm
@@ -53,8 +53,8 @@ jobs:
       JWT_SECRET: ci-only-dummy-secret-not-used-anywhere-else-0123456789
       FRONTEND_ORIGIN: http://localhost:5173
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -84,8 +84,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/runningcard_test
       JWT_SECRET: ci-only-dummy-secret-not-used-anywhere-else-0123456789
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -102,7 +102,7 @@ jobs:
         working-directory: frontend
       - run: npm run test:e2e
         working-directory: frontend
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
