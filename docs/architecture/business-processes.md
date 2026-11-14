@@ -72,7 +72,7 @@ Rules:
 Source: `incidents.service.ts` (`nextAlarm`, `raise`).
 
 1. Load the open incident (404 if missing, 400 if closed); authorize `dispatchIn(user, incident.cityId)`.
-2. `nextAlarm()`: next level name = `alarmLevels[alarmIndex + 1]` (null → 400 "already at the highest alarm level"). Recompute the card from the incident location, excluding stations already on the incident by an alarm (units with `special = false`); the first group becomes the next alarm.
+2. `nextAlarm()`: next level name = `alarmLevels[alarmIndex + 1]` (null → 400 "already at the highest alarm level"). Recompute the card from the incident location, excluding stations from other cities already on the incident by an alarm (units with `special = false` whose station `cityId` differs from the incident's). Stations of the fire's own city (their area of responsibility) are not excluded, so while they have an available truck and rank among the nearest they send another one each alarm, taking one of the `stationsPerAlarm` slots. The first group becomes the next alarm.
 3. In a transaction: `UPDATE Incident SET alarmIndex = alarmIndex + 1 WHERE id AND status = OPEN AND alarmIndex = <value read in step 2>`. If 0 rows → 409 (someone else raised it). Then claim trucks as in dispatch (409 if none).
 
 `GET /api/incidents/:id/next-alarm` returns the same preview without changing anything.

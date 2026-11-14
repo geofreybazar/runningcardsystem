@@ -146,14 +146,15 @@ export class IncidentsService {
     return this.nextAlarm(id);
   }
 
-  /** What "Raise alarm" would send now: the nearest stations not yet on this incident. */
+  /** What "Raise alarm" would send now: the nearest stations, minus outside-city stations already on this incident. */
   async nextAlarm(id: string) {
     const incident = await this.openIncident(id);
     const levels = await this.alarmLevels();
     const alarmLevel = levels[incident.alarmIndex + 1];
     if (!alarmLevel) return null;
-    // A station that only sent a special unit (e.g. its ambulance) still sends a pumper on the next alarm.
-    const onAlarms = incident.units.filter((u) => !u.special).map((u) => u.stationId);
+    // Stations of the fire's own city (their area of responsibility) send another truck on every alarm while they are among
+    // the nearest; outside stations go once. A station that only sent a special unit still sends a pumper on the next alarm.
+    const onAlarms = incident.units.filter((u) => !u.special && u.station.cityId !== incident.cityId).map((u) => u.stationId);
     const card = await this.runningCard.generate(incident, { excludeStationIds: onAlarms });
     return { alarmLevel, fromAlarmIndex: incident.alarmIndex, stations: card[0]?.stations ?? [] };
   }

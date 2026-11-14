@@ -6,6 +6,7 @@ const SAMPALOC = { lat: 14.6079, lng: 120.995 }; // Manila (Fire District 1)
 const MONUMENTO = { lat: 14.6573, lng: 120.9839 }; // Caloocan (Fire District 2)
 const TAFT = { lat: 14.5649, lng: 120.9934 }; // Malate, Manila
 
+type CityUnit = { station: { cityId: number | null } };
 type Unit = { stationId: number; truckId: number; alarmLevel: string; releasedAt: string | null; special: boolean; truck: { status: string } };
 
 describe('incidents: dispatch, raise alarm, close', () => {
@@ -74,12 +75,14 @@ describe('incidents: dispatch, raise alarm, close', () => {
     expect(incident.units.every((u: Unit) => u.truck.status === 'RESPONDING')).toBe(true);
     expect(incident.units.find((u: Unit) => u.stationId === nearest.id).truckId).toBe(extra.body.id);
 
-    // Next alarm skips stations already on the incident.
+    // Next alarm: the Manila station with a free truck left sends another one; outside stations already on it are skipped.
     const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(manilaRadio).expect(200)).body;
     await http.get(`/api/incidents/${incident.id}/next-alarm`).set(caloocanRadio).expect(403); // only the fire city's dispatchers preview it
     expect(next.alarmLevel).toBe('2nd Alarm');
-    const onIncident = incident.units.map((u: Unit) => u.stationId);
-    expect(next.stations.some((s: { id: number }) => onIncident.includes(s.id))).toBe(false);
+    const nextIds = next.stations.map((s: { id: number }) => s.id);
+    expect(nextIds).toContain(nearest.id);
+    const outside = incident.units.filter((u: CityUnit) => u.station.cityId !== incident.cityId).map((u: Unit) => u.stationId);
+    expect(nextIds.some((id: number) => outside.includes(id))).toBe(false);
 
     const raised = (await http.post(`/api/incidents/${incident.id}/raise`).set(manilaRadio).send({}).expect(200)).body;
     expect(raised.alarmLevel).toBe('2nd Alarm');
@@ -98,6 +101,19 @@ describe('incidents: dispatch, raise alarm, close', () => {
 
     await http.post(`/api/incidents/${incident.id}/raise`).set(manilaRadio).send({}).expect(400);
     await http.post(`/api/incidents/${incident.id}/close`).set(manilaRadio).expect(400);
+  });
+
+  it('skips outside stations already on the incident when raising the alarm', async () => {
+    // Monumento sits by the Malabon / Manila / Quezon City borders, so its 1st Alarm includes outside stations.
+    const incident = (await dispatch(caloocanRadio, MONUMENTO).expect(201)).body;
+    const outside = incident.units.filter((u: CityUnit) => u.station.cityId !== incident.cityId).map((u: Unit) => u.stationId);
+    expect(outside.length).toBeGreaterThan(0);
+    for (const stationId of outside) {
+      await http.post(`/api/stations/${stationId}/trucks`).set(superAdmin).send({ callSign: `Spare ${stationId}`, type: 'ENGINE', ownership: 'BFP' }).expect(201);
+    }
+    const next = (await http.get(`/api/incidents/${incident.id}/next-alarm`).set(caloocanRadio).expect(200)).body;
+    expect(next.stations.some((s: { id: number }) => outside.includes(s.id))).toBe(false);
+    await http.post(`/api/incidents/${incident.id}/close`).set(caloocanRadio).expect(200);
   });
 
   it('never sends a truck that is already on another incident', async () => {
