@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 
-export const RANKS = ['FO1', 'FO2', 'FO3', 'SFO1', 'SFO2', 'SFO3', 'SFO4', 'FINSP', 'FSINSP', 'FCINSP', 'FSUPT', 'FSSUPT', 'FCSUPT'] as const;
+export const RANKS = ['NUP', 'FO1', 'FO2', 'FO3', 'SFO1', 'SFO2', 'SFO3', 'SFO4', 'FINSP', 'FSINSP', 'FCINSP', 'FSUPT', 'FSSUPT', 'FCSUPT'] as const;
 export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'RADIO_OPERATOR'] as const;
 export const OFFICE_LEVELS = ['REGIONAL', 'DISTRICT', 'CITY'] as const;
 export const TRUCK_TYPES = ['MINI_PUMPER', 'ENGINE', 'TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE'] as const;
