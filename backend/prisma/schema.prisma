@@ -48,6 +48,8 @@ enum OfficeLevel {
 
 /// BFP ranks, lowest to highest (declaration order is the sort order).
 enum Rank {
+  /// Non-Uniformed Personnel (civilian staff); declared first so it sorts below FO1.
+  NUP
   FO1
   FO2
   FO3
