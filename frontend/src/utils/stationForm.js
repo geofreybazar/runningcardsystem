@@ -1,4 +1,5 @@
 import { TRUCK_TYPES } from "@/constants/truck.js";
+import { carriesWater } from "@shared/validation";
 
 export const truckTypeOptions = () => Object.entries(TRUCK_TYPES).map(([value, label]) => ({ value, label }));
 
@@ -18,10 +19,11 @@ export const truckBody = (f) => ({
   plateNumber: nullIfBlank(f.plateNumber?.trim()),
   type: f.type,
   ownership: f.ownership,
-  waterCapacityLiters: f.waterCapacityLiters === "" ? null : Number(f.waterCapacityLiters),
+  // Special units carry no water, so a value typed before switching the type is dropped.
+  waterCapacityGallons: !carriesWater(f.type) || f.waterCapacityGallons === "" ? null : Number(f.waterCapacityGallons),
 });
 
-export const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityLiters: "", ownership: "BFP" };
+export const EMPTY_TRUCK = { callSign: "", plateNumber: "", type: "ENGINE", waterCapacityGallons: "", ownership: "BFP" };
 
 /** Form values for an existing station, or a new one (its city preset when only one is editable). */
 export const stationToForm = (s, editableCities) =>
@@ -30,4 +32,4 @@ export const stationToForm = (s, editableCities) =>
     : { name: "", cityId: editableCities.length === 1 ? editableCities[0].id : "", address: "", contactNumber: "", lat: null, lng: null };
 
 export const truckToForm = (t) =>
-  t ? { ...EMPTY_TRUCK, ...t, plateNumber: t.plateNumber ?? "", waterCapacityLiters: t.waterCapacityLiters ?? "" } : EMPTY_TRUCK;
+  t ? { ...EMPTY_TRUCK, ...t, plateNumber: t.plateNumber ?? "", waterCapacityGallons: t.waterCapacityGallons ?? "" } : EMPTY_TRUCK;

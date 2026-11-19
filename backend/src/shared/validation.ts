@@ -96,12 +96,25 @@ const truckFields = {
   callSign: text(80),
   plateNumber: optionalText(20),
   type: z.enum(TRUCK_TYPES, { error: 'Choose a truck type' }),
-  waterCapacityLiters: z.int({ error: 'Whole litres only' }).min(0, 'Cannot be negative').nullable().optional(),
+  /** US gallons. Only fire apparatus (RUNNING_CARD_TRUCK_TYPES) carry water. */
+  waterCapacityGallons: z.int({ error: 'Whole gallons only' }).min(0, 'Cannot be negative').nullable().optional(),
   ownership: z.enum(TRUCK_OWNERSHIPS, { error: 'Choose an owner' }),
 };
 
-export const createTruckSchema = z.strictObject(truckFields);
-export const updateTruckSchema = z.strictObject({ ...truckFields, status: z.enum(TRUCK_STATUSES) }).partial();
+export const NO_WATER_MESSAGE = 'Only fire apparatus carry water';
+/** Special units (Ladder, Rescue, CSSR, Ambulance) carry no water. */
+export const carriesWater = (type: string | undefined) => !(SPECIAL_TRUCK_TYPES as readonly string[]).includes(type ?? '');
+
+type TruckShape = { type?: string; waterCapacityGallons?: number | null };
+const withTruckRules = <T extends z.ZodType<TruckShape>>(schema: T) =>
+  schema.superRefine((t, ctx) => {
+    if (t.type && !carriesWater(t.type) && t.waterCapacityGallons != null)
+      ctx.addIssue({ code: 'custom', path: ['waterCapacityGallons'], message: NO_WATER_MESSAGE });
+  });
+
+export const createTruckSchema = withTruckRules(z.strictObject(truckFields));
+/** Partial edits: when `type` is left out, StationsService checks water against the stored type. */
+export const updateTruckSchema = withTruckRules(z.strictObject({ ...truckFields, status: z.enum(TRUCK_STATUSES) }).partial());
 
 // --- Special deployments ------------------------------------------------------------------------------------------
 

@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AccessPolicy } from '../auth/access.policy.js';
 import type { AuthUser } from '../auth/auth-user.js';
+import { carriesWater, NO_WATER_MESSAGE } from '../shared/validation.js';
 import type { CreateStationDto, CreateTruckDto, UpdateStationDto, UpdateTruckDto } from './stations.dto.js';
 
 const STATION_INCLUDE = {
@@ -96,7 +97,7 @@ export class StationsService {
           callSign: dto.callSign,
           plateNumber: dto.plateNumber,
           type: dto.type,
-          waterCapacityLiters: dto.waterCapacityLiters,
+          waterCapacityGallons: dto.waterCapacityGallons,
           ownership: dto.ownership,
         },
       });
@@ -109,6 +110,9 @@ export class StationsService {
     const truck = await this.findTruck(id);
     await this.authz.authorize(AccessPolicy, 'editCity', user, truck.station.cityId);
     if (dto.status) assertNotDeployed(truck);
+    // A special unit carries no water: reject a value for one, and clear it when a truck becomes one.
+    const noWater = !carriesWater(dto.type ?? truck.type);
+    if (noWater && dto.waterCapacityGallons != null) throw new BadRequestException(NO_WATER_MESSAGE);
     return this.prisma.$transaction(async (tx) => {
       // Status changes are conditional, so a truck claimed by a deployment meanwhile keeps DEPLOYED.
       if (dto.status) {
@@ -121,7 +125,7 @@ export class StationsService {
           callSign: dto.callSign,
           plateNumber: dto.plateNumber,
           type: dto.type,
-          waterCapacityLiters: dto.waterCapacityLiters,
+          waterCapacityGallons: noWater ? null : dto.waterCapacityGallons,
           ownership: dto.ownership,
         },
       });

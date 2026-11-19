@@ -11,7 +11,7 @@ import useEditTruck from "@/hooks/stations/useEditTruck.js";
 import { OWNERSHIP, toOptions } from "@/constants/truck.js";
 import { formErrors } from "@/utils/validation.js";
 import { truckBody, truckTypeOptions } from "@/utils/stationForm.js";
-import { createTruckSchema } from "@shared/validation";
+import { carriesWater, createTruckSchema } from "@shared/validation";
 
 /** Add a truck to `stationId` (initial without id) or edit one. `initial` null = closed. */
 function TruckFormDialog({ initial, stationId, onClose }) {
@@ -72,9 +72,11 @@ function TruckFormDialog({ initial, stationId, onClose }) {
               <Field label='Plate number' error={errors?.plateNumber}>
                 <Input value={form.plateNumber} onChange={(e) => setForm({ ...form, plateNumber: e.target.value })} />
               </Field>
-              <Field label='Water (liters)' error={errors?.waterCapacityLiters}>
-                <Input type='number' min={0} value={form.waterCapacityLiters} onChange={(e) => setForm({ ...form, waterCapacityLiters: e.target.value })} />
-              </Field>
+              {carriesWater(form.type) && (
+                <Field label='Water (gallons)' error={errors?.waterCapacityGallons}>
+                  <Input type='number' min={0} value={form.waterCapacityGallons} onChange={(e) => setForm({ ...form, waterCapacityGallons: e.target.value })} />
+                </Field>
+              )}
             </div>
           </div>
         )}

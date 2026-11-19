@@ -20,7 +20,7 @@ function TruckList({ trucks, editable, onEditTruck }) {
               <div className='min-w-0'>
                 <div className='font-data text-base font-semibold break-words'>{t.callSign}</div>
                 <div className='text-xs text-muted-foreground'>
-                  {[TRUCK_TYPES[t.type], OWNERSHIP[t.ownership], t.plateNumber, t.waterCapacityLiters != null && `${t.waterCapacityLiters} L`]
+                  {[TRUCK_TYPES[t.type], OWNERSHIP[t.ownership], t.plateNumber, t.waterCapacityGallons != null && `${t.waterCapacityGallons} gal`]
                     .filter(Boolean)
                     .join(", ")}
                 </div>
@@ -52,7 +52,7 @@ function TruckList({ trucks, editable, onEditTruck }) {
               <TableHead>Call sign</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Plate</TableHead>
-              <TableHead className='text-right'>Water (L)</TableHead>
+              <TableHead className='text-right'>Water (gal)</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead>Status</TableHead>
               {editable && <TableHead />}
@@ -66,7 +66,7 @@ function TruckList({ trucks, editable, onEditTruck }) {
                 </TableCell>
                 <TableCell>{TRUCK_TYPES[t.type]}</TableCell>
                 <TableCell className='font-data text-base'>{t.plateNumber ?? "—"}</TableCell>
-                <TableCell className='text-right font-data text-base'>{t.waterCapacityLiters ?? "—"}</TableCell>
+                <TableCell className='text-right font-data text-base'>{t.waterCapacityGallons ?? "—"}</TableCell>
                 <TableCell>{OWNERSHIP[t.ownership]}</TableCell>
                 <TableCell>
                   <TruckStatusControl truck={t} editable={editable} className='h-8 w-40' />

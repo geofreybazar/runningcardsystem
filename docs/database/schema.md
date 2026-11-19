@@ -75,7 +75,7 @@ Has many `Truck`, `IncidentUnit`. No index on `cityId`.
 | `callSign` | String | not unique |
 | `plateNumber` | String? | |
 | `type` | TruckType | default `ENGINE` |
-| `waterCapacityLiters` | Int? | |
+| `waterCapacityGallons` | Int? | US gallons. Null for special units (Ladder, Rescue, CSSR, Ambulance) |
 | `ownership` | TruckOwnership | default `BFP` |
 | `status` | TruckStatus | default `AVAILABLE` |
 | `isActive` | Boolean | default `true`; `false` = retired |
