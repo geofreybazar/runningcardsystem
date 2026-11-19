@@ -150,7 +150,7 @@ model Truck {
   callSign            String
   plateNumber         String?
   type                TruckType        @default(ENGINE)
-  waterCapacityLiters Int?
+  waterCapacityGallons Int?
   ownership           TruckOwnership   @default(BFP)
   status              TruckStatus      @default(AVAILABLE)
   isActive            Boolean          @default(true)

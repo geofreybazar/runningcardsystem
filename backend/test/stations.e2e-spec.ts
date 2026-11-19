@@ -59,7 +59,7 @@ describe('stations and trucks', () => {
     const truck = await http
       .post(`/api/stations/${created.body.id}/trucks`)
       .set(opsMalabon)
-      .send({ callSign: 'Malabon E-1', type: 'ENGINE', ownership: 'BFP', waterCapacityLiters: 2000 })
+      .send({ callSign: 'Malabon E-1', type: 'ENGINE', ownership: 'BFP', waterCapacityGallons: 500 })
       .expect(201);
     expect(truck.body.status).toBe('AVAILABLE');
     await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ status: 'OUT_OF_SERVICE' }).expect(200);
@@ -72,6 +72,14 @@ describe('stations and trucks', () => {
     for (const type of ['MINI_PUMPER', 'TANKER', 'LADDER', 'RESCUE_TRUCK', 'CSSR_TRUCK', 'AMBULANCE', 'ENGINE']) {
       await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type }).expect(200);
     }
+
+    // Only fire apparatus carry water: special units reject a value, and becoming one clears it.
+    await http.post(`/api/stations/${created.body.id}/trucks`).set(opsMalabon).send({ callSign: 'Malabon A-1', type: 'AMBULANCE', ownership: 'BFP', waterCapacityGallons: 100 }).expect(400);
+    await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type: 'LADDER', waterCapacityGallons: 100 }).expect(400);
+    await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ waterCapacityGallons: 500 }).expect(200);
+    const ambulance = await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ type: 'AMBULANCE' }).expect(200);
+    expect(ambulance.body.waterCapacityGallons).toBeNull();
+    await http.patch(`/api/trucks/${truck.body.id}`).set(opsMalabon).send({ waterCapacityGallons: 100 }).expect(400); // stored type is AMBULANCE
     await http.delete(`/api/trucks/${truck.body.id}`).set(opsMalabon).expect(204);
     const after = (await http.get(`/api/stations?cityId=${malabon}`).set(opsMalabon)).body.find((s: { id: number }) => s.id === created.body.id);
     expect(after.trucks).toHaveLength(0);

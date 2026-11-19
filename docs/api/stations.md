@@ -12,7 +12,7 @@ Write routes need the `editStations` ability (SUPER_ADMIN, or OPERATIONS of an o
   "trucks": [Truck…] }        // active trucks only, ordered by id
 ```
 
-**Truck object:** all `Truck` columns (`id, stationId, callSign, plateNumber, type, waterCapacityLiters, ownership, status, isActive, createdAt, updatedAt`).
+**Truck object:** all `Truck` columns (`id, stationId, callSign, plateNumber, type, waterCapacityGallons, ownership, status, isActive, createdAt, updatedAt`).
 
 ## GET /api/stations
 - **Access:** `operate` (everyone signed in).
@@ -33,12 +33,12 @@ Write routes need the `editStations` ability (SUPER_ADMIN, or OPERATIONS of an o
 - **Audit:** `DEACTIVATE` or `UPDATE`, `changes` = body.
 
 ## POST /api/stations/:id/trucks
-- **Body:** `callSign` (1–80), `type` (`MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK` or `AMBULANCE`; only Mini Pumper, Engine and Tanker go on the running card, the rest are [special units](incidents.md#get-apiincidentsidspecial-unitstype)), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityLiters?` (int ≥ 0).
+- **Body:** `callSign` (1–80), `type` (`MINI_PUMPER`, `ENGINE`, `TANKER`, `LADDER`, `RESCUE_TRUCK`, `CSSR_TRUCK` or `AMBULANCE`; only Mini Pumper, Engine and Tanker go on the running card, the rest are [special units](incidents.md#get-apiincidentsidspecial-unitstype)), `ownership` (`TruckOwnership`), `plateNumber?` (≤20), `waterCapacityGallons?` (US gallons, int ≥ 0; only Mini Pumper, Engine and Tanker carry water, a value on a special unit is 400).
 - **201:** Truck (status `AVAILABLE`). **Errors:** 400, 403, 404.
 - **Audit:** `CREATE Truck`.
 
 ## PATCH /api/trucks/:id
-- **Body (optional):** `callSign`, `plateNumber`, `type` (same four values), `waterCapacityLiters`, `ownership`, `status` (`TruckStatus`).
+- **Body (optional):** `callSign`, `plateNumber`, `type` (same values), `waterCapacityGallons`, `ownership`, `status` (`TruckStatus`). Water is checked against the resulting type: a value for a special unit is 400, and changing a truck to a special unit clears it.
 - Any status may be set by hand, including `RESPONDING` (see [gaps](../security/gaps.md)).
 - **200:** Truck. **Errors:** 400, 403, 404 `Truck not found` (also for retired trucks).
 - **Audit:** `STATUS` when the body has only `status`, else `UPDATE`.

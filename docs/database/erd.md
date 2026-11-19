@@ -61,7 +61,7 @@ erDiagram
     String callSign
     String plateNumber "nullable"
     TruckType type
-    Int waterCapacityLiters "nullable"
+    Int waterCapacityGallons "nullable"
     TruckOwnership ownership
     TruckStatus status
     Boolean isActive

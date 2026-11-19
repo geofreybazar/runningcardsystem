@@ -18,7 +18,7 @@ Controller `RunningCardController` (`backend/src/running-card/running-card.contr
           "id": 12, "name": "Sampaloc Fire Sub-Station", "lat": 14.6, "lng": 120.99,
           "contactNumber": null,
           "district": { "code": 1, "name": "Fire District 1", "color": "#fb923c" },
-          "trucks": [{ "id": 30, "callSign": "…", "type": "ENGINE", "plateNumber": null, "waterCapacityLiters": null }],
+          "trucks": [{ "id": 30, "callSign": "…", "type": "ENGINE", "plateNumber": null, "waterCapacityGallons": null }],
           "distance": 0.01,
           "byRoad": true
         }

@@ -14,7 +14,7 @@ const STATION_SELECT = {
   city: { select: { name: true } },
   district: { select: { code: true, name: true, color: true } },
 } as const;
-const TRUCK_SELECT = { id: true, callSign: true, type: true, plateNumber: true, waterCapacityLiters: true } as const;
+const TRUCK_SELECT = { id: true, callSign: true, type: true, plateNumber: true, waterCapacityGallons: true } as const;
 
 @Injectable()
 export class RunningCardService {
